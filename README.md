@@ -1,4 +1,4 @@
-# courses
+# mod-courses
 
 Copyright (C) 2019 The Open Library Foundation
 
