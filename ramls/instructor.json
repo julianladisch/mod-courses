@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "description": "Describes an instructor for a given section",
+    "additionalProperties": false,
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "UUID for this instructor"
+        },
+        "userId": {
+            "type": "string",
+            "description": "ID of associated FOLIO user (if exists)"
+        },
+        "roleId": {
+            "type": "string",
+            "description": "ID of this instructor's role"
+        },
+        "name": {
+            "type": "string",
+            "description": "The name of this instructor"
+        },
+        "sectionId": {
+            "type": "string",
+            "description": "The section this instructor teaches"
+        },
+        "metadata": {
+            "type": "object",
+            "$ref": "raml-util/schemas/metadata.schema"
+        }
+    },
+    "required": [
+        "roleId",
+        "sectionId",
+        "name"
+    ]
+}
+

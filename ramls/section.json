@@ -1,0 +1,57 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "description": "",
+    "additionalProperties": false,
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "UUID for this section"
+        },
+        "courseId": {
+            "type": "string",
+            "description": "The id of the course"
+        },
+        "section": {
+            "type": "string",
+            "description": "The name/number of this section"
+        },
+        "registerId": {
+            "type": "string",
+            "description": "PENDING"
+        },
+        "externalId": {
+            "type": "string",
+            "description": "PENDING"
+        },
+        "instructorIds": {
+            "type": "array",
+            "description": "A list of instructor ids for this section",
+            "items": {
+                "type": "string"
+            }
+        },
+        "servicepointId": {
+            "type": "string",
+            "description": "The ID of the service point associated with this section's reserves"
+        },
+        "locationId": {
+            "type": "string",
+            "description": "The ID of the location associated with this section's reserves"
+        },
+        "scheduleId": {
+            "type": "string",
+            "description": "The ID of the schedule for this section"
+        },
+        "metadata": {
+            "type": "object",
+            "$ref": "raml-util/schemas/metadata.schema"
+        }
+    },
+    "required": [
+        "courseId",
+        "section",
+        "scheduleId"
+    ]
+}
+

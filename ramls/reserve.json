@@ -1,0 +1,102 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "description": "A reserve of a single inventory item, associated with a section",
+    "additionalProperties": false,
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "UUID of this reserve"
+        },
+        "sectionId": {
+            "type": "string",
+            "description": "ID of the section"
+        },
+        "itemId": {
+            "type": "string",
+            "description": "ID of the item"
+        },
+        "barcode": {
+            "type": "string",
+            "description": "Item barcode, from item"
+        },
+        "status": {
+            "type": "object",
+            "description": "Item status, from item",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                }
+            }
+        },
+        "temporaryLocationId": {
+            "type": "string",
+            "description": "Temporary Location ID, from item"
+        },
+        "permanentLocationId": {
+            "type": "string",
+            "description": "Permanent Location ID, from item"
+        },
+        "title": {
+            "type": "string",
+            "description": "Title, from Instance"
+        },
+        "contributors": {
+            "description": "Contributor information, from Instance",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name" : {
+                        "type": "string"
+                    },
+                    "contributorTypeId": {
+                        "type": "string"
+                    },
+                    "contributorTypeText": {
+                        "type": "string"
+                    },
+                    "contributorNameTypeId": {
+                        "type": "string"
+                    },
+                    "primary": {
+                        "type": "boolean"
+                    }
+                }
+            }
+        },
+        "publication": {
+            "description": "List of publication items, from Instance",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "publisher": {
+                        "type": "string"
+                    },
+                    "place": {
+                        "type": "string"
+                    },
+                    "dateOfPublication": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "metadata": {
+            "type": "object",
+            "$ref": "raml-util/schemas/metadata.schema"
+        }
+    },
+    "required": [
+        "itemId",
+        "sectionId"
+    ]
+}
+

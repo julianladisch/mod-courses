@@ -1,0 +1,19 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "description": "",
+    "additionalProperties": false,
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": ""
+        },
+        "metadata": {
+            "type": "object",
+            "$ref": "raml-util/schemas/metadata.schema"
+        }
+    },
+    "required": [
+    ]
+}
+
