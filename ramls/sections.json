@@ -1,23 +1,23 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "description": "A collection of records",
+    "description": "A collection of sections records",
     "type": "object",
     "properties": {
-        "schedules": {
-            "description": "List of records",
-            "id": "schedules",
+        "sections": {
+            "description": "List of section records",
+            "id": "sections",
             "type": "array",
             "items": {
                 "type": "object",
-                "$ref": "schedule.json"
+                "$ref": "section.json"
             }
         },
         "totalRecords": {
             "type": "integer"
-        },
-        "required": [
-            "schedules",
-            "totalRecords"
-        ]
-    }
+        }
+    },
+    "required": [
+        "sections",
+        "totalRecords"
+    ]
 }

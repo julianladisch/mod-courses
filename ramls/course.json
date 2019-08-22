@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
-    "description": "",
+    "description": "A course offered by the institution",
     "additionalProperties": false,
     "properties": {
         "id": {

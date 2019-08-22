@@ -1,10 +1,10 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "description": "A collection of records",
+    "description": "A collection of course records",
     "type": "object",
     "properties": {
         "courses": {
-            "description": "List of records",
+            "description": "List of course records",
             "id": "courses",
             "type": "array",
             "items": {
@@ -14,10 +14,10 @@
         },
         "totalRecords": {
             "type": "integer"
-        },
-        "required": [
-            "courses",
-            "totalRecords"
-        ]
-    }
+        }        
+    },
+    "required": [
+        "courses",
+        "totalRecords"
+    ]
 }

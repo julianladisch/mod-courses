@@ -1,0 +1,70 @@
+#%RAML 1.0
+title: Course Reserves API
+version: v1
+protocols: [ HTTP, HTTPS ]
+baseUri: http://github.com/org/folio/mod-courses
+
+documentation:
+    - title: Course Reserves API
+      content: API calls to perform CRUD on item reservations for courses
+
+types:
+    course: !include course.json
+    courses: !include courses.json
+    section: !include section.json
+    sections: !include sections.json
+    instructor: !include instructor.json
+    instructors: !include instructors.json
+    reserve: !include reserve.json
+    reserves: !include reserves.json
+    errors: !include raml-util/schemas/errors.schema
+
+traits:
+    pageable: !include raml-util/traits/pageable.raml
+    searchable: !include raml-util/traits/searchable.raml
+    language: !include raml-util/traits/language.raml
+    validate: !include raml-util/traits/validation.raml
+
+resourceTypes:
+    collection: !include raml-util/rtypes/collection.raml
+    collection-item: !include raml-util/rtypes/item-collection.raml
+    get-delete-only: !include raml-util/rtypes/get-delete.raml
+
+/courses:
+    type:
+        collection:
+            exampleCollection: !include examples/courses.json
+            exampleItem: !include examples/course.json
+            schemaCollection: courses
+            schemaItem: course
+    get:
+        is: [
+            searchable: {description: "with valid searchable fields", example: "name=aaa"},
+            pageable
+        ]
+        description: "Return a list of courses"
+    post:
+        description: "Create a new course"
+        is: [ validate ]
+    delete:
+        description: "Delete all courses"
+        is: [ validate ]
+        responses:
+            204:
+                description: "All courses deleted"
+            500:
+                description: "Internal server error"
+                body:
+                    text/plain:
+                        example: "Internal server error"
+    /{course_id}:
+        description: "Provide the course id"
+        type:
+            collection-item:
+                exampleItem: !include examples/course.json
+                schema: course
+        get:
+        put:
+            description: "Update a course by id"
+            is: [ validate ]
+        delete:

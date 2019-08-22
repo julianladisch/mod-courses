@@ -14,10 +14,10 @@
         },
         "totalRecords": {
             "type": "integer"
-        },
-        "required": [
-            "reserves",
-            "totalRecords"
-        ]
-    }
+        }
+     },
+     "required": [
+        "reserves",
+        "totalRecords"
+     ]
 }

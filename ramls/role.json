@@ -6,7 +6,15 @@
     "properties": {
         "id": {
             "type": "string",
-            "description": ""
+            "description": "The UUID of this role"
+        },
+        "name": {
+            "type": "string",
+            "description": "The name of the role"
+        },
+        "description": {
+            "type": "string",
+            "description": "A description of this role"
         },
         "metadata": {
             "type": "object",
@@ -14,6 +22,7 @@
         }
     },
     "required": [
+        "name"
     ]
 }
 

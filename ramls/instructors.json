@@ -14,10 +14,10 @@
         },
         "totalRecords": {
             "type": "integer"
-        },
-        "required": [
-            "instructors",
-            "totalRecords"
-        ]
-    }
+        }
+    },
+    "required": [
+        "instructors",
+        "totalRecords"
+    ]
 }
