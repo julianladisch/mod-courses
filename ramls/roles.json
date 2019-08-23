@@ -14,10 +14,10 @@
         },
         "totalRecords": {
             "type": "integer"
-        },
-        "required": [
-            "roles",
-            "totalRecords"
-        ]
-    }
+        }
+    },
+    "required": [
+        "roles",
+        "totalRecords"
+    ]
 }
