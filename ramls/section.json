@@ -12,9 +12,9 @@
             "type": "string",
             "description": "The id of the course"
         },
-        "section": {
+        "name": {
             "type": "string",
-            "description": "The name/number of this section"
+            "description": "The textual name of this section: e.g. '02'"
         },
         "registerId": {
             "type": "string",
@@ -43,6 +43,18 @@
             "type": "string",
             "description": "The ID of the schedule for this section"
         },
+        "hours": {
+            "type": "string",
+            "description": "A textual description of the hours when this section meets"
+        },
+        "location": {
+            "type": "string",
+            "description": "A textual description of the location of this section"
+        },
+        "note": {
+            "type": "string",
+            "description": "A place to note any relevant information about this section"
+        },
         "metadata": {
             "type": "object",
             "$ref": "raml-util/schemas/metadata.schema"
@@ -50,7 +62,7 @@
     },
     "required": [
         "courseId",
-        "section",
+        "name",
         "scheduleId"
     ]
 }
