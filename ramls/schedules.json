@@ -14,10 +14,11 @@
         },
         "totalRecords": {
             "type": "integer"
-        },
-        "required": [
-            "schedules",
-            "totalRecords"
-        ]
-    }
+        }
+    },
+    "required": [
+        "schedules",
+        "totalRecords"
+    ]
+
 }

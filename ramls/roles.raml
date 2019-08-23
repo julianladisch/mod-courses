@@ -24,42 +24,43 @@ resourceTypes:
     collection-item: !include raml-util/rtypes/item-collection.raml
     get-delete-only: !include raml-util/rtypes/get-delete.raml
 
-/roles:
-    description: "Handle roles for course instructors"
-    type:
-        collection:
-            exampleCollection: !include examples/roles.json
-            exampleItem: !include examples/role.json
-            schemaCollection: roles
-            schemaItem: role
-    get:
-        description: "Return a list of roles"
-        is: [
-            searchable: { description: "With valid searchable fields", example: "name=aaa"},
-            pageable
-        ]
-    post:
-        description: "Create a new role"
-        is: [ validate ]
-    delete:
-        description: "Delete all roles"
-        is: [ validate ]
-        responses:
-            204:
-                description: "All roles deleted"
-            500:
-                description: "Internal server error"
-                body:
-                    text/plain:
-                        example: "Internal server error"
-    /{role_id}:
-        description: "With provided role id"
+/course-reserve-storage:
+    /roles:
+        description: "Handle roles for course instructors"
         type:
-            collection-item:
+            collection:
+                exampleCollection: !include examples/roles.json
                 exampleItem: !include examples/role.json
-                schema: role
+                schemaCollection: roles
+                schemaItem: role
         get:
-        put:
-            description: "Update a role by id"
+            description: "Return a list of roles"
+            is: [
+                searchable: { description: "With valid searchable fields", example: "name=aaa"},
+                pageable
+            ]
+        post:
+            description: "Create a new role"
             is: [ validate ]
         delete:
+            description: "Delete all roles"
+            is: [ validate ]
+            responses:
+                204:
+                    description: "All roles deleted"
+                500:
+                    description: "Internal server error"
+                    body:
+                        text/plain:
+                            example: "Internal server error"
+        /{role_id}:
+            description: "With provided role id"
+            type:
+                collection-item:
+                    exampleItem: !include examples/role.json
+                    schema: role
+            get:
+            put:
+                description: "Update a role by id"
+                is: [ validate ]
+            delete:
