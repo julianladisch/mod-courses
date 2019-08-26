@@ -22,6 +22,7 @@ import org.folio.rest.jaxrs.model.Course;
 import org.folio.rest.jaxrs.model.Courses;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.Reserve;
+import org.folio.rest.jaxrs.model.Reserves;
 import org.folio.rest.jaxrs.model.Section;
 import org.folio.rest.jaxrs.model.Sections;
 import org.folio.rest.persist.Criteria.Limit;
@@ -395,29 +396,89 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Courses {
   }
 
   @Override
-  public void putCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdAndInstructorId(String courseId, String sectionId, String instructorId, String lang, Instructor entity, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    PgUtil.put(SECTIONS_TABLE, entity, sectionId, okapiHeaders, vertxContext,
-        PutCoursesCoursesSectionsByCourseIdAndSectionIdResponse.class, asyncResultHandler);
+  public void putCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdAndInstructorId(
+      String courseId, String sectionId, String instructorId, String lang,
+      Instructor entity, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    PgUtil.put(INSTRUCTORS_TABLE, entity, instructorId, okapiHeaders, vertxContext,
+        PutCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdAndInstructorIdResponse.class,
+        asyncResultHandler);
   }
 
   @Override
-  public void deleteCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdAndInstructorId(String courseId, String sectionId, String instructorId, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  public void deleteCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdAndInstructorId(
+      String courseId, String sectionId, String instructorId, String lang,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.deleteById(INSTRUCTORS_TABLE, sectionId, okapiHeaders, vertxContext,
+        DeleteCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdAndInstructorIdResponse.class,
+        asyncResultHandler);
   }
 
   @Override
-  public void getCoursesCoursesSectionsReservesByCourseIdAndSectionId(String courseId, String sectionId, String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  public void getCoursesCoursesSectionsReservesByCourseIdAndSectionId(
+      String courseId, String sectionId, String query, int offset, int limit,
+      String lang, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    String sectionQueryClause = String.format("sectionId = %s", sectionId);
+    if(query == null || query.isEmpty()) {
+      query = sectionQueryClause;
+    } else {
+      query = String.format("(%s) AND (%s)", sectionQueryClause, query);
+    }
+    PgUtil.get(RESERVES_TABLE, Reserve.class, Reserves.class, query, offset, limit,
+        okapiHeaders, vertxContext,
+        GetCoursesCoursesSectionsReservesByCourseIdAndSectionIdResponse.class,
+        asyncResultHandler);
   }
 
   @Override
-  public void postCoursesCoursesSectionsReservesByCourseIdAndSectionId(String courseId, String sectionId, String lang, Section entity, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  public void postCoursesCoursesSectionsReservesByCourseIdAndSectionId(
+      String courseId, String sectionId, String lang, Reserve entity,
+      Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    if(entity.getSectionId() != sectionId) {
+      asyncResultHandler.handle(Future.succeededFuture(
+          PostCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdResponse
+              .respond422WithApplicationJson(ValidationHelper
+                  .createValidationErrorMessage("sectionId", entity.getSectionId(), 
+                      String.format("sectionId should be %s", sectionId)))));
+    } else {
+      PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
+          PostCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdResponse.class,
+          asyncResultHandler);
+    }
   }
 
   @Override
-  public void deleteCoursesCoursesSectionsReservesByCourseIdAndSectionId(String courseId, String sectionId, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  public void deleteCoursesCoursesSectionsReservesByCourseIdAndSectionId(
+      String courseId, String sectionId, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    try {
+        String tenantId = getTenant(okapiHeaders);
+        PostgresClient pgClient = getPGClient(vertxContext, tenantId);
+        final String DELETE_ALL_QUERY = String.format(
+            "DELETE FROM %s_%s.%s WHERE jsonb->>'sectionId' = '%s'",
+                tenantId, "mod_courses", RESERVES_TABLE, sectionId);
+        logger.info(String.format("Deleting all courses with query %s",
+                DELETE_ALL_QUERY));
+        pgClient.execute(DELETE_ALL_QUERY, mutateReply -> {
+          if(mutateReply.failed()) {
+            String message = logAndSaveError(mutateReply.cause());
+            asyncResultHandler.handle(Future.succeededFuture(
+                DeleteCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdResponse
+                        .respond500WithTextPlain(getErrorResponse(message))));
+          } else {
+            asyncResultHandler.handle(Future.succeededFuture(
+                DeleteCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdResponse.noContent().build()));
+          }
+        });
+      } catch(Exception e) {
+        String message = logAndSaveError(e);
+        asyncResultHandler.handle(Future.succeededFuture(
+            DeleteCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdResponse
+                .respond500WithTextPlain(getErrorResponse(message))));
+      }
   }
 
   @Override
