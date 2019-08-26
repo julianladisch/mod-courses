@@ -17,6 +17,10 @@ types:
     instructors: !include instructors.json
     reserve: !include reserve.json
     reserves: !include reserves.json
+    role: !include role.json
+    roles: !include roles.json
+    schedule: !include schedule.json
+    schedules: !include schedules.json
     errors: !include raml-util/schemas/errors.schema
 
 traits:
@@ -184,3 +188,81 @@ resourceTypes:
                                 description: "Update a reserve by id"
                                 is: [ validate ]
                             delete:
+    /roles:
+        description: "Handle roles for course instructors"
+        type:
+            collection:
+                exampleCollection: !include examples/roles.json
+                exampleItem: !include examples/role.json
+                schemaCollection: roles
+                schemaItem: role
+        get:
+            description: "Return a list of roles"
+            is: [
+                searchable: { description: "With valid searchable fields", example: "name=aaa"},
+                pageable
+            ]
+        post:
+            description: "Create a new role"
+            is: [ validate ]
+        delete:
+            description: "Delete all roles"
+            is: [ validate ]
+            responses:
+                204:
+                    description: "All roles deleted"
+                500:
+                    description: "Internal server error"
+                    body:
+                        text/plain:
+                            example: "Internal server error"
+        /{role_id}:
+            description: "With provided role id"
+            type:
+                collection-item:
+                    exampleItem: !include examples/role.json
+                    schema: role
+            get:
+            put:
+                description: "Update a role by id"
+                is: [ validate ]
+            delete:
+    /schedules:
+        description: "Handle schedules for courses"
+        type:
+            collection:
+                exampleCollection: !include examples/schedules.json
+                exampleItem: !include examples/schedule.json
+                schemaCollection: schedules
+                schemaItem: schedule
+        get:
+            description: "Return a list of schedules"
+            is: [
+                searchable: { description: "With valid searchable fields", example: "name=aaa"},
+                pageable
+            ]
+        post:
+            description: "Create a new schedule"
+            is: [ validate ]
+        delete:
+            description: "Delete all schedules"
+            is: [ validate ]
+            responses:
+                204:
+                    description: "All schedules deleted"
+                500:
+                    description: "Internal server error"
+                    body:
+                        text/plain:
+                            example: "Internal server error"
+        /{schedule_id}:
+            description: "With provided schedule id"
+            type:
+                collection-item:
+                    exampleItem: !include examples/schedule.json
+                    schema: schedule
+            get:
+            put:
+                description: "Update a schedule by id"
+                is: [ validate ]
+            delete:

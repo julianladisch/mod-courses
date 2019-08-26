@@ -23,6 +23,9 @@ import org.folio.rest.jaxrs.model.Courses;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.jaxrs.model.Reserves;
+import org.folio.rest.jaxrs.model.Role;
+import org.folio.rest.jaxrs.model.Schedule;
+import org.folio.rest.jaxrs.model.Schedules;
 import org.folio.rest.jaxrs.model.Section;
 import org.folio.rest.jaxrs.model.Sections;
 import org.folio.rest.persist.Criteria.Limit;
@@ -410,7 +413,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Courses {
       String courseId, String sectionId, String instructorId, String lang,
       Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
       Context vertxContext) {
-    PgUtil.deleteById(INSTRUCTORS_TABLE, sectionId, okapiHeaders, vertxContext,
+    PgUtil.deleteById(INSTRUCTORS_TABLE, instructorId, okapiHeaders, vertxContext,
         DeleteCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdAndInstructorIdResponse.class,
         asyncResultHandler);
   }
@@ -482,18 +485,173 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Courses {
   }
 
   @Override
-  public void getCoursesCoursesSectionsReservesByCourseIdAndSectionIdAndReserveId(String courseId, String sectionId, String reserveId, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  public void getCoursesCoursesSectionsReservesByCourseIdAndSectionIdAndReserveId(
+      String courseId, String sectionId, String reserveId, String lang,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.getById(RESERVES_TABLE, Instructor.class, reserveId, okapiHeaders,
+        vertxContext,
+        GetCoursesCoursesSectionsReservesByCourseIdAndSectionIdAndReserveIdResponse.class,
+        asyncResultHandler);
   }
 
   @Override
-  public void putCoursesCoursesSectionsReservesByCourseIdAndSectionIdAndReserveId(String courseId, String sectionId, String reserveId, String lang, Reserve entity, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  public void putCoursesCoursesSectionsReservesByCourseIdAndSectionIdAndReserveId(
+      String courseId, String sectionId, String reserveId, String lang,
+      Reserve entity, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    PgUtil.put(RESERVES_TABLE, entity, reserveId, okapiHeaders, vertxContext,
+        PutCoursesCoursesSectionsInstructorsByCourseIdAndSectionIdAndInstructorIdResponse.class,
+        asyncResultHandler);
   }
 
   @Override
-  public void deleteCoursesCoursesSectionsReservesByCourseIdAndSectionIdAndReserveId(String courseId, String sectionId, String reserveId, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  public void deleteCoursesCoursesSectionsReservesByCourseIdAndSectionIdAndReserveId(
+      String courseId, String sectionId, String reserveId, String lang,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.deleteById(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext,
+        DeleteCoursesCoursesSectionsReservesByCourseIdAndSectionIdAndReserveIdResponse.class,
+        asyncResultHandler);
+  }
+
+  @Override
+  public void getCoursesRoles(String query, int offset, int limit, String lang,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    PgUtil.get(ROLES_TABLE, Section.class, Sections.class, query, offset, limit,
+        okapiHeaders, vertxContext, GetCoursesRolesResponse.class,
+        asyncResultHandler);
+  }
+
+  @Override
+  public void postCoursesRoles(String lang, Role entity, 
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.post(ROLES_TABLE, entity, okapiHeaders, vertxContext,
+          PostCoursesRolesResponse.class, asyncResultHandler);
+  }
+
+  @Override
+  public void deleteCoursesRoles(Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    try {
+        String tenantId = getTenant(okapiHeaders);
+        PostgresClient pgClient = getPGClient(vertxContext, tenantId);
+        final String DELETE_ALL_QUERY = String.format("DELETE FROM %s_%s.%s",
+                tenantId, "mod_courses", ROLES_TABLE);
+        logger.info(String.format("Deleting all roles with query %s",
+                DELETE_ALL_QUERY));
+        pgClient.execute(DELETE_ALL_QUERY, mutateReply -> {
+          if(mutateReply.failed()) {
+            String message = logAndSaveError(mutateReply.cause());
+            asyncResultHandler.handle(Future.succeededFuture(
+                    DeleteCoursesRolesResponse.respond500WithTextPlain(
+                    getErrorResponse(message))));
+          } else {
+            asyncResultHandler.handle(Future.succeededFuture(
+                    DeleteCoursesRolesResponse.noContent().build()));
+          }
+        });
+      } catch(Exception e) {
+        String message = logAndSaveError(e);
+        asyncResultHandler.handle(Future.succeededFuture(
+            DeleteCoursesRolesResponse.respond500WithTextPlain(
+                getErrorResponse(message))));
+      }
+  }
+
+  @Override
+  public void getCoursesRolesByRoleId(String roleId, String lang,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.getById(ROLES_TABLE, Role.class, roleId, okapiHeaders, vertxContext,
+        GetCoursesRolesByRoleIdResponse.class, asyncResultHandler);
+  }
+
+  @Override
+  public void putCoursesRolesByRoleId(String roleId, String lang, Role entity,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.put(ROLES_TABLE, entity, roleId, okapiHeaders, vertxContext,
+        PutCoursesCoursesByCourseIdResponse.class, asyncResultHandler);
+  }
+
+  @Override
+  public void deleteCoursesRolesByRoleId(String roleId, String lang,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.deleteById(ROLES_TABLE, roleId, okapiHeaders, vertxContext,
+        DeleteCoursesRolesByRoleIdResponse.class, asyncResultHandler);
+  }
+
+  @Override
+  public void getCoursesSchedules(String query, int offset, int limit, String lang,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.get(SCHEDULES_TABLE, Schedule.class, Schedules.class, query, offset, limit,
+        okapiHeaders, vertxContext, GetCoursesRolesResponse.class,
+        asyncResultHandler);
+  }
+
+  @Override
+  public void postCoursesSchedules(String lang, Schedule entity,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.post(SCHEDULES_TABLE, entity, okapiHeaders, vertxContext,
+          PostCoursesSchedulesResponse.class, asyncResultHandler);
+  }
+
+  @Override
+  public void deleteCoursesSchedules(Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    try {
+        String tenantId = getTenant(okapiHeaders);
+        PostgresClient pgClient = getPGClient(vertxContext, tenantId);
+        final String DELETE_ALL_QUERY = String.format("DELETE FROM %s_%s.%s",
+                tenantId, "mod_courses", SCHEDULES_TABLE);
+        logger.info(String.format("Deleting all roles with query %s",
+                DELETE_ALL_QUERY));
+        pgClient.execute(DELETE_ALL_QUERY, mutateReply -> {
+          if(mutateReply.failed()) {
+            String message = logAndSaveError(mutateReply.cause());
+            asyncResultHandler.handle(Future.succeededFuture(
+                    DeleteCoursesSchedulesResponse.respond500WithTextPlain(
+                    getErrorResponse(message))));
+          } else {
+            asyncResultHandler.handle(Future.succeededFuture(
+                    DeleteCoursesSchedulesResponse.noContent().build()));
+          }
+        });
+      } catch(Exception e) {
+        String message = logAndSaveError(e);
+        asyncResultHandler.handle(Future.succeededFuture(
+                DeleteCoursesSchedulesResponse.respond500WithTextPlain(
+                getErrorResponse(message))));
+      }
+  }
+
+  @Override
+  public void getCoursesSchedulesByScheduleId(String scheduleId, String lang,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.getById(SCHEDULES_TABLE, Schedule.class, scheduleId, okapiHeaders, vertxContext,
+        GetCoursesSchedulesByScheduleIdResponse.class, asyncResultHandler);
+  }
+
+  @Override
+  public void putCoursesSchedulesByScheduleId(String scheduleId, String lang,
+      Schedule entity, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    PgUtil.put(SCHEDULES_TABLE, entity, scheduleId, okapiHeaders, vertxContext,
+        PutCoursesSchedulesByScheduleIdResponse.class, asyncResultHandler);
+  }
+
+  @Override
+  public void deleteCoursesSchedulesByScheduleId(String scheduleId, String lang,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    PgUtil.deleteById(SCHEDULES_TABLE, scheduleId, okapiHeaders, vertxContext,
+        DeleteCoursesSchedulesByScheduleIdResponse.class, asyncResultHandler);
   }
 
 }

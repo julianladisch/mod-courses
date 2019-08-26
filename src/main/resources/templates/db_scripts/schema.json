@@ -1,0 +1,59 @@
+{
+    "tables": [
+        {
+            "tableName": "courses_courses",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                "fieldName": "id",
+                "tOps": "ADD"
+            ]
+        },    
+        {
+            "tableName": "courses_sections",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                "fieldName": "id",
+                "tOps": "ADD"
+            ]
+        },
+        {
+            "tableName": "courses_reserves",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                "fieldName": "id",
+                "tOps": "ADD"
+            ]
+        },
+        {
+            "tableName": "courses_instructors",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                "fieldName": "id",
+                "tOps": "ADD"
+            ]
+        },
+        {
+            "tableName": "courses_roles",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                "fieldName": "id",
+                "tOps": "ADD"
+            ]
+        },
+        {
+            "tableName": "courses_schedules",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                "fieldName": "id",
+                "tOps": "ADD"
+            ]
+        }
+
+    ]
+}
