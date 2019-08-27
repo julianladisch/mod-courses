@@ -6,7 +6,8 @@
     "properties": {
         "id": {
             "type": "string",
-            "description": "The UUID of this role"
+            "description": "The UUID of this role",
+            "$ref": "uuid.json"
         },
         "name": {
             "type": "string",

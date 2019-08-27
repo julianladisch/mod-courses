@@ -6,85 +6,83 @@
     "properties": {
         "id": {
             "type": "string",
-            "description": "UUID of this reserve"
+            "description": "UUID of this reserve",
+            "$ref": "uuid.json"
         },
         "sectionId": {
             "type": "string",
-            "description": "ID of the section"
+            "description": "ID of the section",
+            "$ref": "uuid.json"
         },
         "itemId": {
             "type": "string",
-            "description": "ID of the item"
+            "description": "ID of the item",
+            "$ref": "uuid.json"
         },
-        "barcode": {
-            "type": "string",
-            "description": "Item barcode, from item"
-        },
-        "status": {
+        "copiedItem": {
             "type": "object",
-            "description": "Item status, from item",
+            "description": "Cached fields from the item record, for searching",
+            "readOnly": true,
             "properties": {
-                "name": {
-                    "type": "string"
+                "barcode": {
+                    "type": "string",
+                    "description": "Item barcode, from item"
                 },
-                "date": {
-                    "type": "string"
-                }
-            }
-        },
-        "temporaryLocationId": {
-            "type": "string",
-            "description": "Temporary Location ID, from item"
-        },
-        "permanentLocationId": {
-            "type": "string",
-            "description": "Permanent Location ID, from item"
-        },
-        "title": {
-            "type": "string",
-            "description": "Title, from Instance"
-        },
-        "contributors": {
-            "description": "Contributor information, from Instance",
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name" : {
-                        "type": "string"
-                    },
-                    "contributorTypeId": {
-                        "type": "string"
-                    },
-                    "contributorTypeText": {
-                        "type": "string"
-                    },
-                    "contributorNameTypeId": {
-                        "type": "string"
-                    },
-                    "primary": {
-                        "type": "boolean"
+                "temporaryLocationId": {
+                    "type": "string",
+                    "description": "Temporary Location ID, from item"
+                },
+                "permanentLocationId": {
+                    "type": "string",
+                    "description": "Permanent Location ID, from item"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Title, from Instance"
+                },
+                "contributors": {
+                    "description": "Contributor information, from Instance",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name" : {
+                                "type": "string"
+                            },
+                            "contributorTypeId": {
+                                "type": "string"
+                            },
+                            "contributorTypeText": {
+                                "type": "string"
+                            },
+                            "contributorNameTypeId": {
+                                "type": "string"
+                            },
+                            "primary": {
+                                "type": "boolean"
+                            }
+                        }
                     }
-                }
-            }
-        },
-        "publication": {
-            "description": "List of publication items, from Instance",
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "publisher": {
-                        "type": "string"
-                    },
-                    "place": {
-                        "type": "string"
-                    },
-                    "dateOfPublication": {
-                        "type": "string"
-                    },
-                    "role": {
-                        "type": "string"
+                },
+                "publication": {
+                    "description": "List of publication items, from Instance",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "publisher": {
+                                "type": "string"
+                            },
+                            "place": {
+                                "type": "string"
+                            },
+                            "dateOfPublication": {
+                                "type": "string"
+                            },
+                            "role": {
+                                "type": "string"
+                            }
+                        }
                     }
                 }
             }

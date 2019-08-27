@@ -6,7 +6,8 @@
     "properties": {
         "id": {
             "type": "string",
-            "description": "UUID to identify this schedule"
+            "description": "UUID to identify this schedule",
+            "$ref": "uuid.json"
         },
         "name": {
             "type": "string",

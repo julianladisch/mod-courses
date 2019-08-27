@@ -6,15 +6,18 @@
     "properties": {
         "id": {
             "type": "string",
-            "description": "UUID for this instructor"
+            "description": "UUID for this instructor",
+            "$ref": "uuid.json"
         },
         "userId": {
             "type": "string",
-            "description": "ID of associated FOLIO user (if exists)"
+            "description": "ID of associated FOLIO user (if exists)",
+            "$ref": "uuid.json"
         },
         "roleId": {
             "type": "string",
-            "description": "ID of this instructor's role"
+            "description": "ID of this instructor's role",
+            "$ref": "uuid.json"
         },
         "name": {
             "type": "string",
@@ -22,7 +25,8 @@
         },
         "sectionId": {
             "type": "string",
-            "description": "The section this instructor teaches"
+            "description": "The section this instructor teaches",
+            "$ref": "uuid.json"
         },
         "metadata": {
             "type": "object",

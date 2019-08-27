@@ -6,11 +6,13 @@
     "properties": {
         "id": {
             "type": "string",
-            "description": "UUID for this section"
+            "description": "UUID for this section",
+            "$ref": "uuid.json"
         },
         "courseId": {
             "type": "string",
-            "description": "The id of the course"
+            "description": "The id of the course",
+            "$ref": "uuid.json"
         },
         "name": {
             "type": "string",
@@ -24,24 +26,20 @@
             "type": "string",
             "description": "PENDING"
         },
-        "instructorIds": {
-            "type": "array",
-            "description": "A list of instructor ids for this section",
-            "items": {
-                "type": "string"
-            }
-        },
         "servicepointId": {
             "type": "string",
-            "description": "The ID of the service point associated with this section's reserves"
+            "description": "The ID of the service point associated with this section's reserves",
+            "$ref": "uuid.json"
         },
         "locationId": {
             "type": "string",
-            "description": "The ID of the location associated with this section's reserves"
+            "description": "The ID of the location associated with this section's reserves",
+            "$ref": "uuid.json"
         },
         "scheduleId": {
             "type": "string",
-            "description": "The ID of the schedule for this section"
+            "description": "The ID of the schedule for this section",
+            "$ref": "uuid.json"
         },
         "hours": {
             "type": "string",
