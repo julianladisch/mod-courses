@@ -27,7 +27,7 @@ an item reserved to a section of a course. Consists primarily of a `sectionId` a
 
 * `role.json`
 --
-an entry in the very simple controlled vocabulary of roles that instructors can take (e.g. "principal instructor", "teaching assisant", "lab support").
+an entry in the very simple controlled vocabulary of roles that instructors can take (e.g. "principal instructor", "teaching assistant", "lab support").
 [[Example]](ramls/examples/role.json)
 
 * `schedule.json`
