@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "description": "An actual instantiation in time and space of a course",
+    "additionalProperties": false,
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "UUID for this listing",
+            "$ref": "uuid.json"
+        },
+        "registerId": {
+            "type": "string",
+            "description": "PENDING"
+        },
+        "externalId": {
+            "type": "string",
+            "description": "PENDING"
+        },
+        "servicepointId": {
+            "type": "string",
+            "description": "The ID of the service point associated with this listing's reserves",
+            "$ref": "uuid.json"
+        },
+        "locationId": {
+            "type": "string",
+            "description": "The ID of the location associated with this listing's reserves",
+            "$ref": "uuid.json"
+        },
+        "termId": {
+            "type": "string",
+            "description": "The ID of the term for this listing",
+            "$ref": "uuid.json"
+        },
+        "courseTypeId": {
+            "type": "string",
+            "description": "The ID of the course type for this listing",
+            "$ref": "uuid.json"
+        },
+        "metadata": {
+            "type": "object",
+            "$ref": "raml-util/schemas/metadata.schema"
+        }
+    },
+    "required": [
+        "termId"
+    ]
+}
+

@@ -9,15 +9,28 @@
             "description": "UUID of this reserve",
             "$ref": "uuid.json"
         },
-        "sectionId": {
+        "courseListingId": {
             "type": "string",
-            "description": "ID of the section",
+            "description": "ID of the listing",
             "$ref": "uuid.json"
         },
         "itemId": {
             "type": "string",
             "description": "ID of the item",
             "$ref": "uuid.json"
+        },
+        "processingStatusId": {
+            "type": "string",
+            "description": "The ID of the processing status of the reserve",
+            "$ref": "uuid.json"
+        },
+        "startDate": {
+            "type": "string",
+            "description": "The beginning of the time period for this reserve"
+        },
+        "endDate": {
+            "type": "string",
+            "description": "The ending of the time period for this reserve"
         },
         "copiedItem": {
             "type": "object",
@@ -94,7 +107,7 @@
     },
     "required": [
         "itemId",
-        "sectionId"
+        "courseListingId"
     ]
 }
 

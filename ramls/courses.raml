@@ -11,16 +11,24 @@ documentation:
 types:
     course: !include course.json
     courses: !include courses.json
-    section: !include section.json
-    sections: !include sections.json
+    courselisting: !include courselisting.json
+    courselistings: !include sections.json
     instructor: !include instructor.json
     instructors: !include instructors.json
     reserve: !include reserve.json
     reserves: !include reserves.json
     role: !include role.json
     roles: !include roles.json
-    schedule: !include schedule.json
-    schedules: !include schedules.json
+    term: !include term.json
+    terms: !include terms.json
+    coursetype: !include coursetype.json
+    coursetypes: !include coursetypes.json
+    department: !include department.json
+    departments: !include departments.json
+    processingstatus: !include processingstatus.json
+    processingstatuses: !include processingstatuses.json
+    copyrightstatus: !include copyrightstatus.json
+    copyrightstatuses: !include copyrightstatuses.json
     errors: !include raml-util/schemas/errors.schema
 
 traits:
@@ -34,160 +42,162 @@ resourceTypes:
     collection-item: !include raml-util/rtypes/item-collection.raml
     get-delete-only: !include raml-util/rtypes/get-delete.raml
 
-/courses:
-    /courses:
+/coursereserves:
+    /courselistings:
+        description: "Handle listings for a course"
         type:
             collection:
-                exampleCollection: !include examples/courses.json
-                exampleItem: !include examples/course.json
-                schemaCollection: courses
-                schemaItem: course
+                exampleCollection: !include examples/courselistings.json
+                exampleItem: !include examples/courselisting.json
+                schemaCollection: courselistings
+                schemaItem: courselisting
         get:
+            description: "Return a list of listings"
             is: [
                 searchable: {description: "with valid searchable fields", example: "name=aaa"},
                 pageable
             ]
-            description: "Return a list of courses"
         post:
-            description: "Create a new course"
+            description: "Create a new listing"
             is: [ validate ]
         delete:
-            description: "Delete all courses"
+            description: "Delete all listings"
             is: [ validate ]
             responses:
                 204:
-                    description: "All courses deleted"
+                    description: "All listings deleted"
                 500:
                     description: "Internal server error"
                     body:
                         text/plain:
                             example: "Internal server error"
-        /{course_id}:
-            description: "Provide the course id"
+        /{listing_id}:
+            description: "With provided listing id"
             type:
                 collection-item:
-                    exampleItem: !include examples/course.json
-                    schema: course
+                    exampleItem: !include examples/courselisting.json
+                    schema: courselisting
             get:
             put:
-                description: "Update a course by id"
-                is: [ validate ]
+                description: "Update a listing by id"
             delete:
-            /sections:
-                description: "Handle sections for a course"
+            /courses:
+                description: "Handle courses for a listing"
                 type:
                     collection:
-                        exampleCollection: !include examples/sections.json
-                        exampleItem: !include examples/section.json
-                        schemaCollection: sections
-                        schemaItem: section
+                        exampleCollection: !include examples/courses.json
+                        exampleItem: !include examples/course.json
+                        schemaCollection: courses
+                        schemaItem: course
                 get:
-                    description: "Return a list of sections"
                     is: [
                         searchable: {description: "with valid searchable fields", example: "name=aaa"},
                         pageable
                     ]
+                    description: "Return a list of courses"
                 post:
-                    description: "Create a new section"
+                    description: "Create a new course"
                     is: [ validate ]
                 delete:
                     description: "Delete all courses"
                     is: [ validate ]
                     responses:
                         204:
-                            description: "All sections deleted"
+                            description: "All courses deleted"
                         500:
                             description: "Internal server error"
                             body:
                                 text/plain:
                                     example: "Internal server error"
-                /{section_id}:
-                    description: "With provided section id"
+                /{course_id}:
+                    description: "Provide the course id"
                     type:
                         collection-item:
-                            exampleItem: !include examples/section.json
-                            schema: section
+                            exampleItem: !include examples/course.json
+                            schema: course
                     get:
                     put:
-                        description: "Update a section by id"
+                        description: "Update a course by id"
+                        is: [ validate ]
                     delete:
-                    /instructors:
-                        description: "Handle instructors for a section"
-                        type:
-                            collection:
-                                exampleCollection: !include examples/instructors.json
-                                exampleItem: !include examples/instructor.json
-                                schemaCollection: instructors
-                                schemaItem: instructor
-                        get:
-                            description: "Return a list of instructors"
-                            is: [
-                                searchable: {description: "with valid searchable fields", example: "name=aaa"},
-                                pageable
-                            ]
-                        post:
-                            description: "Create a new instructor"
-                            is: [ validate ]
-                        delete:
-                            description: "Delete all instructors"
-                            is: [ validate ]
-                            responses:
-                                204:
-                                    description: "All instructors deleted"
-                                500:
-                                    description: "Internal server error"
-                                    body:
-                                        text/plain:
-                                            example: "Internal server error"
-                        /{instructor_id}:
-                            description: "With provided instructor id"
-                            type:
-                                collection-item:
-                                    exampleItem: !include examples/instructor.json
-                                    schema: instructor
-                            get:
-                            put:
-                                description: "Update an instructor by id"
-                            delete:
-                    /reserves:
-                        description: "Handle reserves for a section"
-                        type:
-                            collection:
-                                exampleCollection: !include examples/reserves.json
-                                exampleItem: !include examples/reserve.json
-                                schemaCollection: reserves
-                                schemaItem: reserve
-                        get:
-                            description: "Return a list of reserves"
-                            is: [
-                                searchable: {description: "with valid searchable fields", example: "name=aaa"},
-                                pageable
-                            ]
-                        post:
-                            description: "Create a new reserve"
-                            is: [ validate ]
-                        delete:
-                            description: "Delete all reserves"
-                            is: [ validate ]
-                            responses:
-                                204:
-                                    description: "All reserves deleted"
-                                500:
-                                    description: "Internal server error"
-                                    body:
-                                        text/plain:
-                                            example: "Internal server error"
-                        /{reserve_id}:
-                            description: "With provided reserve id"
-                            type:
-                                collection-item:
-                                    exampleItem: !include examples/reserve.json
-                                    schema: reserve
-                            get:
-                            put:
-                                description: "Update a reserve by id"
-                                is: [ validate ]
-                            delete:
+
+            /instructors:
+                description: "Handle instructors for a listing"
+                type:
+                    collection:
+                        exampleCollection: !include examples/instructors.json
+                        exampleItem: !include examples/instructor.json
+                        schemaCollection: instructors
+                        schemaItem: instructor
+                get:
+                    description: "Return a list of instructors"
+                    is: [
+                        searchable: {description: "with valid searchable fields", example: "name=aaa"},
+                        pageable
+                    ]
+                post:
+                    description: "Create a new instructor"
+                    is: [ validate ]
+                delete:
+                    description: "Delete all instructors"
+                    is: [ validate ]
+                    responses:
+                        204:
+                            description: "All instructors deleted"
+                        500:
+                            description: "Internal server error"
+                            body:
+                                text/plain:
+                                    example: "Internal server error"
+                /{instructor_id}:
+                    description: "With provided instructor id"
+                    type:
+                        collection-item:
+                            exampleItem: !include examples/instructor.json
+                            schema: instructor
+                    get:
+                    put:
+                        description: "Update an instructor by id"
+                    delete:
+            /reserves:
+                description: "Handle reserves for a listing"
+                type:
+                    collection:
+                        exampleCollection: !include examples/reserves.json
+                        exampleItem: !include examples/reserve.json
+                        schemaCollection: reserves
+                        schemaItem: reserve
+                get:
+                    description: "Return a list of reserves"
+                    is: [
+                        searchable: {description: "with valid searchable fields", example: "name=aaa"},
+                        pageable
+                    ]
+                post:
+                    description: "Create a new reserve"
+                    is: [ validate ]
+                delete:
+                    description: "Delete all reserves"
+                    is: [ validate ]
+                    responses:
+                        204:
+                            description: "All reserves deleted"
+                        500:
+                            description: "Internal server error"
+                            body:
+                                text/plain:
+                                    example: "Internal server error"
+                /{reserve_id}:
+                    description: "With provided reserve id"
+                    type:
+                        collection-item:
+                            exampleItem: !include examples/reserve.json
+                            schema: reserve
+                    get:
+                    put:
+                        description: "Update a reserve by id"
+                        is: [ validate ]
+                    delete:
     /roles:
         description: "Handle roles for course instructors"
         type:
@@ -227,42 +237,198 @@ resourceTypes:
                 description: "Update a role by id"
                 is: [ validate ]
             delete:
-    /schedules:
-        description: "Handle schedules for courses"
+    /terms:
+        description: "Handle terms for courses"
         type:
             collection:
-                exampleCollection: !include examples/schedules.json
-                exampleItem: !include examples/schedule.json
-                schemaCollection: schedules
-                schemaItem: schedule
+                exampleCollection: !include examples/terms.json
+                exampleItem: !include examples/term.json
+                schemaCollection: terms
+                schemaItem: term
         get:
-            description: "Return a list of schedules"
+            description: "Return a list of terms"
             is: [
                 searchable: { description: "With valid searchable fields", example: "name=aaa"},
                 pageable
             ]
         post:
-            description: "Create a new schedule"
+            description: "Create a new term"
             is: [ validate ]
         delete:
-            description: "Delete all schedules"
+            description: "Delete all terms"
             is: [ validate ]
             responses:
                 204:
-                    description: "All schedules deleted"
+                    description: "All terms deleted"
                 500:
                     description: "Internal server error"
                     body:
                         text/plain:
                             example: "Internal server error"
-        /{schedule_id}:
-            description: "With provided schedule id"
+        /{term_id}:
+            description: "With provided term id"
             type:
                 collection-item:
-                    exampleItem: !include examples/schedule.json
-                    schema: schedule
+                    exampleItem: !include examples/term.json
+                    schema: term
             get:
             put:
-                description: "Update a schedule by id"
+                description: "Update a term by id"
+                is: [ validate ]
+            delete:
+    /coursetypes:
+        description: "Handle types for courses"
+        type:
+            collection:
+                exampleCollection: !include examples/coursetypes.json
+                exampleItem: !include examples/coursetype.json
+                schemaCollection: coursetypes
+                schemaItem: coursetype
+        get:
+            description: "Return a list of course types"
+            is: [
+                searchable: { description: "With valid searchable fields", example: "name=aaa"},
+                pageable
+            ]
+        post:
+            description: "Create a new course type"
+            is: [ validate ]
+        delete:
+            description: "Delete all course types"
+            is: [ validate ]
+            responses:
+                204:
+                    description: "All course types deleted"
+                500:
+                    description: "Internal server error"
+                    body:
+                        text/plain:
+                            example: "Internal server error"
+        /{type_id}:
+            description: "With provided course type id"
+            type:
+                collection-item:
+                    exampleItem: !include examples/coursetype.json
+                    schema: coursetype
+            get:
+            put:
+                description: "Update a course type by id"
+                is: [ validate ]
+            delete:
+    /departments:
+        description: "Handle departments"
+        type:
+            collection:
+                exampleCollection: !include examples/departments.json
+                exampleItem: !include examples/department.json
+                schemaCollection: departments
+                schemaItem: department
+        get:
+            description: "Return a list of departments"
+            is: [
+                searchable: { description: "With valid searchable fields", example: "name=aaa"},
+                pageable
+            ]
+        post:
+            description: "Create a new department"
+            is: [ validate ]
+        delete:
+            description: "Delete all departments"
+            is: [ validate ]
+            responses:
+                204:
+                    description: "All departments deleted"
+                500:
+                    description: "Internal server error"
+                    body:
+                        text/plain:
+                            example: "Internal server error"
+        /{department_id}:
+            description: "With provided department id"
+            type:
+                collection-item:
+                    exampleItem: !include examples/department.json
+                    schema: department
+            get:
+            put:
+                description: "Update a department by id"
+                is: [ validate ]
+            delete:
+    /processingstatuses:
+        description: "Handle processing status"
+        type:
+            collection:
+                exampleCollection: !include examples/processingstatuses.json
+                exampleItem: !include examples/processingstatus.json
+                schemaCollection: processingstatuses
+                schemaItem: processingstatus
+        get:
+            description: "Return a list of statuses"
+            is: [
+                searchable: { description: "With valid searchable fields", example: "name=aaa"},
+                pageable
+            ]
+        post:
+            description: "Create a new status"
+            is: [ validate ]
+        delete:
+            description: "Delete all statuses"
+            is: [ validate ]
+            responses:
+                204:
+                    description: "All statuses deleted"
+                500:
+                    description: "Internal server error"
+                    body:
+                        text/plain:
+                            example: "Internal server error"
+        /{status_id}:
+            description: "With provided status id"
+            type:
+                collection-item:
+                    exampleItem: !include examples/processingstatus.json
+                    schema: processingstatus
+            get:
+            put:
+                description: "Update a status by id"
+                is: [ validate ]
+            delete:
+    /copyrightstatuses:
+        description: "Handle copyright status"
+        type:
+            collection:
+                exampleCollection: !include examples/copyrightstatuses.json
+                exampleItem: !include examples/copyrightstatus.json
+                schemaCollection: copyrightstatuses
+                schemaItem: copyrightstatus
+        get:
+            description: "Return a list of copyright statuses"
+            is: [
+                searchable: { description: "With valid searchable fields", example: "name=aaa"},
+                pageable
+            ]
+        post:
+            description: "Create a new copyright status"
+            is: [ validate ]
+        delete:
+            description: "Delete all copyright statuses"
+            is: [ validate ]
+            responses:
+                204:
+                    description: "All statuses deleted"
+                500:
+                    description: "Internal server error"
+                    body:
+                        text/plain:
+                            example: "Internal server error"
+        /{status_id}:
+            description: "With provided status id"
+            type:
+                collection-item:
+                    exampleItem: !include examples/copyrightstatus.json
+                    schema: copyrightstatus
+            get:
+            put:
+                description: "Update a status by id"
                 is: [ validate ]
             delete:
