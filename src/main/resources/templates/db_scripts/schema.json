@@ -10,7 +10,16 @@
             ]
         },    
         {
-            "tableName": "courses_sections",
+            "tableName": "courses_courselistings",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                "fieldName": "id",
+                "tOps": "ADD"
+            ]
+        },
+        {
+            "tableName": "courses_departments",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
@@ -37,7 +46,7 @@
             ]
         },
         {
-            "tableName": "courses_roles",
+            "tableName": "courses_processingstates",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
@@ -46,7 +55,16 @@
             ]
         },
         {
-            "tableName": "courses_schedules",
+            "tableName": "courses_copyrightstates",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                "fieldName": "id",
+                "tOps": "ADD"
+            ]
+        },
+        {
+            "tableName": "courses_terms",
             "withMetadata": true,
             "withAuditing": false,
             "index": [

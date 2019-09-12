@@ -6,7 +6,8 @@
     "properties": {
         "id": {
             "type": "string",
-            "description": "UUID to identify this course"
+            "description": "UUID to identify this course",
+            "$ref": "uuid.json"
         },
         "name": {
             "type": "string",
@@ -16,9 +17,15 @@
             "type": "string",
             "description": "A description of the course"
         },
-        "department": {
+        "departmentId": {
             "type": "string",
-            "description": "The department that this course belongs to"
+            "description": "The department that this course belongs to",
+            "$ref": "uuid.json"
+        },
+        "courseListingId": {
+            "type": "string",
+            "description": "The course listing this course belongs to",
+            "$ref": "uuid.json"
         },
         "metadata": {
             "type": "object",
@@ -26,7 +33,9 @@
         }
     },
     "required": [
-        "name"
+        "name",
+        "departmentId",
+        "courseListingId"
     ]
 }
 
