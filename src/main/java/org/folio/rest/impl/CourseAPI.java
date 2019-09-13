@@ -14,6 +14,7 @@ import org.folio.cql2pgjson.CQL2PgJSON;
 import org.folio.cql2pgjson.exception.FieldException;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.Copyrightstatus;
+import org.folio.rest.jaxrs.model.Copyrightstatuses;
 import org.folio.rest.jaxrs.model.Course;
 import org.folio.rest.jaxrs.model.Courselisting;
 import org.folio.rest.jaxrs.model.Courselistings;
