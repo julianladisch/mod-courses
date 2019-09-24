@@ -14,14 +14,17 @@
             "description": "ID of associated FOLIO user (if exists)",
             "$ref": "uuid.json"
         },
-        "roleId": {
-            "type": "string",
-            "description": "ID of this instructor's role",
-            "$ref": "uuid.json"
-        },
         "name": {
             "type": "string",
             "description": "The name of this instructor"
+        },
+        "barcode": {
+            "type": "string",
+            "description": "The instructor's user barcode"
+        },
+        "patronGroup": {
+            "type": "string",
+            "description": "The instructor's user patrongroup"
         },
         "courseListingId": {
             "type": "string",
@@ -34,7 +37,6 @@
         }
     },
     "required": [
-        "roleId",
         "courseListingId",
         "name"
     ]

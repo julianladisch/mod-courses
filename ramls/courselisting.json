@@ -9,13 +9,13 @@
             "description": "UUID for this listing",
             "$ref": "uuid.json"
         },
-        "registerId": {
+        "registrarId": {
             "type": "string",
-            "description": "PENDING"
+            "description": "The registration id"
         },
         "externalId": {
             "type": "string",
-            "description": "PENDING"
+            "description": "An external identifier associated with this listing"
         },
         "servicepointId": {
             "type": "string",
