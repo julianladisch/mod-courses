@@ -3,165 +3,239 @@
     "name": "Courses Storage Module",
     "provides": [
         {
-            "id" : "courses-storage",
+            "id" : "course-reserves-storage",
             "version": "0.1",
             "handlers": [
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/courses",
+                    "pathPattern": "/coursereserves/courses",
                     "permissionsRequired": []
                 },            
                 {
                     "methods": [ "POST" ],
-                    "pathPattern": "/courses/courses",
+                    "pathPattern": "/coursereserves/courses",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/courses/{id}",
+                    "pathPattern": "/coursereserves/courses/{id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "PUT" ],
-                    "pathPattern": "/courses/courses/{id}",
+                    "pathPattern": "/coursereserves/courses/{id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/courses/courses/{id}",
+                    "pathPattern": "/coursereserves/courses/{id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "GET" ] ,
-                    "pathPattern": "/courses/courses/{id}/sections",
+                    "pathPattern": "/coursereserves/courses/{id}/sections",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "POST" ],
-                    "pathPattern": "/courses/courses/{id}/sections",
+                    "pathPattern": "/coursereserves/courses/{id}/sections",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "PUT" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/instructors",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "POST"],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/instructors",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/instructors/{i_id}",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors/{i_id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "PUT" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/instructors/{i_id}",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors/{i_id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/instructors/{i_id}",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors/{i_id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/reserves",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "POST" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/reserves",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/reserves/{r_id}",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves/{r_id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "PUT" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/reserves/{r_id}",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves/{r_id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/courses/courses/{id}/sections/{s_id}/reserves/{r_id}",
+                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves/{r_id}",
                     "permissionsRequired": []
                 }
                         
             ]
         },
         {
-            "id" : "roles-storage",
+            "id" : "term-storage",
             "version" : "0.1",
             "handlers": [
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/roles",
+                    "pathPattern": "/coursereserves/terms",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "POST" ],
-                    "pathPattern": "/courses/roles",
+                    "pathPattern": "/coursereserves/terms",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/roles/{id}",
-                    "permissionsRequired": []
-                },
-                {
-                    "methods": [ "PUT" ],
-                    "pathPattern": "/courses/roles/{id}",
+                    "pathPattern": "/coursereserves/terms/{id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/courses/roles/{id}",
+                    "pathPattern": "/coursereserves/terms/{id}",
                     "permissionsRequired": []
                 }
             ]
         },
         {
-            "id" : "schedules-storage",
+
+            "id" : "department-storage",
             "version" : "0.1",
             "handlers": [
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/schedules",
+                    "pathPattern": "/coursereserves/departments",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "POST" ],
-                    "pathPattern": "/courses/schedules",
+                    "pathPattern": "/coursereserves/departments",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/courses/schedules/{id}",
+                    "pathPattern": "/coursereserves/departments/{id}",
                     "permissionsRequired": []
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/courses/schedules/{id}",
+                    "pathPattern": "/coursereserves/departments/{id}",
+                    "permissionsRequired": []
+                }
+            ]
+        },
+        {
+            "id" : "course-type-storage",
+            "version" : "0.1",
+            "handlers": [
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/coursetypes",
+                    "permissionsRequired": []
+                },
+                {
+                    "methods": [ "POST" ],
+                    "pathPattern": "/coursereserves/coursetypes",
+                    "permissionsRequired": []
+                },
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/coursetypes/{id}",
+                    "permissionsRequired": []
+                },
+                {
+                    "methods": [ "DELETE" ],
+                    "pathPattern": "/coursereserves/coursetypes/{id}",
+                    "permissionsRequired": []
+                }
+            ]
+        },
+        {
+            "id" : "processing-status-storage",
+            "version" : "0.1",
+            "handlers": [
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/processingstatuses",
+                    "permissionsRequired": []
+                },
+                {
+                    "methods": [ "POST" ],
+                    "pathPattern": "/coursereserves/processingstatuses",
+                    "permissionsRequired": []
+                },
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/processingstatuses/{id}",
+                    "permissionsRequired": []
+                },
+                {
+                    "methods": [ "DELETE" ],
+                    "pathPattern": "/coursereserves/processingstatuses/{id}",
+                    "permissionsRequired": []
+                }
+            ]
+        },
+        {
+            "id" : "copyright-status-storage",
+            "version" : "0.1",
+            "handlers": [
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/copyrightstatuses",
+                    "permissionsRequired": []
+                },
+                {
+                    "methods": [ "POST" ],
+                    "pathPattern": "/coursereserves/copyrightstatuses",
+                    "permissionsRequired": []
+                },
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/copyrightstatuses/{id}",
+                    "permissionsRequired": []
+                },
+                {
+                    "methods": [ "DELETE" ],
+                    "pathPattern": "/coursereserves/copyrightstatuses/{id}",
                     "permissionsRequired": []
                 }
             ]
@@ -182,5 +256,12 @@
             ]
         }
     ],
-    "permissionSets": []
+    "permissionSets": [],
+    "launchDescriptor": {
+        "dockerImage": "${artifactId}:${version}",
+        "dockerArgs": {
+            "HostConfig": { "PortBindings": { "8081/tcp":  [{ "HostPort": "%p" }] } }
+        },
+        "dockerPull" : false
+    }
 }
