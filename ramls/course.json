@@ -27,6 +27,14 @@
             "description": "The course listing this course belongs to",
             "$ref": "uuid.json"
         },
+        "courseNumber": {
+            "type": "string",
+            "description": "A unique code identifying this course"
+        },
+        "sectionName": {
+            "type": "string",
+            "description": "A text field denoting this course's section"
+        },
         "metadata": {
             "type": "object",
             "$ref": "raml-util/schemas/metadata.schema"
