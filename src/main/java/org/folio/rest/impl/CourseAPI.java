@@ -46,17 +46,17 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public static final Logger logger = LoggerFactory.getLogger(
           CourseAPI.class);
   
-  public static final String COURSES_TABLE = "courses_courses";
-  public static final String COURSE_LISTINGS_TABLE = "courses_courselistings";
-  public static final String RESERVES_TABLE = "courses_reserves";
-  public static final String INSTRUCTORS_TABLE = "courses_instructors";
-  public static final String PROCESSING_STATUSES_TABLE = "courses_processingstates";
-  public static final String TERMS_TABLE = "courses_terms";
-  public static final String DEPARTMENTS_TABLE = "courses_departments";
-  public static final String COPYRIGHT_STATUSES_TABLE = "courses_copyrightstates";
-  public static final String COURSE_TYPES_TABLE = "courses_coursetypes";
-  public static final String ROLES_TABLE = "courses_roles";
-  public static final String BASE_PREFIX = "/courses/";
+  public static final String COURSES_TABLE = "coursereserves_courses";
+  public static final String COURSE_LISTINGS_TABLE = "coursereserves_courselistings";
+  public static final String RESERVES_TABLE = "coursereserves_reserves";
+  public static final String INSTRUCTORS_TABLE = "coursereserves_instructors";
+  public static final String PROCESSING_STATUSES_TABLE = "coursereserves_processingstates";
+  public static final String TERMS_TABLE = "coursereserves_terms";
+  public static final String DEPARTMENTS_TABLE = "coursereserves_departments";
+  public static final String COPYRIGHT_STATUSES_TABLE = "coursereserves_copyrightstates";
+  public static final String COURSE_TYPES_TABLE = "coursereserves_coursetypes";
+  public static final String ROLES_TABLE = "coursereserves_roles";
+  public static final String BASE_PREFIX = "/coursereserves/";
   public static final String COURSES_PREFIX = BASE_PREFIX + "/courses";
   public static final String COURSE_LISTINGS_PREFIX = BASE_PREFIX + "/courselistings";
   public static final String RESERVES_PREFIX = BASE_PREFIX + "/reserves";
