@@ -8,103 +8,103 @@
             "handlers": [
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/coursereserves/courses",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.collection.get"]
                 },            
                 {
                     "methods": [ "POST" ],
-                    "pathPattern": "/coursereserves/courses",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.item.post"]
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/coursereserves/courses/{id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.item.get"]
                 },
                 {
                     "methods": [ "PUT" ],
-                    "pathPattern": "/coursereserves/courses/{id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.item.put"]
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/coursereserves/courses/{id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.item.delete"]
                 },
                 {
                     "methods": [ "GET" ] ,
-                    "pathPattern": "/coursereserves/courses/{id}/sections",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/courses",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.courses.collection.get"]
                 },
                 {
                     "methods": [ "POST" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/courses",
+                    "permissionsRequired": ["course-reserves-storage.courselisting.courses.item.post"]
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/courses/{c_id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.courses.item.get"]
                 },
                 {
                     "methods": [ "PUT" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/courses/{c_id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.courses.item.put"]
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/courses/{c_id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.courses.item.delete"]
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/instructors",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.instructors.collection.get"]
                 },
                 {
                     "methods": [ "POST"],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/instructors",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.instructors.item.post"]
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors/{i_id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/instructors/{i_id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.instructors.item.get"]
                 },
                 {
                     "methods": [ "PUT" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors/{i_id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistingss/{id}/instructors/{i_id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.instructors.item.put"]
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/instructors/{i_id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/instructors/{i_id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.instructors.item.delete"]
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courseslistings/{id}/reserves",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.collection.get"]
                 },
                 {
                     "methods": [ "POST" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/reserves",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.post"]
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves/{r_id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/reserves/{r_id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.get"]
                 },
                 {
                     "methods": [ "PUT" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves/{r_id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/reserves/{r_id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.put"]
                 },
                 {
                     "methods": [ "DELETE" ],
-                    "pathPattern": "/coursereserves/courses/{id}/sections/{s_id}/reserves/{r_id}",
-                    "permissionsRequired": []
+                    "pathPattern": "/coursereserves/courselistings/{id}/reserves/{r_id}",
+                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.delete"]
                 }
                         
             ]
@@ -116,22 +116,28 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/terms",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.terms.collection.get"]
                 },
                 {
                     "methods": [ "POST" ],
                     "pathPattern": "/coursereserves/terms",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.terms.item.post"]
                 },
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/terms/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.terms.item.get"]
                 },
+                {
+                    "methods": [ "PUT" ],
+                    "pathPattern": "/coursereserves/terms/{id}",
+                    "permissionsRequired": ["course-reserves-storage.terms.item.put"]
+                },
+
                 {
                     "methods": [ "DELETE" ],
                     "pathPattern": "/coursereserves/terms/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.terms.item.delete"]
                 }
             ]
         },
@@ -143,22 +149,28 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/departments",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.departments.collection.get"]
                 },
                 {
                     "methods": [ "POST" ],
                     "pathPattern": "/coursereserves/departments",
-                    "permissionsRequired": []
-                },
+                    "permissionsRequired": ["course-reserves-storage.departments.item.post"]
+                }, 
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/departments/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.departments.item.get"]
+                },
+
+                {
+                    "methods": [ "PUT" ],
+                    "pathPattern": "/coursereserves/departments/{id}",
+                    "permissionsRequired": ["course-reserves-storage.departments.item.put"]
                 },
                 {
                     "methods": [ "DELETE" ],
                     "pathPattern": "/coursereserves/departments/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.departments.item.delete"]
                 }
             ]
         },
@@ -169,22 +181,28 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/coursetypes",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.course-types.collection.get"]
                 },
                 {
                     "methods": [ "POST" ],
                     "pathPattern": "/coursereserves/coursetypes",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.course-types.item.post"]
                 },
+                {
+                    "methods": [ "PUT" ],
+                    "pathPattern": "/coursereserves/coursetypes/{id}",
+                    "permissionsRequired": ["course-reserves-storage.course-types.item.put"]
+                },
+
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/coursetypes/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.course-types.item.get"]
                 },
                 {
                     "methods": [ "DELETE" ],
                     "pathPattern": "/coursereserves/coursetypes/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.course-types.item.delete"]
                 }
             ]
         },
@@ -195,22 +213,27 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/processingstatuses",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.processing-statuses.collection.get"]
+                },
+                {
+                    "methods": [ "PUT" ],
+                    "pathPattern": "/coursereserves/processingstatuses/{id}",
+                    "permissionsRequired": ["course-reserves-storage.processing-statuses.item.put"]
                 },
                 {
                     "methods": [ "POST" ],
                     "pathPattern": "/coursereserves/processingstatuses",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.processing-statuses.item.post"]
                 },
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/processingstatuses/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.processing-statuses.item.get"]
                 },
                 {
                     "methods": [ "DELETE" ],
                     "pathPattern": "/coursereserves/processingstatuses/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.processing-statuses.item.delete"]
                 }
             ]
         },
@@ -221,22 +244,58 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/copyrightstatuses",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.copyright-statuses.collection.get"]
                 },
                 {
                     "methods": [ "POST" ],
                     "pathPattern": "/coursereserves/copyrightstatuses",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.copyright-statuses.item.post"]
                 },
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/copyrightstatuses/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.copyright-statuses.item.get"]
+                },
+                {
+                    "methods": [ "PUT" ],
+                    "pathPattern": "/coursereserves/copyrightstatuses/{id}",
+                    "permissionsRequired": ["course-reserves-storage.copyright-statuses.item.put"]
                 },
                 {
                     "methods": [ "DELETE" ],
                     "pathPattern": "/coursereserves/copyrightstatuses/{id}",
-                    "permissionsRequired": []
+                    "permissionsRequired": ["course-reserves-storage.copyright-statuses.item.delete"]
+                }
+            ]
+        },       
+        {
+            "id" : "role-storage",
+            "version" : "0.1",
+            "handlers": [
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/roles",
+                    "permissionsRequired": ["course-reserves-storage.roles.collection.get"]
+                },
+                {
+                    "methods": [ "POST" ],
+                    "pathPattern": "/coursereserves/roles",
+                    "permissionsRequired": ["course-reserves-storage.roles.item.post"]
+                },
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/roles/{id}",
+                    "permissionsRequired": ["course-reserves-storage.roles.item.get"]
+                },
+                {
+                    "methods": [ "PUT" ],
+                    "pathPattern": "/coursereserves/roles/{id}",
+                    "permissionsRequired": ["course-reserves-storage.roles.item.put"]
+                },
+                {
+                    "methods": [ "DELETE" ],
+                    "pathPattern": "/coursereserves/roles/{id}",
+                    "permissionsRequired": ["course-reserves-storage.roles.item.delete"]
                 }
             ]
         },
@@ -256,7 +315,345 @@
             ]
         }
     ],
-    "permissionSets": [],
+    "permissionSets": [
+        {
+            "permissionName": "course-reserves-storage.courselistings.collection.get",
+            "displayName": "course reserves get courselistings collection",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.item.post",
+            "displayName": "course reserves post courselistings item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.item.get",
+            "displayName": "course reserves get courselisting item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.item.put",
+            "displayName": "course reserves put courselisting item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.item.delete",
+            "displayName": "course reserves delete courselisting item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.courses.collection.get",
+            "displayName": "course reserves get courses collection for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselisting.courses.item.post",
+            "displayName": "course reserves post course item for courselisting",
+            "description": "pending"
+        },
+
+        {
+            "permissionName": "course-reserves-storage.courselistings.courses.item.get",
+            "displayName": "course reserves get course item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.courses.item.put",
+            "displayName": "course reserves put course item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.courses.item.delete",
+            "displayName": "course reserves delete course item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.instructors.collection.get",
+            "displayName": "course reserves get instructors collection for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.instructors.item.post",
+            "displayName": "course reserves post instructors item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.instructors.item.get",
+            "displayName": "course reserves get instructors item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.instructors.item.put",
+            "displayName": "course reserves put instructors item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.instructors.item.delete",
+            "displayName": "course reserves delete instructors item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.reserves.collection.get",
+            "displayName": "course reserves get reserves collection for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.reserves.item.post",
+            "displayName": "course reserves post reserves item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.reserves.item.get",
+            "displayName": "course reserves get reserves item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.reserves.item.put",
+            "displayName": "course reserves put reserves item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselistings.reserves.item.delete",
+            "displayName": "course reserves delete reserves item for courselisting",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.courselisting.read",
+            "displayName" : "read permissions for coursereserves courselisting",
+            "description" : "pending",
+            "subPermissions": [
+                "course-reserves-storage.courselistings.collection.get",
+                "course-reserves-storage.courselistings.item.get",
+                "course-reserves-storage.courselistings.courses.collection.get",
+                "course-reserves-storage.courselistings.courses.item.get",
+                "course-reserves-storage.courselistings.instructors.collection.get",
+                "course-reserves-storage.courselistings.instructors.item.get",
+                "course-reserves-storage.courselistings.reserves.collection.get",
+                "course-reserves-storage.courselistings.reserves.item.get"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.courselisting.write",
+            "displayName": "write permissions for coursereserves courselisting",
+            "description": "pending",
+            "subpermissions": [
+                "course-reserves-storage.courselisting.read",
+                "course-reserves-storage.courselistings.item.post",
+                "course-reserves-storage.courselistings.item.put",
+                "course-reserves-storage.courselistings.item.delete",
+                "course-reserves-storage.courselisting.courses.item.post",
+                "course-reserves-storage.courselistings.courses.item.put",
+                "course-reserves-storage.courselistings.courses.item.delete",
+                "course-reserves-storage.courselistings.instructors.item.post",
+                "course-reserves-storage.courselistings.instructors.item.put",
+                "course-reserves-storage.courselistings.instructors.item.delete",
+                "course-reserves-storage.courselistings.reserves.item.post",
+                "course-reserves-storage.courselistings.reserves.item.put",
+                "course-reserves-storage.courselistings.reserves.item.delete"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.terms.collection.get",
+            "displayName": "course reserves get terms collection",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.terms.item.post",
+            "displayName": "course reserves post terms item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.terms.item.get",
+            "displayName": "course reserves get terms item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.terms.item.put",
+            "displayName": "course reserves put terms item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.terms.item.delete",
+            "displayName": "course reserves delete terms item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.terms.read",
+            "displayName": "course reserves terms read permissions",
+            "description" : "pending",
+            "subPermissions": [
+                "course-reserves-storage.terms.collection.get",
+                "course-reserves-storage.terms.item.get"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.terms.write",
+            "displayName": "course reserves terms write permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.terms.item.post",
+                "course-reserves-storage.terms.item.put", 
+                "course-reserves-storage.terms.item.put",
+                "course-reserves-storage.terms.item.delete"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.departments.collection.get",
+            "displayName": "course reserves get departments collection",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.departments.item.post",
+            "displayName": "course reserves post departments item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.departments.item.get",
+            "displayName": "course reserves get departments item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.departments.item.put",
+            "displayName": "course reserves put departments item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.departments.item.delete",
+            "displayName": "course reserves delete departments item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.course-types.collection.get",
+            "displayName": "course reserves get course types collection",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.course-types.item.post",
+            "displayName": "course reserves post course types item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.course-types.item.put",
+            "displayName": "course reserves put course types item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.course-types.item.get",
+            "displayName": "course reserves get course types item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.course-types.item.delete",
+            "displayName": "course reserves delete course types item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.processing-statuses.collection.get",
+            "displayName": "course reserves get processing statuses collection",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.processing-statuses.item.put",
+            "displayName": "course reserves put processing statuses item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.processing-statuses.item.post",
+            "displayName": "course reserves post processing statuses item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.processing-statuses.item.get",
+            "displayName": "course reserves get processing statuses item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.processing-statuses.item.delete",
+            "displayName": "course reserves delete processing statuses item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.copyright-statuses.collection.get",
+            "displayName": "course reserves get copyright statuses collection",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.copyright-statuses.item.put",
+            "displayName": "course reserves put copyright statuses item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.copyright-statuses.item.post",
+            "displayName": "course reserves post copyright statuses item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.copyright-statuses.item.get",
+            "displayName": "course reserves get copyright statuses item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.copyright-statuses.item.delete",
+            "displayName": "course reserves delete copyright statuses item",
+            "description": ""
+        },
+        {
+            "permissionName": "course-reserves-storage.roles.collection.get",
+            "displayName": "course reserves get roles collection",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.roles.item.post",
+            "displayName": "course reserves post roles item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.roles.item.get",
+            "displayName": "course reserves get roles item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.roles.item.put",
+            "displayName": "course reserves put roles item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.roles.item.delete",
+            "displayName": "course reserves delete roles item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.roles.read",
+            "displayName": "course reserves roles read permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.roles.collection.get",
+                "course-reserves-storage.roles.item.get"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.roles.write",
+            "displayName": "course reserves roles write permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.roles.read",
+                "course-reserves-storage.roles.item.post",
+                "course-reserves-storage.roles.item.put",
+                "course-reserves-storage.roles.item.delete"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.all",
+            "displayName": "course reserves all permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.terms.write",
+                "course-reserves-storage.courselisting.write",
+                "course-reserves-storage.roles.write"
+            ]
+        }
+
+    ],
     "launchDescriptor": {
         "dockerImage": "${artifactId}:${version}",
         "dockerArgs": {

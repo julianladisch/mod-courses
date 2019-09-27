@@ -1,75 +1,91 @@
 {
     "tables": [
         {
-            "tableName": "courses_courses",
+            "tableName": "coursereserves_courses",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
-                "fieldName": "id",
-                "tOps": "ADD"
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
             ]
         },    
         {
-            "tableName": "courses_courselistings",
+            "tableName": "coursereserves_courselistings",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
-                "fieldName": "id",
-                "tOps": "ADD"
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
             ]
         },
         {
-            "tableName": "courses_departments",
+            "tableName": "coursereserves_departments",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
-                "fieldName": "id",
-                "tOps": "ADD"
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
             ]
         },
         {
-            "tableName": "courses_reserves",
+            "tableName": "coursereserves_reserves",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
-                "fieldName": "id",
-                "tOps": "ADD"
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
             ]
         },
         {
-            "tableName": "courses_instructors",
+            "tableName": "coursereserves_instructors",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
-                "fieldName": "id",
-                "tOps": "ADD"
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
             ]
         },
         {
-            "tableName": "courses_processingstates",
+            "tableName": "coursereservess_processingstates",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
-                "fieldName": "id",
-                "tOps": "ADD"
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
             ]
         },
         {
-            "tableName": "courses_copyrightstates",
+            "tableName": "coursereserves_copyrightstates",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
-                "fieldName": "id",
-                "tOps": "ADD"
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
             ]
         },
         {
-            "tableName": "courses_terms",
+            "tableName": "coursereserves_terms",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
-                "fieldName": "id",
-                "tOps": "ADD"
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
             ]
         }
 
