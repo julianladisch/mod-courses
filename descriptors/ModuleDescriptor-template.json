@@ -623,13 +623,35 @@
             "description": "pending"
         },
         {
+            "permissionName": "course-reserves-storage.roles.read",
+            "displayName": "course reserves roles read permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.roles.collection.get",
+                "course-reserves-storage.roles.item.get"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.roles.write",
+            "displayName": "course reserves roles write permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.roles.read",
+                "course-reserves-storage.roles.item.post",
+                "course-reserves-storage.roles.item.put",
+                "course-reserves-storage.roles.item.delete"
+            ]
+        },
+        {
             "permissionName": "course-reserves-storage.all",
             "displayName": "course reserves all permissions",
             "description": "pending",
             "subPermissions": [
                 "course-reserves-storage.terms.write",
-                "course-reserves-storage.courselisting.write"
+                "course-reserves-storage.courselisting.write",
+                "course-reserves-storage.roles.write"
             ]
+        }
 
     ],
     "launchDescriptor": {
