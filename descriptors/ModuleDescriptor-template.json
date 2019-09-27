@@ -436,7 +436,7 @@
             "permissionName": "course-reserves-storage.courselisting.write",
             "displayName": "write permissions for coursereserves courselisting",
             "description": "pending",
-            "subpermissions": [
+            "subPermissions": [
                 "course-reserves-storage.courselisting.read",
                 "course-reserves-storage.courselistings.item.post",
                 "course-reserves-storage.courselistings.item.put",
