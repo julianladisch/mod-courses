@@ -418,7 +418,7 @@
             "description": "pending"
         },
         {
-            "permissionName": "course-reserves-storage.courselisting.read",
+            "permissionName": "course-reserves-storage.courselistings.read",
             "displayName" : "read permissions for coursereserves courselisting",
             "description" : "pending",
             "subPermissions": [
@@ -433,11 +433,11 @@
             ]
         },
         {
-            "permissionName": "course-reserves-storage.courselisting.write",
+            "permissionName": "course-reserves-storage.courselistings.write",
             "displayName": "write permissions for coursereserves courselisting",
             "description": "pending",
             "subPermissions": [
-                "course-reserves-storage.courselisting.read",
+                "course-reserves-storage.courselistings.read",
                 "course-reserves-storage.courselistings.item.post",
                 "course-reserves-storage.courselistings.item.put",
                 "course-reserves-storage.courselistings.item.delete",
@@ -523,6 +523,26 @@
             "description": "pending"
         },
         {
+            "permissionName": "course-reserves-storage.departments.read",
+            "displayName": "course reserves departments read permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.departments.collection.get",
+                "course-reserves-storage.departments.item.get"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.departments.write",
+            "displayName": "course reserves departments write permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.departments.read",
+                "course-reserves-storage.departments.item.post",
+                "course-reserves-storage.departments.item.put",
+                "course-reserves-storage.departments.item.delete"
+            ]
+        },
+        {
             "permissionName": "course-reserves-storage.course-types.collection.get",
             "displayName": "course reserves get course types collection",
             "description": "pending"
@@ -546,6 +566,26 @@
             "permissionName": "course-reserves-storage.course-types.item.delete",
             "displayName": "course reserves delete course types item",
             "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.course-types.read",
+            "displayName": "course reserves course storage read permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.course-types.collection.get",
+                "course-reserves-storage.course-types.item.get"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.course-types.write",
+            "displayName": "course reserves course storage write permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.course-types.read",
+                "course-reserves-storage.course-types.item.post", 
+                "course-reserves-storage.course-types.item.put",
+                "course-reserves-storage.course-types.item.delete"
+            ]
         },
         {
             "permissionName": "course-reserves-storage.processing-statuses.collection.get",
@@ -573,6 +613,26 @@
             "description": "pending"
         },
         {
+            "permissionName": "course-reserves-storage.processing-statuses.read",
+            "displayName": "course reserves processing statuses read permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.processing-statuses.collection.get",
+                "course-reserves-storage.processing-statuses.item.get"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.processing-statuses.write",
+            "displayName": "course reserves processing statuses write permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.processing-statuses.read",
+                "course-reserves-storage.processing-statuses.item.put",
+                "course-reserves-storage.processing-statuses.item.post",
+                "course-reserves-storage.processing-statuses.item.delete"
+            ]
+        },
+        {
             "permissionName": "course-reserves-storage.copyright-statuses.collection.get",
             "displayName": "course reserves get copyright statuses collection",
             "description": "pending"
@@ -595,7 +655,27 @@
         {
             "permissionName": "course-reserves-storage.copyright-statuses.item.delete",
             "displayName": "course reserves delete copyright statuses item",
-            "description": ""
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.copyright-statuses.read",
+            "displayName": "course reserves copyright statuses read permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.copyright-statuses.collection.get",
+                "course-reserves-storage.copyright-statuses.item.get"
+            ]
+        },
+        {
+            "permissionName": "course-reserves-storage.copyright-statuses.write",
+            "displayName": "course reserves copyright statuses write permissions", 
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.copyright-statuses.read",
+                "course-reserves-storage.copyright-statuses.item.put",
+                "course-reserves-storage.copyright-statuses.item.post",
+                "course-reserves-storage.copyright-statuses.item.delete"
+            ]
         },
         {
             "permissionName": "course-reserves-storage.roles.collection.get",
@@ -648,8 +728,12 @@
             "description": "pending",
             "subPermissions": [
                 "course-reserves-storage.terms.write",
-                "course-reserves-storage.courselisting.write",
-                "course-reserves-storage.roles.write"
+                "course-reserves-storage.courselistings.write",
+                "course-reserves-storage.roles.write",
+                "course-reserves-storage.departments.write",
+                "course-reserves-storage.course-types.write",
+                "course-reserves-storage.processing-statuses.write",
+                "course-reserves-storage.copyright-statuses.write"
             ]
         }
 
