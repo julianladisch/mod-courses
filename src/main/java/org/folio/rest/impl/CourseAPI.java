@@ -486,7 +486,9 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   }
 
   @Override
-  public void getCoursereservesRoles(String query, int offset, int limit, String lang, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+  public void getCoursereservesRoles(String query, int offset, int limit,
+      String lang, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     PgUtil.get(ROLES_TABLE, Role.class, Roles.class, query, offset, limit,
         okapiHeaders, vertxContext, GetCoursereservesRolesResponse.class,
         asyncResultHandler);

@@ -56,7 +56,7 @@
             ]
         },
         {
-            "tableName": "coursereservess_processingstates",
+            "tableName": "coursereserves_processingstates",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
@@ -79,6 +79,28 @@
         },
         {
             "tableName": "coursereserves_terms",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+        {
+            "tableName": "coursereserves_roles",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+        {
+            "tableName": "coursereserves_coursetypes",
             "withMetadata": true,
             "withAuditing": false,
             "index": [
