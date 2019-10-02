@@ -676,7 +676,7 @@
                 "course-reserves-storage.copyright-statuses.item.post",
                 "course-reserves-storage.copyright-statuses.item.delete"
             ]
-        },.
+        },
         {
             "permissionName": "course-reserves-storage.roles.collection.get",
             "displayName": "course reserves get roles collection",
