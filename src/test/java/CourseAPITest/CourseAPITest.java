@@ -114,4 +114,17 @@ public class CourseAPITest {
       }
     });
   }
+
+  @Test
+  public void getCourses(TestContext context) {
+    Async async = context.async();
+    TestUtil.doRequest(vertx, baseUrl + "/courses", GET, null, null, 200,
+        "Get course listing").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
 }
