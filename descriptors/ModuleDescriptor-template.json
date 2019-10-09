@@ -796,6 +796,7 @@
                 "course-reserves-storage.courses.item.post",
                 "course-reserves-storage.courses.item.put",
                 "course-reserves-storage.courses.item.delete"
+            ]
         },
         {
             "permissionName": "course-reserves-storage.all",
