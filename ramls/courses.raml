@@ -432,3 +432,41 @@ resourceTypes:
                 description: "Update a status by id"
                 is: [ validate ]
             delete:
+    /courses:
+        description: "Handle courses"
+        type:
+            collection:
+                exampleCollection: !include examples/courses.json
+                exampleItem: !include examples/course.json
+                schemaCollection: courses
+                schemaItem: course
+        get:
+            description: "Return a list of courses"
+            is: [
+                searchable: {description: "with valid searchable fields", example: "name=aaa"},
+                pageable
+            ]
+        post:
+            description: "Create a new course"
+            is: [ validate ]
+        delete:
+            description: "Delete ALL courses"
+            is: [ validate ]
+            responses:
+                204:
+                    description: "All courses delete"
+                500:
+                    description: "Internal server error"
+                    body:
+                        text/plain:
+                            example: "Internal server error"
+        /{course_id}:
+            description: "With provided id"
+            type:
+                collection-item:
+                    exampleItem: !include examples/course.json
+                    schema: course
+            get:
+            put:
+                description: "Update a course by id"
+            delete:
