@@ -127,4 +127,17 @@ public class CourseAPITest {
       }
     });
   }
+
+ @Test
+  public void getReserves(TestContext context) {
+    Async async = context.async();
+    TestUtil.doRequest(vertx, baseUrl + "/reserves", GET, null, null, 200,
+        "Get reserve listing").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
 }

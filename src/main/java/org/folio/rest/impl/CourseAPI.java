@@ -990,5 +990,76 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         DeleteCoursereservesCoursesByCourseIdResponse.class, asyncResultHandler);
   }
 
+  @Override
+  public void getCoursereservesReserves(String query, int offset, int limit,
+      String lang, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    PgUtil.get(RESERVES_TABLE, Reserve.class, Reserves.class, query, offset,
+        limit, okapiHeaders, vertxContext, GetCoursereservesReservesResponse.class,
+        asyncResultHandler);
+  }
+
+  @Override
+  public void postCoursereservesReserves(String lang, Reserve entity,
+      Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
+        PostCoursereservesReservesResponse.class, asyncResultHandler);
+  }
+
+  @Override
+  public void deleteCoursereservesReserves(Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    try {
+        String tenantId = getTenant(okapiHeaders);
+        PostgresClient pgClient = getPGClient(vertxContext, tenantId);
+        final String DELETE_ALL_QUERY = String.format("DELETE FROM %s_%s.%s",
+                tenantId, "mod_courses", RESERVES_TABLE);
+        logger.info(String.format("Deleting all reserves with query %s",
+                DELETE_ALL_QUERY));
+        pgClient.execute(DELETE_ALL_QUERY, mutateReply -> {
+          if(mutateReply.failed()) {
+            String message = logAndSaveError(mutateReply.cause());
+            asyncResultHandler.handle(Future.succeededFuture(
+                    DeleteCoursereservesCoursesResponse.respond500WithTextPlain(
+                    getErrorResponse(message))));
+          } else {
+            asyncResultHandler.handle(Future.succeededFuture(
+                    DeleteCoursereservesCoursesResponse.noContent().build()));
+          }
+        });
+      } catch(Exception e) {
+        String message = logAndSaveError(e);
+        asyncResultHandler.handle(Future.succeededFuture(
+                DeleteCoursereservesCoursesResponse.respond500WithTextPlain(
+                getErrorResponse(message))));
+      }
+  }
+
+  @Override
+  public void getCoursereservesReservesByReserveId(String reserveId, String lang,
+      Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+   PgUtil.getById(RESERVES_TABLE, Reserve.class, reserveId, okapiHeaders,
+       vertxContext, GetCoursereservesReservesByReserveIdResponse.class,
+       asyncResultHandler);
+  }
+
+  @Override
+  public void putCoursereservesReservesByReserveId(String reserveId, String lang,
+      Reserve entity, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    PgUtil.put(RESERVES_TABLE, entity, reserveId, okapiHeaders, vertxContext,
+        PutCoursereservesReservesByReserveIdResponse.class, asyncResultHandler);
+  }
+
+  @Override
+  public void deleteCoursereservesReservesByReserveId(String reserveId,
+      String lang, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    PgUtil.deleteById(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext,
+        DeleteCoursereservesReservesByReserveIdResponse.class, asyncResultHandler);
+  }
+
 
 }
