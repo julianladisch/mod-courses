@@ -470,3 +470,42 @@ resourceTypes:
             put:
                 description: "Update a course by id"
             delete:
+    /reserves:
+        description: "Handle reserves"
+        type:
+            collection:
+                exampleCollection: !include examples/reserves.json
+                exampleItem: !include examples/reserve.json
+                schemaCollection: reserves
+                schemaItem: reserve
+        get:
+            description: "Return a list of reserves"
+            is: [
+                searchable: {description: "with valid searchable fields", example: "name=aaa"},
+                pageable
+            ]
+        post:
+            description: "Create a new reserve"
+            is: [ validate ]
+        delete:
+            description: "Delete ALL reserves"
+            is: [ validate ]
+            responses:
+                204:
+                    description: "All reserves deleted"
+                500:
+                    description: "Internal server error"
+                    body:
+                        text/plain:
+                            example: "Internal server error"
+        /{reserve_id}:
+            description: "With provided reserve id"
+            type:
+                collection-item:
+                    exampleItem: !include examples/reserve.json
+                    schema: reserve
+            get:
+            put:
+                description: "Update a reserve by id"
+                is: [ validate ]
+            delete:
