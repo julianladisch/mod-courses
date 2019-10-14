@@ -330,7 +330,38 @@
                 }
             ]
         },
-       {
+        {
+            "id" : "reserves-storage",
+            "version" : "0.1",
+            "handlers": [
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/reserves",
+                    "permissionsRequired": ["course-reserves-storage.reserves.collection.get"]
+                },
+                {
+                    "methods": [ "POST" ],
+                    "pathPattern": "/coursereserves/reserves",
+                    "permissionsRequired": ["course-reserves-storage.reserves.item.post"]
+                },
+                {
+                    "methods": [ "GET" ],
+                    "pathPattern": "/coursereserves/reserves/{id}",
+                    "permissionsRequired": ["course-reserves-storage.reserves.item.get"]
+                },
+                {
+                    "methods": [ "PUT" ],
+                    "pathPattern": "/coursereserves/reserves/{id}",
+                    "permissionsRequired": ["course-reserves-storage.reserves.item.put"]
+                },
+                {
+                    "methods": [ "DELETE" ],
+                    "pathPattern": "/coursereserves/reserves/{id}",
+                    "permissionsRequired": ["course-reserves-storage.reserves.item.delete"]
+                }
+            ]
+        },
+        {
             "id" : "_tenant",
             "version" : "1.2",
             "interfaceType" : "system",
@@ -799,6 +830,51 @@
             ]
         },
         {
+            "permissionName": "course-reserves-storage.reserves.collection.get",
+            "displayName": "course reserves get reserve listing",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.reserves.item.post",
+            "displayName": "course reserves post reserve item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.reserves.item.get",
+            "displayName": "course reserves get reserve item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.reserves.item.put",
+            "displayName": "course reserves put reserve item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.reserves.item.delete",
+            "displayName": "course reserves delete reserve item",
+            "description": "pending"
+        },
+        {
+            "permissionName": "course-reserves-storage.reserves.read",
+            "displayName": "course reserves reserves read permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.reserves.collection.get",
+                "course-reserves-storage.reserves.item.get"
+            ]
+        },
+        {
+            "permissionName":  "course-reserves-storage.reserves.write",
+            "displayName": "course reserves reserves write permissions",
+            "description": "pending",
+            "subPermissions": [
+                "course-reserves-storage.reserves.read",
+                "course-reserves-storage.reserves.item.post",
+                "course-reserves-storage.reserves.item.put",
+                "course-reserves-storage.reserves.item.delete"
+            ]
+        },
+        {
             "permissionName": "course-reserves-storage.all",
             "displayName": "course reserves all permissions",
             "description": "pending",
@@ -810,7 +886,8 @@
                 "course-reserves-storage.course-types.write",
                 "course-reserves-storage.processing-statuses.write",
                 "course-reserves-storage.copyright-statuses.write",
-                "course-reserves-storage.courses.write"
+                "course-reserves-storage.courses.write",
+                "course-reserves-storage.reserves.write"
             ]
         }
 
