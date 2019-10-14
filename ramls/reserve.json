@@ -60,19 +60,24 @@
                         "type": "object",
                         "properties": {
                             "name" : {
-                                "type": "string"
+                                "type": "string",
+                                "description": "Personal name, corporate name, meeting name"
                             },
                             "contributorTypeId": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "ID for the contributor type term defined as a referencetable in settings"
                             },
                             "contributorTypeText": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "Free text element for adding contributor type terms other that defined by the MARC code list for relators"
                             },
                             "contributorNameTypeId": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "Contributor type terms defined by the MARC code list for relators"
                             },
                             "primary": {
-                                "type": "boolean"
+                                "type": "boolean",
+                                "description": "Whether this is the primary contributor"
                             }
                         }
                     }
@@ -84,16 +89,20 @@
                         "type": "object",
                         "properties": {
                             "publisher": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "Name of publisher, distributor, etc."
                             },
                             "place": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "Place of publication, distribution, etc."
                             },
                             "dateOfPublication": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "Date (year YYYY) of publication, distribution, etc."
                             },
                             "role": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "The role of the publisher, distributor, etc."
                             }
                         }
                     }

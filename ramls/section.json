@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
-    "description": "",
+    "description": "A section of a course, such as 'part 1' or 'intro'",
     "additionalProperties": false,
     "properties": {
         "id": {
