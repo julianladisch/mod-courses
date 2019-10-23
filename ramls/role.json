@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
-    "description": "",
+    "description": "Role taken by an instructor in a course",
     "additionalProperties": false,
     "properties": {
         "id": {
