@@ -24,8 +24,13 @@
         },
         "courseListingId": {
             "type": "string",
-            "description": "The course listing this course belongs to",
+            "description": "The id for the course listing this course belongs to",
             "$ref": "uuid.json"
+        },
+        "courseListingObject": {
+           "type": "object",
+            "description": "The course listing associated with this course",
+            "$ref": "courselisting.json"
         },
         "courseNumber": {
             "type": "string",

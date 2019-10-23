@@ -1,8 +1,11 @@
 package CourseAPITest;
 
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import static io.vertx.core.http.HttpMethod.DELETE;
 import static io.vertx.core.http.HttpMethod.GET;
+import static io.vertx.core.http.HttpMethod.POST;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -10,12 +13,17 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.UUID;
 import javax.ws.rs.HttpMethod;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
+import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
+import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,6 +35,10 @@ public class CourseAPITest {
   private static Vertx vertx;
   private final Logger logger = LoggerFactory.getLogger(CourseAPITest.class);
   public static String baseUrl;
+  public final static String COURSE_LISTING_1_ID = UUID.randomUUID().toString();
+  public final static String TERM_1_ID = UUID.randomUUID().toString();
+  public final static String COURSE_1_ID = UUID.randomUUID().toString();
+  public final static String DEPARTMENT_1_ID = UUID.randomUUID().toString();
 
 
   @Rule
@@ -68,6 +80,48 @@ public class CourseAPITest {
       PostgresClient.stopEmbeddedPostgres();
       async.complete();
     }));
+  }
+
+  @Before
+  public void beforeEach(TestContext context) {
+    Async async = context.async();
+    loadTerm1()
+      .compose(f -> {
+        return loadCourseListing1();
+      })
+      .compose(f -> {
+        return loadDepartment1();
+      })
+      .compose(f -> {
+        return loadCourse1();
+      })
+      .setHandler(res -> {
+        if(res.failed()) {
+          context.fail(res.cause());
+        } else {
+          async.complete();
+        }
+      });
+  }
+
+  @After
+  public void afterEach(TestContext context) {
+    Async async = context.async();
+    deleteCourses()
+        .compose(f -> {
+          return deleteCourseListings();
+        })
+        .compose(f -> {
+          return deleteTerms();
+        }).compose(f -> {
+          return deleteDepartments();
+        }).setHandler(res -> {
+        if(res.failed()) {
+          context.fail(res.cause());
+        } else {
+          async.complete();
+        }
+      });
   }
 
   @Test
@@ -123,7 +177,16 @@ public class CourseAPITest {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
-        async.complete();
+        try {
+          JsonObject course = res.result().getJson().getJsonArray("courses").getJsonObject(0);
+          if(course.getJsonObject("courseListingObject") != null) {
+            async.complete();
+          } else {
+            context.fail("No course listing object found");
+          }
+        } catch(Exception e) {
+          context.fail(e);
+        }
       }
     });
   }
@@ -139,5 +202,129 @@ public class CourseAPITest {
         async.complete();
       }
     });
+  }
+
+
+  private Future<Void> loadDepartment1() {
+    Future<Void> future = Future.future();
+    JsonObject departmentJson = new JsonObject()
+        .put("id", DEPARTMENT_1_ID)
+        .put("name", "History");
+    TestUtil.doRequest(vertx, baseUrl + "/departments", POST, null,
+        departmentJson.encode(), 201, "Post Department 1").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadTerm1() {
+    Future<Void> future = Future.future();
+    DateTime startDate = new DateTime(2019, 6, 15, 0, 0);
+    DateTime endDate = new DateTime(2019, 12, 15, 0, 0);
+    JsonObject termJson = new JsonObject()
+        .put("id", TERM_1_ID)
+        .put("name", "Term 1")
+        .put("startDate", startDate.toString(ISODateTimeFormat.dateTime()))
+        .put("endDate", endDate.toString(ISODateTimeFormat.dateTime()));
+    TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
+        termJson.encode(), 201, "Post Term 1").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourseListing1() {
+    Future<Void> future = Future.future();
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", COURSE_LISTING_1_ID)
+        .put("termId", TERM_1_ID)
+        .put("externalId", UUID.randomUUID().toString());
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
+        courseListingJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourse1() {
+    Future<Void> future = Future.future();
+    JsonObject courseJson = new JsonObject()
+        .put("id", COURSE_1_ID)
+        .put("departmentId", DEPARTMENT_1_ID)
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("name", "Comp Sci 101");
+    TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
+        courseJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> deleteCourses() {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, baseUrl + "/courses", DELETE, null, null, 204,
+        "Delete All Courses").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> deleteCourseListings() {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings", DELETE, null, null, 204,
+        "Delete All Course Listings").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> deleteTerms() {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, baseUrl + "/terms", DELETE, null, null, 204,
+        "Delete All Terms").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> deleteDepartments() {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, baseUrl + "/departments", DELETE, null, null, 204,
+        "Delete All Departments").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
   }
 }
