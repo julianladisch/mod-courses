@@ -1,0 +1,27 @@
+if [ ! -f ~/.okapi ]; then
+    echo 'Log into Okapi before running this'
+    exit 2
+fi
+
+set -a
+. ~/.okapi
+set +a
+
+for dir in roles terms coursetypes departments processingstatuses copyrightstatuses; do
+    echo "Adding records of type $dir"
+    cd $dir
+        case $dir in
+	    *) path=${dir};;
+        esac
+        for file in *; do
+	    echo "  Adding $dir '$file' at /$path"
+	    curl \
+		-X POST \
+		$OKAPI_URL/coursereserves/$path \
+		-H "X-Okapi-Token: $OKAPI_TOKEN" \
+		-H "X-Okapi-Tenant: $OKAPI_TENANT" \
+		-H "Content-Type: application/json" \
+		-d @$file
+	done
+    cd ..
+done
