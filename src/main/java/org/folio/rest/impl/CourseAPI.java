@@ -9,7 +9,9 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Level;
 import javax.ws.rs.core.Response;
+import org.folio.coursereserves.util.CRUtil;
 import org.folio.cql2pgjson.CQL2PgJSON;
 import org.folio.cql2pgjson.exception.FieldException;
 import org.folio.rest.RestVerticle;
@@ -36,6 +38,7 @@ import org.folio.rest.jaxrs.model.Terms;
 import org.folio.rest.persist.Criteria.Limit;
 import org.folio.rest.persist.Criteria.Offset;
 import org.folio.rest.persist.PgUtil;
+import static org.folio.rest.persist.PgUtil.postgresClient;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
 import org.folio.rest.tools.utils.TenantTool;
@@ -119,6 +122,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void getCoursereservesCourselistings(String query, int offset, int limit,
       String lang, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+
     PgUtil.get(COURSE_LISTINGS_TABLE, Courselisting.class, Courselistings.class,
         query, offset, limit, okapiHeaders, vertxContext,
         GetCoursereservesCourselistingsResponse.class, asyncResultHandler);
@@ -923,9 +927,52 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void getCoursereservesCourses(String query, int offset, int limit,
       String lang, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    PgUtil.get(COURSES_TABLE, Course.class, Courses.class, query, offset, limit,
-        okapiHeaders, vertxContext, GetCoursereservesCoursesResponse.class,
-        asyncResultHandler);
+
+
+    try {
+      CQLWrapper cqlWrapper = getCQL(query, limit, offset, COURSES_TABLE);
+      PostgresClient postgresClient = postgresClient(vertxContext, okapiHeaders);
+      postgresClient.get(COURSES_TABLE, Course.class, cqlWrapper, true, reply -> {
+        if(reply.failed()) {
+          String message = logAndSaveError(reply.cause());
+          asyncResultHandler.handle(Future.succeededFuture(
+              GetCoursereservesCoursesResponse.respond500WithTextPlain(
+                  getErrorResponse(message))));
+        } else {
+          List<Course> courseList = reply.result().getResults();
+          CRUtil.expandListOfCourses(courseList, okapiHeaders, vertxContext).setHandler(
+            res -> {
+              if(res.failed()) {
+                String message = logAndSaveError(res.cause());
+                asyncResultHandler.handle(Future.succeededFuture(
+                    GetCoursereservesCoursesResponse.respond500WithTextPlain(
+                        getErrorResponse(message))));
+              } else {
+                Courses courses = new Courses();
+                courses.setCourses(res.result());
+                courses.setTotalRecords(reply.result().getResultInfo().getTotalRecords());
+                asyncResultHandler.handle(Future.succeededFuture(
+                    GetCoursereservesCoursesResponse.respond200WithApplicationJson(courses)));
+              }
+            }
+          );
+        }
+      });
+      /*
+
+      PgUtil.get(COURSES_TABLE, Course.class, Courses.class, query, offset, limit,
+      okapiHeaders, vertxContext, GetCoursereservesCoursesResponse.class,
+      asyncResultHandler);
+      */
+    } catch (Exception e) {
+      String message = logAndSaveError(e);
+      if(isCQLError(e)) {
+        message = String.format("CQL Error: %s", message);
+      }
+      asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCoursesResponse.respond500WithTextPlain(
+          getErrorResponse(message))));
+    }
   }
 
   @Override
@@ -1060,6 +1107,5 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     PgUtil.deleteById(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext,
         DeleteCoursereservesReservesByReserveIdResponse.class, asyncResultHandler);
   }
-
 
 }

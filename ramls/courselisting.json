@@ -32,6 +32,11 @@
             "description": "The ID of the term for this listing",
             "$ref": "uuid.json"
         },
+        "termObject": {
+            "type": "object",
+            "description": "The term associated with this listing",
+            "$ref": "term.json"
+        },
         "courseTypeId": {
             "type": "string",
             "description": "The ID of the course type for this listing",
