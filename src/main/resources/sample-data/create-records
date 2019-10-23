@@ -7,7 +7,21 @@ set -a
 . ~/.okapi
 set +a
 
-for dir in roles terms coursetypes departments processingstatuses copyrightstatuses; do
+for dir in `echo '
+    roles
+    terms
+    coursetypes
+    departments
+    processingstatuses
+    copyrightstatuses
+    courselistings
+    courses
+    # TODO: reserve
+    # TODO (subobject of course): instructor
+    # SUPERSEDED BY TERM: schedule
+    # NOT INCLUDED: section
+' | grep -v '^[ ]*#'`;
+    do
     echo "Adding records of type $dir"
     cd $dir
         case $dir in
