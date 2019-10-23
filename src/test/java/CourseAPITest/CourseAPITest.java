@@ -204,6 +204,29 @@ public class CourseAPITest {
     });
   }
 
+  @Test
+  public void getCourseById(TestContext context) {
+    Async async = context.async();
+    TestUtil.doRequest(vertx, baseUrl + "/courses/" + COURSE_1_ID, GET, null, null, 200,
+        "Get course by id").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          JsonObject course = res.result().getJson();
+          if(course.getJsonObject("courseListingObject") != null) {
+            async.complete();
+          } else {
+            context.fail("No course listing object found");
+          }
+        } catch(Exception e) {
+          context.fail(e);
+        }
+        async.complete();
+      }
+    });
+  }
+  /* UTILITY CLASSES */
 
   private Future<Void> loadDepartment1() {
     Future<Void> future = Future.future();

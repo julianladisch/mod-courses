@@ -18,6 +18,7 @@ import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.Copyrightstatus;
 import org.folio.rest.jaxrs.model.Copyrightstatuses;
 import org.folio.rest.jaxrs.model.Course;
+import org.folio.rest.jaxrs.model.CourseListingObject;
 import org.folio.rest.jaxrs.model.Courselisting;
 import org.folio.rest.jaxrs.model.Courselistings;
 import org.folio.rest.jaxrs.model.Courses;
@@ -35,6 +36,8 @@ import org.folio.rest.jaxrs.model.Role;
 import org.folio.rest.jaxrs.model.Roles;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.Terms;
+import org.folio.rest.persist.Criteria.Criteria;
+import org.folio.rest.persist.Criteria.Criterion;
 import org.folio.rest.persist.Criteria.Limit;
 import org.folio.rest.persist.Criteria.Offset;
 import org.folio.rest.persist.PgUtil;
@@ -958,12 +961,6 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
           );
         }
       });
-      /*
-
-      PgUtil.get(COURSES_TABLE, Course.class, Courses.class, query, offset, limit,
-      okapiHeaders, vertxContext, GetCoursereservesCoursesResponse.class,
-      asyncResultHandler);
-      */
     } catch (Exception e) {
       String message = logAndSaveError(e);
       if(isCQLError(e)) {
@@ -1016,9 +1013,67 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void getCoursereservesCoursesByCourseId(String courseId, String lang,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    try {
+      String tenantId = getTenant(okapiHeaders);
+      PostgresClient pgClient = getPGClient(vertxContext, tenantId);
+      Criteria idCrit = new Criteria()
+          .addField(ID_FIELD)
+          .setOperation("=")
+          .setVal(courseId);
+      pgClient.get(COURSES_TABLE, Course.class,
+          new Criterion(idCrit), true, false, getReply -> {
+        if (getReply.failed()) {
+          String message = logAndSaveError(getReply.cause());
+          asyncResultHandler.handle(Future.succeededFuture(
+              GetCoursereservesCoursesByCourseIdResponse.respond500WithTextPlain(
+              getErrorResponse(message))));
+        } else {
+          List<Course> courseList = getReply.result().getResults();
+          if (courseList.isEmpty()) {
+            asyncResultHandler.handle(Future.succeededFuture(
+                GetCoursereservesCoursesByCourseIdResponse
+                .respond404WithTextPlain(String.format(
+                "No Course exists with id '%s'", courseId))));
+          } else {
+            Course course = courseList.get(0);
+            CRUtil.getExpandedCourseListing(course.getCourseListingId(),
+                okapiHeaders, vertxContext, Boolean.TRUE).setHandler(res -> {
+                  if(res.failed()) {
+                    String message = logAndSaveError(res.cause());
+                    asyncResultHandler.handle(Future.succeededFuture(
+                        GetCoursereservesCoursesByCourseIdResponse.respond500WithTextPlain(
+                            getErrorResponse(message))));
+                  } else {
+                    CourseListingObject courseListingObject = new CourseListingObject();
+                    Courselisting courseListing = res.result();
+                    courseListingObject.setCourseTypeId(courseListing.getCourseTypeId());
+                    courseListingObject.setExternalId(courseListing.getExternalId());
+                    courseListingObject.setId(courseListing.getId());
+                    courseListingObject.setLocationId(courseListing.getLocationId());
+                    courseListingObject.setRegistrarId(courseListing.getRegistrarId());
+                    courseListingObject.setServicepointId(courseListing.getServicepointId());
+                    courseListingObject.setTermId(courseListing.getTermId());
+                    course.setCourseListingObject(courseListingObject);
+                     asyncResultHandler.handle(Future.succeededFuture(
+                         GetCoursereservesCoursesByCourseIdResponse
+                             .respond200WithApplicationJson(course)));
+                  }
+                });
+           
+          }
+        }
+      });
+    } catch(Exception e) {
+      String message = logAndSaveError(e);
+      asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCoursesByCourseIdResponse.respond500WithTextPlain(
+          getErrorResponse(message))));
+    }
+    /*
     PgUtil.getById(COURSES_TABLE, Course.class, courseId, okapiHeaders,
         vertxContext, GetCoursereservesCoursesByCourseIdResponse.class,
         asyncResultHandler);
+    */
   }
 
   @Override
