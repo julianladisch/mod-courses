@@ -39,6 +39,7 @@ public class CourseAPITest {
   public final static String TERM_1_ID = UUID.randomUUID().toString();
   public final static String COURSE_1_ID = UUID.randomUUID().toString();
   public final static String DEPARTMENT_1_ID = UUID.randomUUID().toString();
+  public final static String COURSE_TYPE_1_ID = UUID.randomUUID().toString();
 
 
   @Rule
@@ -93,6 +94,9 @@ public class CourseAPITest {
         return loadDepartment1();
       })
       .compose(f -> {
+        return loadCourseType1();
+      })
+      .compose(f -> {
         return loadCourse1();
       })
       .setHandler(res -> {
@@ -115,6 +119,8 @@ public class CourseAPITest {
           return deleteTerms();
         }).compose(f -> {
           return deleteDepartments();
+        }).compose(f -> {
+          return deleteCourseTypes();
         }).setHandler(res -> {
         if(res.failed()) {
           context.fail(res.cause());
@@ -179,11 +185,19 @@ public class CourseAPITest {
       } else {
         try {
           JsonObject course = res.result().getJson().getJsonArray("courses").getJsonObject(0);
-          if(course.getJsonObject("courseListingObject") != null) {
-            async.complete();
-          } else {
+          if(course.getJsonObject("courseListingObject") == null) {
             context.fail("No course listing object found");
+            return;
           }
+          if(course.getJsonObject("courseListingObject").getJsonObject("termObject") == null) {
+            context.fail("No term object found in " + course.encode());
+            return;
+          }
+          if(course.getJsonObject("departmentObject") == null) {
+            context.fail("No department found in " + course.encode());
+            return;
+          }
+          async.complete();
         } catch(Exception e) {
           context.fail(e);
         }
@@ -214,11 +228,20 @@ public class CourseAPITest {
       } else {
         try {
           JsonObject course = res.result().getJson();
-          if(course.getJsonObject("courseListingObject") != null) {
-            async.complete();
-          } else {
+          if(course.getJsonObject("courseListingObject") == null) {
             context.fail("No course listing object found");
+            return;
           }
+          if(course.getJsonObject("departmentObject") == null) {
+            context.fail("No department object found");
+            return;
+          }
+          if(!course.getJsonObject("departmentObject").getString("id").equals(DEPARTMENT_1_ID)) {
+            context.fail("Bad id for department object, got " +
+                course.getJsonObject("departmentObject").getString("id") +
+                " expected " + DEPARTMENT_1_ID);
+          }
+          async.complete();
         } catch(Exception e) {
           context.fail(e);
         }
@@ -255,6 +278,22 @@ public class CourseAPITest {
         .put("endDate", endDate.toString(ISODateTimeFormat.dateTime()));
     TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
         termJson.encode(), 201, "Post Term 1").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourseType1() {
+    Future<Void> future = Future.future();
+    JsonObject departmentJson = new JsonObject()
+        .put("id", COURSE_TYPE_1_ID)
+        .put("name", "Regular");
+    TestUtil.doRequest(vertx, baseUrl + "/coursetypes", POST, null,
+        departmentJson.encode(), 201, "Post Course Type 1").setHandler(res -> {
           if(res.failed()) {
            future.fail(res.cause());
           } else {
@@ -342,6 +381,19 @@ public class CourseAPITest {
     Future<Void> future = Future.future();
     TestUtil.doRequest(vertx, baseUrl + "/departments", DELETE, null, null, 204,
         "Delete All Departments").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> deleteCourseTypes() {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, baseUrl + "/coursetypes", DELETE, null, null, 204,
+        "Delete All Course Types").setHandler(res -> {
           if(res.failed()) {
            future.fail(res.cause());
           } else {
