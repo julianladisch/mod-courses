@@ -22,6 +22,11 @@
             "description": "The department that this course belongs to",
             "$ref": "uuid.json"
         },
+        "departmentObject": {
+            "type": "object",
+            "description": "The department associated with this course",
+            "$ref": "department.json"
+        },
         "courseListingId": {
             "type": "string",
             "description": "The id for the course listing this course belongs to",

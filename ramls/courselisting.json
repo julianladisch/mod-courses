@@ -42,6 +42,11 @@
             "description": "The ID of the course type for this listing",
             "$ref": "uuid.json"
         },
+        "courseTypeObject": {
+            "type": "object",
+            "description": "The course type associated with this listing",
+            "$ref": "coursetype.json"
+        },
         "metadata": {
             "type": "object",
             "$ref": "raml-util/schemas/metadata.schema"

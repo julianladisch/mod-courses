@@ -1036,30 +1036,19 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                 "No Course exists with id '%s'", courseId))));
           } else {
             Course course = courseList.get(0);
-            CRUtil.getExpandedCourseListing(course.getCourseListingId(),
-                okapiHeaders, vertxContext, Boolean.TRUE).setHandler(res -> {
-                  if(res.failed()) {
-                    String message = logAndSaveError(res.cause());
+            CRUtil.getExpandedCourse(course, okapiHeaders, vertxContext)
+                .setHandler(expandCourseRes -> {
+              if(expandCourseRes.failed()) {
+                  String message = logAndSaveError(expandCourseRes.cause());
                     asyncResultHandler.handle(Future.succeededFuture(
-                        GetCoursereservesCoursesByCourseIdResponse.respond500WithTextPlain(
-                            getErrorResponse(message))));
-                  } else {
-                    CourseListingObject courseListingObject = new CourseListingObject();
-                    Courselisting courseListing = res.result();
-                    courseListingObject.setCourseTypeId(courseListing.getCourseTypeId());
-                    courseListingObject.setExternalId(courseListing.getExternalId());
-                    courseListingObject.setId(courseListing.getId());
-                    courseListingObject.setLocationId(courseListing.getLocationId());
-                    courseListingObject.setRegistrarId(courseListing.getRegistrarId());
-                    courseListingObject.setServicepointId(courseListing.getServicepointId());
-                    courseListingObject.setTermId(courseListing.getTermId());
-                    course.setCourseListingObject(courseListingObject);
-                     asyncResultHandler.handle(Future.succeededFuture(
-                         GetCoursereservesCoursesByCourseIdResponse
-                             .respond200WithApplicationJson(course)));
-                  }
-                });
-           
+                    GetCoursereservesCoursesByCourseIdResponse.respond500WithTextPlain(
+                    getErrorResponse(message))));
+              } else {
+                asyncResultHandler.handle(Future.succeededFuture(
+                    GetCoursereservesCoursesByCourseIdResponse
+                    .respond200WithApplicationJson(expandCourseRes.result())));
+              }
+            });
           }
         }
       });
@@ -1069,11 +1058,6 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
           GetCoursereservesCoursesByCourseIdResponse.respond500WithTextPlain(
           getErrorResponse(message))));
     }
-    /*
-    PgUtil.getById(COURSES_TABLE, Course.class, courseId, okapiHeaders,
-        vertxContext, GetCoursereservesCoursesByCourseIdResponse.class,
-        asyncResultHandler);
-    */
   }
 
   @Override
