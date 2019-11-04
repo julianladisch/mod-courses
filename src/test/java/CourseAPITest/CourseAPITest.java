@@ -38,6 +38,7 @@ public class CourseAPITest {
   public final static String COURSE_LISTING_1_ID = UUID.randomUUID().toString();
   public final static String TERM_1_ID = UUID.randomUUID().toString();
   public final static String COURSE_1_ID = UUID.randomUUID().toString();
+  public final static String COURSE_2_ID = UUID.randomUUID().toString();
   public final static String DEPARTMENT_1_ID = UUID.randomUUID().toString();
   public final static String COURSE_TYPE_1_ID = UUID.randomUUID().toString();
 
@@ -98,6 +99,9 @@ public class CourseAPITest {
       })
       .compose(f -> {
         return loadCourse1();
+      })
+      .compose(f -> {
+        return loadCourse2();
       })
       .setHandler(res -> {
         if(res.failed()) {
@@ -195,6 +199,33 @@ public class CourseAPITest {
           }
           if(course.getJsonObject("departmentObject") == null) {
             context.fail("No department found in " + course.encode());
+            return;
+          }
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
+
+  @Test
+  public void getAllCoursesByQuery(TestContext context) {
+     Async async = context.async();
+    TestUtil.doRequest(vertx, baseUrl +
+        "/courses?query=cql.allRecords=1%20sortby%20name&limit=500", GET, null,
+        null, 200, "Get courses by query").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          JsonObject course = res.result().getJson().getJsonArray("courses").getJsonObject(0);
+          if(course.getJsonObject("courseListingObject") == null) {
+            context.fail("No course listing object found");
+            return;
+          }
+          if(res.result().getJson().getInteger("totalRecords") < 2) {
+            context.fail("Expected at least two results");
             return;
           }
           async.complete();
@@ -338,6 +369,24 @@ public class CourseAPITest {
     return future;
   }
 
+  private Future<Void> loadCourse2() {
+    Future<Void> future = Future.future();
+    JsonObject courseJson = new JsonObject()
+        .put("id", COURSE_2_ID)
+        .put("departmentId", DEPARTMENT_1_ID)
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("name", "Comp Eng 101");
+    TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
+        courseJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
   private Future<Void> deleteCourses() {
     Future<Void> future = Future.future();
     TestUtil.doRequest(vertx, baseUrl + "/courses", DELETE, null, null, 204,
@@ -402,4 +451,5 @@ public class CourseAPITest {
         });
     return future;
   }
+
 }
