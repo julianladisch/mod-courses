@@ -223,6 +223,7 @@ public class CRUtil {
         Courselisting courseListing = courselistingReply.result();
         if(courseListing != null) {
           expandedCourseListing.setCourseTypeId(courseListing.getCourseTypeId());
+          expandedCourseListing.setCourseTypeObject(courseListing.getCourseTypeObject());
           expandedCourseListing.setExternalId(courseListing.getExternalId());
           expandedCourseListing.setId(courseListing.getId());
           expandedCourseListing.setLocationId(courseListing.getLocationId());

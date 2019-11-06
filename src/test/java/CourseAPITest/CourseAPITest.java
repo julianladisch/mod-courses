@@ -259,9 +259,14 @@ public class CourseAPITest {
       } else {
         try {
           JsonObject course = res.result().getJson();
-          if(course.getJsonObject("courseListingObject") == null) {
+          JsonObject courseListing = course.getJsonObject("courseListingObject");
+          if(courseListing == null) {
             context.fail("No course listing object found");
             return;
+          }
+          if(!courseListing.getString("id").equals(COURSE_LISTING_1_ID)) {
+            context.fail("Bad id for course listing object, got " +
+                courseListing.getString("id") + " expected " + COURSE_LISTING_1_ID);
           }
           if(course.getJsonObject("departmentObject") == null) {
             context.fail("No department object found");
@@ -271,6 +276,15 @@ public class CourseAPITest {
             context.fail("Bad id for department object, got " +
                 course.getJsonObject("departmentObject").getString("id") +
                 " expected " + DEPARTMENT_1_ID);
+          }
+          if(courseListing.getJsonObject("courseTypeObject") == null) {
+            context.fail("No course type object found in json " + course.encode());
+            return;
+          }
+          if(!courseListing.getJsonObject("courseTypeObject").getString("id").equals(COURSE_TYPE_1_ID)) {
+            context.fail("Bad id for course type object, got " +
+                courseListing.getJsonObject("courseTypeId").getString("id") +
+                " expected " + COURSE_TYPE_1_ID);
           }
           async.complete();
         } catch(Exception e) {
@@ -339,6 +353,7 @@ public class CourseAPITest {
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_1_ID)
         .put("termId", TERM_1_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
         .put("externalId", UUID.randomUUID().toString());
     TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
         courseListingJson.encode(), 201, "Post Course Listing").setHandler(res -> {
