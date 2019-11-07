@@ -2,6 +2,8 @@
   "id": "1049e672-dcde-4c7c-b95b-edf9f60c6cbd",
   "registrarId": "external1c",
   "externalId": "external2c",
+  "servicepointId": "SP04",
+  "locationId": "LocC",
   "termId": "f9712294-2037-44f7-8066-216ae950c26c",
   "courseTypeId": "0350e271-ddb8-4def-a6a8-a3cf4f01bbfd"
 }
