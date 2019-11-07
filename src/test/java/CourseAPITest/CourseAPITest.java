@@ -3,9 +3,11 @@ package CourseAPITest;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.CaseInsensitiveHeaders;
 import static io.vertx.core.http.HttpMethod.DELETE;
 import static io.vertx.core.http.HttpMethod.GET;
 import static io.vertx.core.http.HttpMethod.POST;
+import static io.vertx.core.http.HttpMethod.PUT;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -37,10 +39,13 @@ public class CourseAPITest {
   public static String baseUrl;
   public final static String COURSE_LISTING_1_ID = UUID.randomUUID().toString();
   public final static String TERM_1_ID = UUID.randomUUID().toString();
+  public final static String TERM_2_ID = UUID.randomUUID().toString();
   public final static String COURSE_1_ID = UUID.randomUUID().toString();
   public final static String COURSE_2_ID = UUID.randomUUID().toString();
   public final static String DEPARTMENT_1_ID = UUID.randomUUID().toString();
   public final static String COURSE_TYPE_1_ID = UUID.randomUUID().toString();
+
+
 
 
   @Rule
@@ -88,6 +93,9 @@ public class CourseAPITest {
   public void beforeEach(TestContext context) {
     Async async = context.async();
     loadTerm1()
+        .compose(f -> {
+        return loadTerm2();
+      })
       .compose(f -> {
         return loadCourseListing1();
       })
@@ -294,6 +302,44 @@ public class CourseAPITest {
       }
     });
   }
+
+  @Test
+  public void putCourseListingById(TestContext context) {
+    Async async = context.async();
+    CaseInsensitiveHeaders acceptText = new CaseInsensitiveHeaders();
+    acceptText.add("Accept", "text/plain");
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", COURSE_LISTING_1_ID)
+        .put("termId", TERM_2_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("externalId", UUID.randomUUID().toString());
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID,
+        PUT, acceptText, courseListingJson.encode(), 204, "Put CourseListing 1")
+        .setHandler( res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
+            , GET, null, null, 200, "Get courselisting by id").setHandler(
+                res2 -> {
+          if(res2.failed()) {
+            context.fail(res2.cause());
+          } else {
+            try {
+              JsonObject courseListing = res2.result().getJson();
+              if(!courseListing.getString("termId").equals(TERM_2_ID)) {
+                context.fail("Bad term id for courselisting after put");
+                return;
+              }
+            } catch(Exception e) {
+              context.fail(e);
+            }
+            async.complete();
+          }
+        });
+      }
+    });
+  }
   /* UTILITY CLASSES */
 
   private Future<Void> loadDepartment1() {
@@ -319,6 +365,26 @@ public class CourseAPITest {
     JsonObject termJson = new JsonObject()
         .put("id", TERM_1_ID)
         .put("name", "Term 1")
+        .put("startDate", startDate.toString(ISODateTimeFormat.dateTime()))
+        .put("endDate", endDate.toString(ISODateTimeFormat.dateTime()));
+    TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
+        termJson.encode(), 201, "Post Term 1").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadTerm2() {
+    Future<Void> future = Future.future();
+    DateTime startDate = new DateTime(2019, 11, 5, 0, 0);
+    DateTime endDate = new DateTime(2020, 01, 15, 0, 0);
+    JsonObject termJson = new JsonObject()
+        .put("id", TERM_2_ID)
+        .put("name", "Term 2")
         .put("startDate", startDate.toString(ISODateTimeFormat.dateTime()))
         .put("endDate", endDate.toString(ISODateTimeFormat.dateTime()));
     TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
