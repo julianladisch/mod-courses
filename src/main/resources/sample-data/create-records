@@ -16,10 +16,8 @@ for dir in `echo '
     copyrightstatuses
     courselistings
     courses
+    instructors
     # TODO: reserve
-    # TODO (subobject of course): instructor
-    # SUPERSEDED BY TERM: schedule
-    # NOT INCLUDED: section
 ' | grep -v '^[ ]*#'`;
     do
     echo "Adding records of type $dir"
@@ -29,6 +27,10 @@ for dir in `echo '
         esac
         for file in *; do
 	    echo "  Adding $dir '$file' at /$path"
+	    clid=`sed -n 's/^  "courseListingId": "\(.*\)",*/\1/p	' $file`
+	    if [ "x$clid" != x ]; then
+	        path=courselistings/$clid/${path}
+	    fi
 	    curl \
 		-X POST \
 		$OKAPI_URL/coursereserves/$path \
