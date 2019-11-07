@@ -215,7 +215,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void postCoursereservesCourselistingsCoursesByListingId(String listingId,
       String lang, Course entity, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    if(entity.getCourseListingId() != listingId) {
+    if(!entity.getCourseListingId().equals(listingId)) {
       asyncResultHandler.handle(Future.succeededFuture(
           PostCoursereservesCourselistingsCoursesByListingIdResponse
               .respond422WithApplicationJson(ValidationHelper
@@ -315,7 +315,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String lang, Instructor entity,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    if(entity.getCourseListingId() != listingId) {
+    if(!entity.getCourseListingId().equals(listingId)) {
       asyncResultHandler.handle(Future.succeededFuture(
           PostCoursereservesCourselistingsInstructorsByListingIdResponse
               .respond422WithApplicationJson(ValidationHelper
@@ -414,7 +414,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void postCoursereservesCourselistingsReservesByListingId(String listingId,
       String lang, Reserve entity, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    if(entity.getCourseListingId() != listingId) {
+    if(!entity.getCourseListingId().equals(listingId)) {
       asyncResultHandler.handle(Future.succeededFuture(
           PostCoursereservesCourselistingsReservesByListingIdResponse
               .respond422WithApplicationJson(ValidationHelper

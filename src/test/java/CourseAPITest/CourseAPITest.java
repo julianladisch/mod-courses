@@ -340,6 +340,44 @@ public class CourseAPITest {
       }
     });
   }
+
+  @Test
+  public void postInstructorToCourseListing(TestContext context) {
+    Async async = context.async();
+    JsonObject instructorJson = new JsonObject()
+        .put("id", UUID.randomUUID().toString())
+        .put("name", "Stainless Steel Rat")
+        .put("userId", UUID.randomUUID().toString())
+        .put("patronGroup", UUID.randomUUID().toString())
+        .put("courseListingId", COURSE_LISTING_1_ID);
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/instructors",
+        POST, null, instructorJson.encode(), 201, "Post Instructor to Course Listing")
+        .setHandler( postRes -> {
+          if(postRes.failed()) {
+            context.fail(postRes.cause());
+          } else {
+            TestUtil.doRequest(vertx, baseUrl + "/courselistings/"
+              + COURSE_LISTING_1_ID + "/instructors/" + instructorJson.getString("id"),
+              GET, null, null, 200, "Get instructor from courselisting by id").setHandler(
+                getRes -> {
+              if(getRes.failed()) {
+                context.fail(getRes.cause());
+              } else {
+                try {
+                  JsonObject returnedInstructorJson = getRes.result().getJson();
+                  if(!returnedInstructorJson.getString("id").equals(instructorJson.getString("id"))) {
+                    context.fail("Returned instructor does not match that which was POSTed");
+                    return;
+                  }
+                } catch(Exception e) {
+                  context.fail(e);
+                }
+                async.complete();
+              }
+            });
+          }
+        });
+  }
   /* UTILITY CLASSES */
 
   private Future<Void> loadDepartment1() {
