@@ -47,6 +47,14 @@
             "description": "The course type associated with this listing",
             "$ref": "coursetype.json"
         },
+        "instructorObjects": {
+            "type": "array",
+            "description": "A listing of associated instructor objects",
+            "items": {
+                "type": "object",
+                "$ref": "instructor.json"
+            }
+        },
         "metadata": {
             "type": "object",
             "$ref": "raml-util/schemas/metadata.schema"

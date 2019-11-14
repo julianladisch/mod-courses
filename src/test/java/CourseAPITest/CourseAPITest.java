@@ -8,6 +8,7 @@ import static io.vertx.core.http.HttpMethod.DELETE;
 import static io.vertx.core.http.HttpMethod.GET;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpMethod.PUT;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -17,6 +18,7 @@ import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.UUID;
 import javax.ws.rs.HttpMethod;
+import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
 import org.folio.rest.persist.PostgresClient;
@@ -44,6 +46,8 @@ public class CourseAPITest {
   public final static String COURSE_2_ID = UUID.randomUUID().toString();
   public final static String DEPARTMENT_1_ID = UUID.randomUUID().toString();
   public final static String COURSE_TYPE_1_ID = UUID.randomUUID().toString();
+  public final static String INSTRUCTOR_1_ID = UUID.randomUUID().toString();
+  public final static String INSTRUCTOR_2_ID = UUID.randomUUID().toString();
 
 
 
@@ -102,6 +106,12 @@ public class CourseAPITest {
       .compose(f -> {
         return loadDepartment1();
       })
+       .compose(f -> {
+        return loadCourseListing1Instructor1();
+      })
+        .compose(f -> {
+        return loadCourseListing1Instructor2();
+      })
       .compose(f -> {
         return loadCourseType1();
       })
@@ -124,6 +134,9 @@ public class CourseAPITest {
   public void afterEach(TestContext context) {
     Async async = context.async();
     deleteCourses()
+        .compose(f -> {
+          return deleteCourseListing1Instructors();
+        })
         .compose(f -> {
           return deleteCourseListings();
         })
@@ -258,6 +271,28 @@ public class CourseAPITest {
   }
 
   @Test
+  public void getInstructorsForCourseListing1(TestContext context) {
+    Async async = context.async();
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/"
+        + COURSE_LISTING_1_ID + "/instructors", GET, null, null, 200,
+        "Get instructors for courselisting 1").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          if(res.result().getJson().getInteger("totalRecords") < 2) {
+            context.fail("Expected at least two instructors");
+            return;
+          }
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
+
+  @Test
   public void getCourseById(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/courses/" + COURSE_1_ID, GET, null, null, 200,
@@ -293,6 +328,15 @@ public class CourseAPITest {
             context.fail("Bad id for course type object, got " +
                 courseListing.getJsonObject("courseTypeId").getString("id") +
                 " expected " + COURSE_TYPE_1_ID);
+          }
+          JsonArray instructorObjects = courseListing.getJsonArray("instructorObjects");
+          if(instructorObjects == null) {
+            context.fail("No instructor objects found in courselisting");
+            return;
+          }
+          if(instructorObjects.size() < 2) {
+            context.fail("Expected at least two instructor objects in courselisting: " + courseListing.encode());
+            return;
           }
           async.complete();
         } catch(Exception e) {
@@ -378,7 +422,44 @@ public class CourseAPITest {
           }
         });
   }
+  
   /* UTILITY CLASSES */
+
+   private Future<Void> loadCourseListing1Instructor1() {
+    Future<Void> future = Future.future();
+    JsonObject departmentJson = new JsonObject()
+        .put("id", INSTRUCTOR_1_ID)
+        .put("name", "Blaufarb")
+        .put("courseListingId", COURSE_LISTING_1_ID);
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/instructors", POST, null,
+        departmentJson.encode(), 201, "Post Instructor 1").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+   
+  private Future<Void> loadCourseListing1Instructor2() {
+    Future<Void> future = Future.future();
+    JsonObject departmentJson = new JsonObject()
+        .put("id", INSTRUCTOR_2_ID)
+        .put("name", "Kregley")
+        .put("courseListingId", COURSE_LISTING_1_ID);
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
+        +"/instructors", POST, null,
+        departmentJson.encode(), 201, "Post Instructor 2").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
 
   private Future<Void> loadDepartment1() {
     Future<Void> future = Future.future();
@@ -562,6 +643,20 @@ public class CourseAPITest {
     Future<Void> future = Future.future();
     TestUtil.doRequest(vertx, baseUrl + "/coursetypes", DELETE, null, null, 204,
         "Delete All Course Types").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+    private Future<Void> deleteCourseListing1Instructors() {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/"+COURSE_LISTING_1_ID+
+        "/instructors", DELETE, null, null, 204,
+        "Delete All Instructors").setHandler(res -> {
           if(res.failed()) {
            future.fail(res.cause());
           } else {
