@@ -298,16 +298,23 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String query, int offset, int limit, String lang,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    String instructorQueryClause = String.format("courseListingId = %s", listingId);
-    if(query == null || query.isEmpty()) {
-      query = instructorQueryClause;
-    } else {
-      query = String.format("(%s) AND %s", instructorQueryClause, query);
+    try {
+      String instructorQueryClause = String.format("courseListingId = %s", listingId);
+      if(query == null || query.isEmpty()) {
+        query = instructorQueryClause;
+      } else {
+        query = String.format("(%s) AND %s", instructorQueryClause, query);
+      }
+      PgUtil.get(INSTRUCTORS_TABLE, Instructor.class, Instructors.class, query,
+          offset, limit, okapiHeaders, vertxContext,
+          GetCoursereservesCourselistingsInstructorsByListingIdResponse.class,
+          asyncResultHandler);
+    } catch(Exception e) {
+      String message = logAndSaveError(e);
+      asyncResultHandler.handle(Future.succeededFuture(
+        GetCoursereservesCourselistingsInstructorsByListingIdResponse.respond500WithTextPlain(
+        getErrorResponse(message))));
     }
-    PgUtil.get(INSTRUCTORS_TABLE, Instructor.class, Instructors.class, query,
-        offset, limit, okapiHeaders, vertxContext,
-        GetCoursereservesCourselistingsCoursesByListingIdResponse.class,
-        asyncResultHandler);
   }
 
   @Override
@@ -930,8 +937,6 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void getCoursereservesCourses(String query, int offset, int limit,
       String lang, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-
-
     try {
       CQLWrapper cqlWrapper = getCQL(query, limit, offset, COURSES_TABLE);
       PostgresClient postgresClient = postgresClient(vertxContext, okapiHeaders);

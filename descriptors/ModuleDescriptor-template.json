@@ -4,7 +4,7 @@
     "provides": [
         {
             "id" : "course-reserves-storage",
-            "version": "0.2",
+            "version": "0.3",
             "handlers": [
                 {
                     "methods": [ "GET" ],

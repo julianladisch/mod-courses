@@ -3,12 +3,15 @@ package org.folio.coursereserves.util;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import static org.folio.rest.impl.CourseAPI.COURSE_LISTINGS_TABLE;
 import static org.folio.rest.impl.CourseAPI.COURSE_TYPES_TABLE;
 import static org.folio.rest.impl.CourseAPI.DEPARTMENTS_TABLE;
+import static org.folio.rest.impl.CourseAPI.INSTRUCTORS_TABLE;
 import static org.folio.rest.impl.CourseAPI.TERMS_TABLE;
 import org.folio.rest.jaxrs.model.Course;
 import org.folio.rest.jaxrs.model.Courselisting;
@@ -17,12 +20,21 @@ import org.folio.rest.jaxrs.model.CourseTypeObject;
 import org.folio.rest.jaxrs.model.Coursetype;
 import org.folio.rest.jaxrs.model.Department;
 import org.folio.rest.jaxrs.model.DepartmentObject;
+import org.folio.rest.jaxrs.model.Instructor;
+import org.folio.rest.jaxrs.model.InstructorObject;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
+import org.folio.rest.persist.Criteria.Criteria;
+import org.folio.rest.persist.Criteria.Criterion;
 import static org.folio.rest.persist.PgUtil.postgresClient;
 import org.folio.rest.persist.PostgresClient;
 
+
 public class CRUtil {
+
+  public static final Logger logger = LoggerFactory.getLogger(
+          CRUtil.class);
+
   public static Future<Courselisting> lookupExpandedCourseListing(String courseListingId,
       Map<String, String> okapiHeaders, Context context, Boolean expandTerm) {
     Future<Courselisting> future = Future.future();
@@ -77,7 +89,26 @@ public class CRUtil {
                     courseTypeObject.setName(coursetype.getName());
                     result.setCourseTypeObject(courseTypeObject);
                   }
-                  future.complete(result);
+                  lookupInstructorsForCourseListing(courseListingId, okapiHeaders.get("X-OKAPI-TENANT"),
+                      context).setHandler(instructorLookupReply -> {
+                    if(instructorLookupReply.failed()) {
+                      future.fail(instructorLookupReply.cause());
+                    } else {
+                      List<Instructor> instructorList = instructorLookupReply.result();
+                      List<InstructorObject> instructorObjectList = new ArrayList<>();
+                      for(Instructor instructor : instructorList) {
+                        InstructorObject instructorObject = new InstructorObject();
+                        instructorObject.setBarcode(instructor.getBarcode());
+                        instructorObject.setCourseListingId(instructor.getCourseListingId());
+                        instructorObject.setId(instructor.getId());
+                        instructorObject.setName(instructor.getName());
+                        instructorObject.setPatronGroup(instructor.getPatronGroup());
+                        instructorObjectList.add(instructorObject);                        
+                      }
+                      result.setInstructorObjects(instructorObjectList);
+                      future.complete(result);
+                    }
+                  });
                 }
               });
             }
@@ -85,6 +116,31 @@ public class CRUtil {
         } else {
           future.complete(result);
         }
+      }
+    });
+    return future;
+  }
+
+  public static Future<List<Instructor>> lookupInstructorsForCourseListing(
+      String courseListingId, String tenantId, Context context) {
+    Future<List<Instructor>> future = Future.future();
+    PostgresClient postgresClient = PostgresClient.getInstance(context.owner(), tenantId);
+    Criteria idCrit = new Criteria();
+    idCrit.addField("'courseListingId'");
+    idCrit.setOperation("=");
+    idCrit.setVal(courseListingId);
+    Criterion criterion = new Criterion(idCrit);
+    logger.info("Requesting instructor records with criterion: " + criterion.toString());
+    postgresClient.get(INSTRUCTORS_TABLE, Instructor.class, criterion,
+        true, false, res -> {
+      if(res.failed()) {
+        future.fail(res.cause());
+      } else {
+        List<Instructor> instructorList = new ArrayList<>();      
+        for(Instructor instructor : res.result().getResults()) {
+          instructorList.add(instructor);          
+        }
+        future.complete(instructorList);
       }
     });
     return future;
@@ -143,42 +199,6 @@ public class CRUtil {
     return future;
   }
 
-  /*
-  public static Future<List<Course>> expandListOfCourses(List<Course> listOfCourses,
-      Map<String, String> okapiHeaders, Context context) {
-    Future<List<Course>> future = Future.future();
-    List<Future> expandedCLFutureList = new ArrayList<>();
-    for(Course course : listOfCourses) {
-      expandedCLFutureList.add(lookupExpandedCourseListing(course.getCourseListingId(),
-          okapiHeaders, context, Boolean.TRUE));
-    }
-    CompositeFuture compositeFuture = CompositeFuture.all(expandedCLFutureList);
-    compositeFuture.setHandler(res -> {
-      if(res.failed()) {
-        future.fail(res.cause());
-      } else {
-        List<Course> newListOfCourses = new ArrayList<>();
-        for( int i=0 ; i < expandedCLFutureList.size(); i++ ) {
-          Future<Courselisting> f = (Future<Courselisting>)expandedCLFutureList.get(i);
-          Courselisting courseListing = f.result();
-          Course course = listOfCourses.get(i);
-          CourseListingObject expandedCourseListing = new CourseListingObject();
-          expandedCourseListing.setCourseTypeId(courseListing.getCourseTypeId());
-          expandedCourseListing.setExternalId(courseListing.getExternalId());
-          expandedCourseListing.setId(courseListing.getId());
-          expandedCourseListing.setLocationId(courseListing.getLocationId());
-          expandedCourseListing.setRegistrarId(courseListing.getRegistrarId());
-          expandedCourseListing.setServicepointId(courseListing.getServicepointId());
-          expandedCourseListing.setTermId(courseListing.getTermId());
-          course.setCourseListingObject(expandedCourseListing);
-          newListOfCourses.add(course);
-        }
-        future.complete(newListOfCourses);
-      }
-    });
-    return future;
-  }
-  */
 
   public static Future<List<Course>> expandListOfCourses(List<Course> listOfCourses,
       Map<String, String> okapiHeaders, Context context) {
@@ -231,6 +251,7 @@ public class CRUtil {
           expandedCourseListing.setServicepointId(courseListing.getServicepointId());
           expandedCourseListing.setTermId(courseListing.getTermId());
           expandedCourseListing.setTermObject(courseListing.getTermObject());
+          expandedCourseListing.setInstructorObjects(courseListing.getInstructorObjects());
         }
         newCourse.setCourseListingObject(expandedCourseListing);
 
