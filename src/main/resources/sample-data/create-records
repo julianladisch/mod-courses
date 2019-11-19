@@ -17,7 +17,7 @@ for dir in `echo '
     courselistings
     courses
     instructors
-    # TODO: reserve
+    reserves
 ' | grep -v '^[ ]*#'`;
     do
     echo "Adding records of type $dir"

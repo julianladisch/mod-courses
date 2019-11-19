@@ -1,0 +1,18 @@
+{
+  "id": "67227d94-7333-4d22-98a0-718b49d36595",
+  "courseListingId": "c03bcba3-a6a0-4251-b316-0631bb2e6f21",
+  "itemId": "23fdb0bc-ab58-442a-b326-577a96204487",
+  "processingStatusId": "8bf28ac6-accd-4575-8ffa-365850be1851",
+  "copiedItem": {
+    "barcode": "653285216743",
+    "temporaryLocationId": "fcd64ce1-6995-48f0-840e-89ffa2288371",
+    "callNumber": "some-callnumber",
+    "title": "A semantic web primer",
+    "contributors": [
+      {
+        "name": "Novik, Naomi"
+      }
+    ],
+    "callNumber": "some-callnumber"
+  }
+}
