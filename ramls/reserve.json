@@ -128,6 +128,7 @@
         },
         "copyrightTracking": {
             "type": "object",
+            "description": "Information about copyright status, volume of material used, etc.",
             "properties": {
                 "copyrightStatusId": {
                     "type": "string",
@@ -151,6 +152,7 @@
                     "description": "PENDING"
                 }
             }
+
         },
         "metadata": {
             "type": "object",
