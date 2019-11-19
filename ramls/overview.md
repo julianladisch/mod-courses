@@ -1,4 +1,6 @@
 <!--
+$ indir .. ../folio-tools/generate-api-docs/generate_api_docs.py -r mod-courses -l info
+
 By observation, the "Overview" heading generated from the `documentation.title` entry in `courses.raml` is rendered as a level-3 heading in our first docmentation generation and as a level-4 heading in our second. So the only way to safely have headings within this document nested beneath this is to start at level 4.
 -->
 
