@@ -119,37 +119,37 @@
                     "type": "string",
                     "description": "PENDING"
                 }
-            },
-           
-            "temporaryLoanTypeId": {
-                "type": "string",
-                "description": "The type to temporarily set the loan to while on reserve",
-                "$ref": "uuid.json"
-            },
-            "copyrightTracking": {
-                "type": "object",
-                "properties": {
-                    "copyrightStatusId": {
-                        "type": "string",
-                        "description": "The id of the copyright status",
-                        "$ref": "uuid.json"
-                    },
-                    "totalPagesInItem": {
-                        "type": "integer",
-                        "description": "PENDING"
-                    },
-                    "totalPagesUsed": {
-                        "type": "integer",
-                        "description": "PENDING"
-                    },
-                    "percentOfPages": {
-                        "type": "string",
-                        "description": "Percent of pages used"
-                    },
-                    "paymentBasis": {
-                        "type": "string",
-                        "description": "PENDING"
-                    }
+            }
+        },
+        "temporaryLoanTypeId": {
+            "type": "string",
+            "description": "The type to temporarily set the loan to while on reserve",
+            "$ref": "uuid.json"
+        },
+        "copyrightTracking": {
+            "type": "object",
+            "description": "Information about copyright status, volume of material used, etc.",
+            "properties": {
+                "copyrightStatusId": {
+                    "type": "string",
+                    "description": "The id of the copyright status",
+                    "$ref": "uuid.json"
+                },
+                "totalPagesInItem": {
+                    "type": "integer",
+                    "description": "PENDING"
+                },
+                "totalPagesUsed": {
+                    "type": "integer",
+                    "description": "PENDING"
+                },
+                "percentOfPages": {
+                    "type": "string",
+                    "description": "Percent of pages used"
+                },
+                "paymentBasis": {
+                    "type": "string",
+                    "description": "PENDING"
                 }
             }
 
