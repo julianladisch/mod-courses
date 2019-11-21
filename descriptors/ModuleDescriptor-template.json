@@ -83,7 +83,7 @@
                 },
                 {
                     "methods": [ "GET" ],
-                    "pathPattern": "/coursereserves/courseslistings/{id}/reserves",
+                    "pathPattern": "/coursereserves/courselistings/{id}/reserves",
                     "permissionsRequired": ["course-reserves-storage.courselistings.reserves.collection.get"]
                 },
                 {
