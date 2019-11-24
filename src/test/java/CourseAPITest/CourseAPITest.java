@@ -16,11 +16,14 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import javax.ws.rs.HttpMethod;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
+import org.folio.rest.jaxrs.model.PatronGroup;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.joda.time.DateTime;
@@ -36,9 +39,11 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class CourseAPITest {
   static int port;
+  static int okapiPort;
   private static Vertx vertx;
   private final Logger logger = LoggerFactory.getLogger(CourseAPITest.class);
   public static String baseUrl;
+  public static String okapiUrl;
   public final static String COURSE_LISTING_1_ID = UUID.randomUUID().toString();
   public final static String TERM_1_ID = UUID.randomUUID().toString();
   public final static String TERM_2_ID = UUID.randomUUID().toString();
@@ -48,6 +53,8 @@ public class CourseAPITest {
   public final static String COURSE_TYPE_1_ID = UUID.randomUUID().toString();
   public final static String INSTRUCTOR_1_ID = UUID.randomUUID().toString();
   public final static String INSTRUCTOR_2_ID = UUID.randomUUID().toString();
+  public static Map<String, String> okapiHeaders = new HashMap<>();
+  public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
 
 
 
@@ -59,11 +66,18 @@ public class CourseAPITest {
   public static void beforeClass(TestContext context) {
     Async async = context.async();
     port = NetworkUtils.nextFreePort();
+    okapiPort = NetworkUtils.nextFreePort();
     baseUrl = "http://localhost:"+port+"/coursereserves";
+    okapiUrl = "http://localhost:"+okapiPort;
     TenantClient tenantClient = new TenantClient("localhost", port, "diku", "diku");
+    okapiHeaders.put("x-okapi-tenant", "diku");
+    okapiHeaders.put("x-okapi-url", okapiUrl);
+    standardHeaders.add("x-okapi-url", okapiUrl);
     vertx = Vertx.vertx();
     DeploymentOptions options = new DeploymentOptions()
         .setConfig(new JsonObject().put("http.port", port));
+    DeploymentOptions okapiOptions = new DeploymentOptions()
+        .setConfig(new JsonObject().put("port", okapiPort));
     try {
       PostgresClient.setIsEmbedded(true);
       PostgresClient.getInstance(vertx).startEmbeddedPostgres();
@@ -72,14 +86,25 @@ public class CourseAPITest {
       context.fail(e);
       return;
     }
-    vertx.deployVerticle(RestVerticle.class.getName(), options, res -> {
-      try {
-        tenantClient.postTenant(null, res2 -> {
-          async.complete();
-        });
-      } catch(Exception e) {
-        e.printStackTrace();
-        context.fail(e);
+    vertx.deployVerticle(RestVerticle.class.getName(), options, deployCourseRes -> {
+      if(deployCourseRes.failed()) {
+        context.fail(deployCourseRes.cause());
+      } else {
+        try {
+          tenantClient.postTenant(null, postTenantRes -> {
+            vertx.deployVerticle(OkapiMock.class.getName(), okapiOptions,
+                deployOkapiRes -> {
+              if(deployOkapiRes.failed()) {
+                context.fail(deployOkapiRes.cause());
+              } else {
+                async.complete();
+              }
+            });
+          });
+        } catch(Exception e) {
+          e.printStackTrace();
+          context.fail(e);
+        }
       }
     });
   }
@@ -391,18 +416,17 @@ public class CourseAPITest {
     JsonObject instructorJson = new JsonObject()
         .put("id", UUID.randomUUID().toString())
         .put("name", "Stainless Steel Rat")
-        .put("userId", UUID.randomUUID().toString())
-        .put("patronGroup", UUID.randomUUID().toString())
+        .put("userId", OkapiMock.user1Id)
         .put("courseListingId", COURSE_LISTING_1_ID);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/instructors",
-        POST, null, instructorJson.encode(), 201, "Post Instructor to Course Listing")
+        POST, standardHeaders, instructorJson.encode(), 201, "Post Instructor to Course Listing")
         .setHandler( postRes -> {
           if(postRes.failed()) {
             context.fail(postRes.cause());
           } else {
             TestUtil.doRequest(vertx, baseUrl + "/courselistings/"
               + COURSE_LISTING_1_ID + "/instructors/" + instructorJson.getString("id"),
-              GET, null, null, 200, "Get instructor from courselisting by id").setHandler(
+              GET, standardHeaders, null, 200, "Get instructor from courselisting by id").setHandler(
                 getRes -> {
               if(getRes.failed()) {
                 context.fail(getRes.cause());
@@ -411,6 +435,11 @@ public class CourseAPITest {
                   JsonObject returnedInstructorJson = getRes.result().getJson();
                   if(!returnedInstructorJson.getString("id").equals(instructorJson.getString("id"))) {
                     context.fail("Returned instructor does not match that which was POSTed");
+                    return;
+                  }
+                  if(!returnedInstructorJson.getJsonObject("patronGroup")
+                      .getString("id").equals(OkapiMock.group1Id)) {
+                    context.fail("Expected id '" + OkapiMock.group1Id + "' for patron group");
                     return;
                   }
                 } catch(Exception e) {
@@ -422,6 +451,70 @@ public class CourseAPITest {
           }
         });
   }
+
+  @Test
+  public void getUser(TestContext context) {
+    Async async = context.async();
+    String userId = OkapiMock.user1Id;
+    TestUtil.doRequest(vertx, okapiUrl + "/users/" + userId, GET, null, null,
+        200, "Get user from mock okapi").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          JsonObject userJson = res.result().getJson();
+          if(!userJson.getString("id").equals(userId)) {
+            context.fail("Returned user id does not match " + userId);
+            return;
+          }
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
+
+  @Test
+  public void getGroup(TestContext context) {
+    Async async = context.async();
+    String groupId = OkapiMock.group1Id;
+    TestUtil.doRequest(vertx, okapiUrl + "/groups/" + groupId, GET, null, null,
+        200, "Get group from mock okapi").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          JsonObject groupJson = res.result().getJson();
+          if(!groupJson.getString("id").equals(groupId)) {
+            context.fail("Returned user id does not match " + groupId);
+            return;
+          }
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
+
+  @Test
+  public void getPatronGroupFromUserId(TestContext context) {
+    Async async = context.async();
+    CRUtil.lookupPatronGroupByUserId(OkapiMock.user1Id, okapiHeaders,
+        vertx.getOrCreateContext()).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        PatronGroup patronGroup = res.result();
+        if(!patronGroup.getId().equals(OkapiMock.group1Id)) {
+          context.fail("Retrieved Group ID does not match");
+          return;
+        }
+        async.complete();
+      }
+    });
+  }
   
   /* UTILITY CLASSES */
 
@@ -430,9 +523,10 @@ public class CourseAPITest {
     JsonObject departmentJson = new JsonObject()
         .put("id", INSTRUCTOR_1_ID)
         .put("name", "Blaufarb")
+        .put("userId", OkapiMock.user2Id)
         .put("courseListingId", COURSE_LISTING_1_ID);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
-        "/instructors", POST, null,
+        "/instructors", POST, standardHeaders,
         departmentJson.encode(), 201, "Post Instructor 1").setHandler(res -> {
           if(res.failed()) {
            future.fail(res.cause());
@@ -448,9 +542,10 @@ public class CourseAPITest {
     JsonObject departmentJson = new JsonObject()
         .put("id", INSTRUCTOR_2_ID)
         .put("name", "Kregley")
+        .put("userId", OkapiMock.user3Id)
         .put("courseListingId", COURSE_LISTING_1_ID);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
-        +"/instructors", POST, null,
+        +"/instructors", POST, standardHeaders,
         departmentJson.encode(), 201, "Post Instructor 2").setHandler(res -> {
           if(res.failed()) {
            future.fail(res.cause());

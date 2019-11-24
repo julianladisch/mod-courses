@@ -23,8 +23,24 @@
             "description": "The instructor's user barcode"
         },
         "patronGroup": {
-            "type": "string",
-            "description": "The instructor's user patrongroup"
+            "type": "object",
+            "description": "The instructor's user patrongroup",
+            "properties": {
+                "id" : {
+                    "type" : "string",
+                    "description" : "UUID for the group",
+                    "$ref": "uuid.json"
+                },
+                "desc": {
+                    "type" : "string",
+                    "description" : "description of the group"
+                },
+                "name": {
+                    "type" : "string",
+                    "description" : "the unique name of the group"
+                }
+
+            }
         },
         "courseListingId": {
             "type": "string",
