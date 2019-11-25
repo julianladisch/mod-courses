@@ -10,9 +10,26 @@
     "title": "A semantic web primer",
     "contributors": [
       {
-        "name": "Novik, Naomi"
+        "name": "Grigoris Antoniou"
+      },
+      {
+        "name": "Paul Groth"
+      },
+      {
+        "name": "Frank van Harmelen"
+      },
+      {
+        "name": "Rinke Hoekstra"
       }
     ],
     "callNumber": "some-callnumber"
+  },
+  "temporaryLoanTypeId": "2b94c631-fca9-4892-a730-03ee529ffe27",
+  "copyrightTracking": {
+    "copyrightStatusId": "04521370-886e-41de-afbe-55a8b9fe782a",
+    "totalPagesInItem": "288",
+    "totalPagesUsed": "11",
+    "percentOfPages": "4%",
+    "paymentBasis": "unspecified"
   }
 }
