@@ -118,6 +118,18 @@
                 "volume": {
                     "type": "string",
                     "description": "PENDING"
+                },
+                "copy": {
+                    "type": "string",
+                    "description": "PENDING"
+                },
+                "enumeration": {
+                    "type": "string",
+                    "description": "PENDING"
+                },
+                "url": {
+                    "type": "string",
+                    "description": "PENDING"
                 }
             }
         },

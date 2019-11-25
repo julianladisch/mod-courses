@@ -3,6 +3,12 @@ package org.folio.coursereserves.util;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
@@ -22,6 +28,7 @@ import org.folio.rest.jaxrs.model.Department;
 import org.folio.rest.jaxrs.model.DepartmentObject;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.InstructorObject;
+import org.folio.rest.jaxrs.model.PatronGroup;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
 import org.folio.rest.persist.Criteria.Criteria;
@@ -34,6 +41,85 @@ public class CRUtil {
 
   public static final Logger logger = LoggerFactory.getLogger(
           CRUtil.class);
+
+
+  public static Future<PatronGroup> lookupPatronGroupByUserId(String userId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<PatronGroup> future = Future.future();
+    String userPath = "/users/" + userId;
+    makeOkapiRequest(context.owner(), okapiHeaders, userPath, HttpMethod.GET,
+        null, null, 200).setHandler(userRes -> {
+      try {
+        if(userRes.failed()) {
+          future.fail(userRes.cause());
+        } else {
+          String groupId = userRes.result().getString("patronGroup");
+          String groupPath = "/groups/" + groupId;
+          makeOkapiRequest(context.owner(), okapiHeaders, groupPath, HttpMethod.GET,
+              null, null, 200).setHandler(groupRes -> {
+            try {
+              if(groupRes.failed()) {
+                future.fail(groupRes.cause());
+              } else {
+                PatronGroup patronGroup = new PatronGroup();
+                patronGroup.setId(groupRes.result().getString("id"));
+                patronGroup.setName(groupRes.result().getString("name"));
+                patronGroup.setDesc(groupRes.result().getString("desc"));
+                future.complete(patronGroup);
+              }
+            } catch(Exception e) {
+              future.fail(e);
+            }
+          });
+        }
+      } catch(Exception e) {
+        future.fail(e);
+      }
+    });
+    return future;
+  }
+
+  public static Future<JsonObject> makeOkapiRequest(Vertx vertx,
+      Map<String, String> okapiHeaders, String requestPath, HttpMethod method,
+      Map<String, String> extraHeaders, String payload, Integer expectedCode) {
+    Future<JsonObject> future = Future.future();
+    HttpClient client = vertx.createHttpClient();
+    String okapiUrl = okapiHeaders.get("x-okapi-url");
+    String requestUrl = okapiUrl + requestPath;
+    CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
+    headers.add("x-okapi-tenant", okapiHeaders.get("x-okapi-tenant"));
+    headers.add("content-type", "application/json");
+    headers.add("accept", "application/json");
+    if(extraHeaders != null) {
+      for(Map.Entry<String, String> entry : extraHeaders.entrySet()) {
+        headers.add(entry.getKey(), entry.getValue());
+      }
+    }
+    HttpClientRequest request = client.requestAbs(method, requestUrl);
+    request.exceptionHandler(e -> { future.fail(e); });
+    request.handler( requestRes -> {
+      requestRes.bodyHandler(bodyHandlerRes -> {
+        try {
+          String response = bodyHandlerRes.toString();
+          if(expectedCode != requestRes.statusCode()) {
+            future.fail(String.format("Expected status code %s, got %s: %s",
+                expectedCode, requestRes.statusCode(), response));
+          } else {
+            JsonObject responseJson = new JsonObject(response);
+            future.complete(responseJson);
+          }
+        } catch(Exception e) {
+          future.fail(e);
+        }
+      });
+    });
+    if(method == HttpMethod.PUT || method == HttpMethod.POST) {
+      request.end(payload);
+    } else {
+      request.end();
+    }
+    return future;
+  }
 
   public static Future<Courselisting> lookupExpandedCourseListing(String courseListingId,
       Map<String, String> okapiHeaders, Context context, Boolean expandTerm) {
