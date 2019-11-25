@@ -23,7 +23,7 @@ import javax.ws.rs.HttpMethod;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
-import org.folio.rest.jaxrs.model.PatronGroup;
+import org.folio.rest.jaxrs.model.PatronGroupObject;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.joda.time.DateTime;
@@ -437,7 +437,7 @@ public class CourseAPITest {
                     context.fail("Returned instructor does not match that which was POSTed");
                     return;
                   }
-                  if(!returnedInstructorJson.getJsonObject("patronGroup")
+                  if(!returnedInstructorJson.getJsonObject("patronGroupObject")
                       .getString("id").equals(OkapiMock.group1Id)) {
                     context.fail("Expected id '" + OkapiMock.group1Id + "' for patron group");
                     return;
@@ -506,8 +506,8 @@ public class CourseAPITest {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
-        PatronGroup patronGroup = res.result();
-        if(!patronGroup.getId().equals(OkapiMock.group1Id)) {
+        PatronGroupObject patronGroupObject = res.result();
+        if(!patronGroupObject.getId().equals(OkapiMock.group1Id)) {
           context.fail("Retrieved Group ID does not match");
           return;
         }

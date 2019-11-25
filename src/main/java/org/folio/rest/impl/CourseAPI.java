@@ -28,7 +28,7 @@ import org.folio.rest.jaxrs.model.Department;
 import org.folio.rest.jaxrs.model.Departments;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.Instructors;
-import org.folio.rest.jaxrs.model.PatronGroup;
+import org.folio.rest.jaxrs.model.PatronGroupObject;
 import org.folio.rest.jaxrs.model.Processingstatus;
 import org.folio.rest.jaxrs.model.Processingstatuses;
 import org.folio.rest.jaxrs.model.Reserve;
@@ -330,7 +330,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                   .createValidationErrorMessage("listingId", entity.getCourseListingId(),
                       String.format("listingId should be %s", listingId)))));
     } else {
-      Future<PatronGroup> getGroupFuture;
+      Future<PatronGroupObject> getGroupFuture;
       if(entity.getUserId() != null) {
         getGroupFuture = CRUtil.lookupPatronGroupByUserId(entity.getUserId(),
             okapiHeaders, vertxContext);
@@ -339,16 +339,14 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       }
       getGroupFuture.setHandler(getGroupRes -> {
         if(getGroupRes.failed()) {
-          String message = logAndSaveError(getGroupRes.cause());
-          asyncResultHandler.handle(Future.succeededFuture(
-              PostCoursereservesCourselistingsInstructorsByListingIdResponse
-              .respond500WithTextPlain(getErrorResponse(message))));
+          entity.setPatronGroupObject(null);
         } else {
-          entity.setPatronGroup(getGroupRes.result());
-          PgUtil.post(INSTRUCTORS_TABLE, entity, okapiHeaders, vertxContext,
-          PostCoursereservesCourselistingsInstructorsByListingIdResponse.class,
-          asyncResultHandler);
+          entity.setPatronGroupObject(getGroupRes.result());
         }
+        PgUtil.post(INSTRUCTORS_TABLE, entity, okapiHeaders, vertxContext,
+            PostCoursereservesCourselistingsInstructorsByListingIdResponse.class,
+            asyncResultHandler);
+        
       });
     }
   }

@@ -23,6 +23,10 @@
             "description": "The instructor's user barcode"
         },
         "patronGroup": {
+            "type": "string",
+            "description": "The id of the patrongroup associated with the user"
+        },
+        "patronGroupObject": {
             "type": "object",
             "description": "The instructor's user patrongroup",
             "properties": {
