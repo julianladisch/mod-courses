@@ -28,7 +28,7 @@ import org.folio.rest.jaxrs.model.Department;
 import org.folio.rest.jaxrs.model.DepartmentObject;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.InstructorObject;
-import org.folio.rest.jaxrs.model.PatronGroup;
+import org.folio.rest.jaxrs.model.PatronGroupObject;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
 import org.folio.rest.persist.Criteria.Criteria;
@@ -43,9 +43,9 @@ public class CRUtil {
           CRUtil.class);
 
 
-  public static Future<PatronGroup> lookupPatronGroupByUserId(String userId,
+  public static Future<PatronGroupObject> lookupPatronGroupByUserId(String userId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<PatronGroup> future = Future.future();
+    Future<PatronGroupObject> future = Future.future();
     String userPath = "/users/" + userId;
     makeOkapiRequest(context.owner(), okapiHeaders, userPath, HttpMethod.GET,
         null, null, 200).setHandler(userRes -> {
@@ -61,11 +61,11 @@ public class CRUtil {
               if(groupRes.failed()) {
                 future.fail(groupRes.cause());
               } else {
-                PatronGroup patronGroup = new PatronGroup();
-                patronGroup.setId(groupRes.result().getString("id"));
-                patronGroup.setName(groupRes.result().getString("name"));
-                patronGroup.setDesc(groupRes.result().getString("desc"));
-                future.complete(patronGroup);
+                PatronGroupObject patronGroupObject = new PatronGroupObject();
+                patronGroupObject.setId(groupRes.result().getString("id"));
+                patronGroupObject.setName(groupRes.result().getString("name"));
+                patronGroupObject.setDesc(groupRes.result().getString("desc"));
+                future.complete(patronGroupObject);
               }
             } catch(Exception e) {
               future.fail(e);
