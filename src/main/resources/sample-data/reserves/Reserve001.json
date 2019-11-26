@@ -1,0 +1,25 @@
+{
+  "id": "58e857de-0d18-46d0-b607-781e180ce95c",
+  "courseListingId": "1049e672-dcde-4c7c-b95b-edf9f60c6cbd",
+  "itemId": "61bcef78-0001-11ea-ae82-fbccb479e70f",
+  "processingStatusId": "8bf28ac6-accd-4575-8ffa-365850be1851",
+  "copiedItem": {
+    "barcode": "0114401282342",
+    "temporaryLocationId": "01096259-c643-493c-8693-e5f00c0ef89c",
+    "callNumber": "call123-A",
+    "title": "Invertebrate paleontology",
+    "contributors": [
+      {
+        "name": "Easton, William H. (William Heyden), 1916-1996"
+      }
+    ]
+  },
+  "temporaryLoanTypeId": "2b94c631-fca9-4892-a730-03ee529ffe27",
+  "copyrightTracking": {
+    "copyrightStatusId": "04521370-886e-41de-afbe-55a8b9fe782a",
+    "totalPagesInItem": "701",
+    "totalPagesUsed": "11",
+    "percentOfPages": "2%",
+    "paymentBasis": "unspecified"
+  }
+}
