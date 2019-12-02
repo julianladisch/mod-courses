@@ -84,10 +84,13 @@ public class CRUtil {
       Map<String, String> extraHeaders, String payload, Integer expectedCode) {
     Future<JsonObject> future = Future.future();
     HttpClient client = vertx.createHttpClient();
-    String okapiUrl = okapiHeaders.get("x-okapi-url");
-    String requestUrl = okapiUrl + requestPath;
     CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
-    headers.add("x-okapi-tenant", okapiHeaders.get("x-okapi-tenant"));
+    CaseInsensitiveHeaders originalHeaders = new CaseInsensitiveHeaders();
+    originalHeaders.setAll(okapiHeaders);
+    String okapiUrl = originalHeaders.get("x-okapi-url");
+    String requestUrl = okapiUrl + requestPath;
+    headers.add("x-okapi-token", originalHeaders.get("x-okapi-token"));
+    headers.add("x-okapi-tenant", originalHeaders.get("x-okapi-tenant"));
     headers.add("content-type", "application/json");
     headers.add("accept", "application/json");
     if(extraHeaders != null) {
@@ -96,6 +99,13 @@ public class CRUtil {
       }
     }
     HttpClientRequest request = client.requestAbs(method, requestUrl);
+    for(Map.Entry entry : headers.entries()) {
+      String key = (String)entry.getKey();
+      String value = (String)entry.getValue();
+      if( key != null && value != null) {
+        request.putHeader(key, value);
+      }
+    }
     request.exceptionHandler(e -> { future.fail(e); });
     request.handler( requestRes -> {
       requestRes.bodyHandler(bodyHandlerRes -> {
