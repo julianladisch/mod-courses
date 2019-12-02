@@ -332,9 +332,11 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     } else {
       Future<PatronGroupObject> getGroupFuture;
       if(entity.getUserId() != null) {
+        logger.info("Looking up patrongroup for user with id " + entity.getUserId());
         getGroupFuture = CRUtil.lookupPatronGroupByUserId(entity.getUserId(),
             okapiHeaders, vertxContext);
       } else {
+        logger.info("No user id to look up patrongroup");
         getGroupFuture = Future.succeededFuture(null);
       }
       getGroupFuture.setHandler(getGroupRes -> {
