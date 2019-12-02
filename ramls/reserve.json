@@ -142,6 +142,10 @@
             "type": "object",
             "description": "Information about copyright status, volume of material used, etc.",
             "properties": {
+                "additionalSectionsUsed": {
+                    "type": "boolean",
+                    "description": "Additional sections of this item used in this course"
+                },
                 "copyrightStatusId": {
                     "type": "string",
                     "description": "The id of the copyright status",
