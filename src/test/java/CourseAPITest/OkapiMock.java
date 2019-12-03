@@ -4,6 +4,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -26,6 +27,15 @@ public class OkapiMock extends AbstractVerticle {
   public static String item1Id = UUID.randomUUID().toString();
   public static String holdings1Id = UUID.randomUUID().toString();
   public static String instance1Id = UUID.randomUUID().toString();
+  public static String barcode1 = "326547658598";
+  public static String location1Id = UUID.randomUUID().toString();
+  public static String location2Id = UUID.randomUUID().toString();
+  public static String callNumber1 = "D15.H63 A3 2002";
+  public static String uri1 = "http://something.something";
+  public static String volume1 = "1";
+  public static String enumeration1 = "one";
+  public static String title1 = "Interesting Times";
+  public static String copy1 = "one";
 
   private static Map<String, JsonObject> userMap = new HashMap<>();
   private static Map<String, JsonObject> groupMap = new HashMap<>();
@@ -221,6 +231,29 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item1Id, new JsonObject()
         .put("id", item1Id)
+        .put("holdingsRecordId", holdings1Id)
+        .put("barcode", barcode1)
+        .put("volume", volume1)
+        .put("enumeration", enumeration1)
+        .put("copyNumbers", new JsonArray()
+          .add(copy1))
+
+    );
+
+    holdingsMap.put(holdings1Id, new JsonObject()
+      .put("id", holdings1Id)
+      .put("instanceId", instance1Id)
+      .put("permanentLocationId", location1Id)
+      .put("temporaryLocationId", location2Id)
+      .put("callNumber", callNumber1)
+      .put("electronicAccess", new JsonArray()
+        .add(new JsonObject()
+          .put("uri", uri1)))
+    );
+
+    instancesMap.put(instance1Id, new JsonObject()
+      .put("id", instance1Id)
+      .put("title", title1)
     );
 
    }

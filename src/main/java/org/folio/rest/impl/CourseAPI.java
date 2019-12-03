@@ -344,6 +344,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
           entity.setPatronGroupObject(null);
         } else {
           entity.setPatronGroupObject(getGroupRes.result());
+          entity.setPatronGroup(getGroupRes.result().getId());
         }
         PgUtil.post(INSTRUCTORS_TABLE, entity, okapiHeaders, vertxContext,
             PostCoursereservesCourselistingsInstructorsByListingIdResponse.class,
