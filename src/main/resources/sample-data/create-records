@@ -8,24 +8,22 @@ set -a
 set +a
 
 for dir in `echo '
-    roles
-    terms
-    coursetypes
-    departments
-    processingstatuses
-    copyrightstatuses
-    courselistings
-    courses
+#    roles
+#    terms
+#    coursetypes
+#    departments
+#    processingstatuses
+#    copyrightstatuses
+#    courselistings
+#    courses
     instructors
-    reserves
+#    reserves
 ' | grep -v '^[ ]*#'`;
     do
     echo "Adding records of type $dir"
     cd $dir
-	case $dir in
-	    *) path=${dir};;
-	esac
 	for file in *; do
+	    path=$dir
 	    echo
 	    echo "  Adding $dir '$file' at /$path"
 	    if [ $dir = instructors ]; then
