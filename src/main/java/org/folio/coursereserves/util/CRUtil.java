@@ -63,7 +63,7 @@ public class CRUtil {
               } else {
                 PatronGroupObject patronGroupObject = new PatronGroupObject();
                 patronGroupObject.setId(groupRes.result().getString("id"));
-                patronGroupObject.setName(groupRes.result().getString("name"));
+                patronGroupObject.setGroup(groupRes.result().getString("group"));
                 patronGroupObject.setDesc(groupRes.result().getString("desc"));
                 future.complete(patronGroupObject);
               }
@@ -199,6 +199,7 @@ public class CRUtil {
                         instructorObject.setId(instructor.getId());
                         instructorObject.setName(instructor.getName());
                         instructorObject.setPatronGroup(instructor.getPatronGroup());
+                        instructorObject.setPatronGroupObject(instructor.getPatronGroupObject());
                         instructorObjectList.add(instructorObject);                        
                       }
                       result.setInstructorObjects(instructorObjectList);

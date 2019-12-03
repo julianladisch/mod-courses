@@ -39,7 +39,7 @@
                     "type" : "string",
                     "description" : "description of the group"
                 },
-                "name": {
+                "group": {
                     "type" : "string",
                     "description" : "the unique name of the group"
                 }

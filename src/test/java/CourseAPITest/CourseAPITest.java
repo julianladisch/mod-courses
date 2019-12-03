@@ -421,25 +421,60 @@ public class CourseAPITest {
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/instructors",
         POST, standardHeaders, instructorJson.encode(), 201, "Post Instructor to Course Listing")
         .setHandler( postRes -> {
-          if(postRes.failed()) {
-            context.fail(postRes.cause());
+      if(postRes.failed()) {
+        context.fail(postRes.cause());
+      } else {
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/"
+          + COURSE_LISTING_1_ID + "/instructors/" + instructorJson.getString("id"),
+          GET, standardHeaders, null, 200, "Get instructor from courselisting by id").setHandler(
+            getCLInstructorsRes -> {
+          if(getCLInstructorsRes.failed()) {
+            context.fail(getCLInstructorsRes.cause());
           } else {
-            TestUtil.doRequest(vertx, baseUrl + "/courselistings/"
-              + COURSE_LISTING_1_ID + "/instructors/" + instructorJson.getString("id"),
-              GET, standardHeaders, null, 200, "Get instructor from courselisting by id").setHandler(
-                getRes -> {
-              if(getRes.failed()) {
-                context.fail(getRes.cause());
+            try {
+              JsonObject returnedInstructorJson = getCLInstructorsRes.result().getJson();
+              if(!returnedInstructorJson.getString("id").equals(instructorJson.getString("id"))) {
+                context.fail("Returned instructor does not match that which was POSTed");
+                return;
+              }
+              if(!returnedInstructorJson.getJsonObject("patronGroupObject")
+                  .getString("id").equals(OkapiMock.group1Id)) {
+                context.fail("Expected id '" + OkapiMock.group1Id + "' for patron group id");
+                return;
+              }
+              if(!returnedInstructorJson.getString("patronGroup").equals(OkapiMock.group1Id)) {
+                context.fail("Expected id '" + OkapiMock.group1Id + "' for patronGroup field");
+                return;
+              }
+            } catch(Exception e) {
+              context.fail(e);
+            }
+            TestUtil.doRequest(vertx, baseUrl + "/courses/" +
+                COURSE_1_ID, GET, standardHeaders, null, 200,
+                "Get course by courselisting id").setHandler(getCourseRes -> {
+              if(getCourseRes.failed()) {
+                context.fail(getCourseRes.cause());
               } else {
                 try {
-                  JsonObject returnedInstructorJson = getRes.result().getJson();
-                  if(!returnedInstructorJson.getString("id").equals(instructorJson.getString("id"))) {
-                    context.fail("Returned instructor does not match that which was POSTed");
+                  JsonArray instructorObjects = getCourseRes.result().getJson()
+                      .getJsonObject("courseListingObject").getJsonArray("instructorObjects");
+                  if(instructorObjects.isEmpty()) {
+                    context.fail("No instructorObjects found in " + getCourseRes.result().getBody());
                     return;
                   }
-                  if(!returnedInstructorJson.getJsonObject("patronGroupObject")
-                      .getString("id").equals(OkapiMock.group1Id)) {
-                    context.fail("Expected id '" + OkapiMock.group1Id + "' for patron group");
+                  boolean found = false;
+                  for(int i = 0; i < instructorObjects.size(); i++) {
+                    JsonObject instructorObjectJson = instructorObjects.getJsonObject(i);
+                    JsonObject patronGroupObject = instructorObjectJson.getJsonObject("patronGroupObject");
+                    if(patronGroupObject != null && 
+                      patronGroupObject.getString("id").equals(OkapiMock.group1Id)) {
+                      found = true;
+                      break;
+                    }
+                  }
+                  if(!found) {
+                    context.fail("Could not find patronGroupObject in instructor with id matching "
+                      + OkapiMock.group1Id);
                     return;
                   }
                 } catch(Exception e) {
@@ -450,6 +485,8 @@ public class CourseAPITest {
             });
           }
         });
+      }
+    });
   }
 
   @Test
