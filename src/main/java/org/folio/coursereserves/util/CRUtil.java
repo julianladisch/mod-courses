@@ -43,16 +43,18 @@ public class CRUtil {
           CRUtil.class);
 
 
-  public static Future<PatronGroupObject> lookupPatronGroupByUserId(String userId,
+  public static Future<JsonObject> lookupUserAndGroupByUserId(String userId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<PatronGroupObject> future = Future.future();
+    Future<JsonObject> future = Future.future();
     String userPath = "/users/" + userId;
+    JsonObject result = new JsonObject();
     makeOkapiRequest(context.owner(), okapiHeaders, userPath, HttpMethod.GET,
         null, null, 200).setHandler(userRes -> {
       try {
         if(userRes.failed()) {
           future.fail(userRes.cause());
         } else {
+          result.put("user", userRes.result());
           String groupId = userRes.result().getString("patronGroup");
           String groupPath = "/groups/" + groupId;
           makeOkapiRequest(context.owner(), okapiHeaders, groupPath, HttpMethod.GET,
@@ -61,11 +63,15 @@ public class CRUtil {
               if(groupRes.failed()) {
                 future.fail(groupRes.cause());
               } else {
+                result.put("group", groupRes.result());
+                //TODO, delete comments
+                /*
                 PatronGroupObject patronGroupObject = new PatronGroupObject();
                 patronGroupObject.setId(groupRes.result().getString("id"));
                 patronGroupObject.setGroup(groupRes.result().getString("group"));
                 patronGroupObject.setDesc(groupRes.result().getString("desc"));
-                future.complete(patronGroupObject);
+                */
+                future.complete(result);
               }
             } catch(Exception e) {
               future.fail(e);

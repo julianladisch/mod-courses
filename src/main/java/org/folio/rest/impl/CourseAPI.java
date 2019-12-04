@@ -4,6 +4,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.List;
@@ -330,21 +331,28 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                   .createValidationErrorMessage("listingId", entity.getCourseListingId(),
                       String.format("listingId should be %s", listingId)))));
     } else {
-      Future<PatronGroupObject> getGroupFuture;
+      Future<JsonObject> getUserAndGroupFuture;
       if(entity.getUserId() != null) {
         logger.info("Looking up patrongroup for user with id " + entity.getUserId());
-        getGroupFuture = CRUtil.lookupPatronGroupByUserId(entity.getUserId(),
+        getUserAndGroupFuture = CRUtil.lookupUserAndGroupByUserId(entity.getUserId(),
             okapiHeaders, vertxContext);
       } else {
         logger.info("No user id to look up patrongroup");
-        getGroupFuture = Future.succeededFuture(null);
+        getUserAndGroupFuture = Future.succeededFuture(null);
       }
-      getGroupFuture.setHandler(getGroupRes -> {
-        if(getGroupRes.failed()) {
+      getUserAndGroupFuture.setHandler(getUserAndGroupRes -> {
+        if(getUserAndGroupRes.failed()) {
           entity.setPatronGroupObject(null);
         } else {
-          entity.setPatronGroupObject(getGroupRes.result());
-          entity.setPatronGroup(getGroupRes.result().getId());
+          PatronGroupObject patronGroupObject = new PatronGroupObject();
+          JsonObject groupJson = getUserAndGroupRes.result().getJsonObject("group");
+          patronGroupObject.setId(groupJson.getString("id"));
+          patronGroupObject.setGroup(groupJson.getString("group"));
+          patronGroupObject.setDesc(groupJson.getString("desc"));
+          entity.setPatronGroupObject(patronGroupObject);
+          entity.setPatronGroup(patronGroupObject.getId());
+          JsonObject userJson = getUserAndGroupRes.result().getJsonObject("user");
+          entity.setBarcode(userJson.getString("barcode"));
         }
         PgUtil.post(INSTRUCTORS_TABLE, entity, okapiHeaders, vertxContext,
             PostCoursereservesCourselistingsInstructorsByListingIdResponse.class,

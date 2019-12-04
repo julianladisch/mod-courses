@@ -28,6 +28,8 @@ public class OkapiMock extends AbstractVerticle {
   public static String holdings1Id = UUID.randomUUID().toString();
   public static String instance1Id = UUID.randomUUID().toString();
   public static String barcode1 = "326547658598";
+  public static String barcode2 = "539311253355";
+  public static String barcode3 = "794630622287";
   public static String location1Id = UUID.randomUUID().toString();
   public static String location2Id = UUID.randomUUID().toString();
   public static String callNumber1 = "D15.H63 A3 2002";
@@ -197,18 +199,21 @@ public class OkapiMock extends AbstractVerticle {
       .put("id", user1Id)
       .put("username", "elsanto")
       .put("patronGroup", group1Id)
+      .put("barcode", barcode1 )
       .put("active", Boolean.TRUE));
 
     userMap.put(user2Id, new JsonObject()
       .put("id", user2Id)
       .put("username", "grasso")
       .put("patronGroup", group3Id)
+      .put("barcode", barcode2)
       .put("active", Boolean.TRUE));
 
     userMap.put(user3Id, new JsonObject()
       .put("id", user3Id)
       .put("username", "lews")
       .put("patronGroup", group2Id)
+      .put("barcode", barcode3)
       .put("active", Boolean.TRUE));
 
     groupMap.put(group1Id, new JsonObject()

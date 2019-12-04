@@ -446,6 +446,11 @@ public class CourseAPITest {
                 context.fail("Expected id '" + OkapiMock.group1Id + "' for patronGroup field");
                 return;
               }
+              if(!returnedInstructorJson.getString("barcode").equals(OkapiMock.barcode1)) {
+                context.fail("Expected barcode '" + OkapiMock.barcode1 + "' for barcode field, got '"
+                  + returnedInstructorJson.getString("barcode") + "'");
+                return;
+              }
             } catch(Exception e) {
               context.fail(e);
             }
@@ -536,19 +541,23 @@ public class CourseAPITest {
   }
 
   @Test
-  public void getPatronGroupFromUserId(TestContext context) {
+  public void getUserAndPatronGroupFromUserId(TestContext context) {
     Async async = context.async();
-    CRUtil.lookupPatronGroupByUserId(OkapiMock.user1Id, okapiHeaders,
+    CRUtil.lookupUserAndGroupByUserId(OkapiMock.user1Id, okapiHeaders,
         vertx.getOrCreateContext()).setHandler(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
-        PatronGroupObject patronGroupObject = res.result();
-        if(!patronGroupObject.getId().equals(OkapiMock.group1Id)) {
-          context.fail("Retrieved Group ID does not match");
-          return;
+        try {
+          JsonObject json = res.result();
+          if(!json.getJsonObject("group").getString("id").equals(OkapiMock.group1Id)) {
+            context.fail("Retrieved Group ID does not match");
+            return;
+          }
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
         }
-        async.complete();
       }
     });
   }
