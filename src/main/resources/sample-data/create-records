@@ -8,16 +8,16 @@ set -a
 set +a
 
 for dir in `echo '
-#    roles
-#    terms
-#    coursetypes
-#    departments
-#    processingstatuses
-#    copyrightstatuses
-#    courselistings
-#    courses
+    roles
+    terms
+    coursetypes
+    departments
+    processingstatuses
+    copyrightstatuses
+    courselistings
+    courses
     instructors
-#    reserves
+    reserves
 ' | grep -v '^[ ]*#'`;
     do
     echo "Adding records of type $dir"
