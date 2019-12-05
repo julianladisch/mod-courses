@@ -38,12 +38,21 @@ public class OkapiMock extends AbstractVerticle {
   public static String enumeration1 = "one";
   public static String title1 = "Interesting Times";
   public static String copy1 = "one";
+  public static String contributor1Name = "Einstein, Albert";
+  public static String contributor1TypeText = "blahblah";
+  public static String contributor1TypeId = UUID.randomUUID().toString();
+  public static String contributor1NameTypeId = UUID.randomUUID().toString();
+  public static String publication1Publisher = "Random House";
+  public static String publication1Place = "London";
+  public static String publication1Date = "2011-11-11T03:34:45.823+0000";
+  public static String publication1Role = "Publisher";
+
 
   private static Map<String, JsonObject> userMap = new HashMap<>();
   private static Map<String, JsonObject> groupMap = new HashMap<>();
   private static Map<String, JsonObject> itemMap = new HashMap<>();
   private static Map<String, JsonObject> holdingsMap = new HashMap<>();
-  private static Map<String, JsonObject> instancesMap = new HashMap<>();
+  private static Map<String, JsonObject> instanceMap = new HashMap<>();
 
   public void start(Future<Void> future) {
     final String defaultPort = context.config().getInteger("port", 9130).toString();
@@ -131,8 +140,8 @@ public class OkapiMock extends AbstractVerticle {
           .end(message);
           return;
         } else {
-          if(groupMap.containsKey(id)) {
-            context.response().setStatusCode(200).end(groupMap.get(id).encode());
+          if(itemMap.containsKey(id)) {
+            context.response().setStatusCode(200).end(itemMap.get(id).encode());
             return;
           } else {
             context.response().setStatusCode(404).end("id '" + id + "' not found");
@@ -155,8 +164,8 @@ public class OkapiMock extends AbstractVerticle {
           .end(message);
           return;
         } else {
-          if(groupMap.containsKey(id)) {
-            context.response().setStatusCode(200).end(groupMap.get(id).encode());
+          if(holdingsMap.containsKey(id)) {
+            context.response().setStatusCode(200).end(holdingsMap.get(id).encode());
             return;
           } else {
             context.response().setStatusCode(404).end("id '" + id + "' not found");
@@ -179,8 +188,8 @@ public class OkapiMock extends AbstractVerticle {
           .end(message);
           return;
         } else {
-          if(groupMap.containsKey(id)) {
-            context.response().setStatusCode(200).end(groupMap.get(id).encode());
+          if(instanceMap.containsKey(id)) {
+            context.response().setStatusCode(200).end(instanceMap.get(id).encode());
             return;
           } else {
             context.response().setStatusCode(404).end("id '" + id + "' not found");
@@ -242,6 +251,11 @@ public class OkapiMock extends AbstractVerticle {
         .put("enumeration", enumeration1)
         .put("copyNumbers", new JsonArray()
           .add(copy1))
+        .put("electronicAccess", new JsonArray()
+          .add(new JsonObject()
+            .put("uri", uri1)
+            .put("publicNote", uri1))
+          )
 
     );
 
@@ -251,14 +265,29 @@ public class OkapiMock extends AbstractVerticle {
       .put("permanentLocationId", location1Id)
       .put("temporaryLocationId", location2Id)
       .put("callNumber", callNumber1)
-      .put("electronicAccess", new JsonArray()
-        .add(new JsonObject()
-          .put("uri", uri1)))
+      
     );
 
-    instancesMap.put(instance1Id, new JsonObject()
+    instanceMap.put(instance1Id, new JsonObject()
       .put("id", instance1Id)
       .put("title", title1)
+      .put("contributors", new JsonArray()
+        .add(new JsonObject()
+          .put("contributorTypeId", contributor1TypeId)
+          .put("name", contributor1Name)
+          .put("contributorTypeText", contributor1TypeText)
+          .put("contributorNameTypeId", contributor1NameTypeId)
+          .put("primary", true)
+        )
+      )
+      .put("publication", new JsonArray()
+        .add(new JsonObject()
+          .put("publisher", publication1Publisher)
+          .put("place", publication1Place)
+          .put("dateOfPublication", publication1Date)
+          .put("role", publication1Role)
+        )
+      )
     );
 
    }

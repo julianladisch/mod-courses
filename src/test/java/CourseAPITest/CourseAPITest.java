@@ -561,6 +561,39 @@ public class CourseAPITest {
       }
     });
   }
+
+  @Test
+  public void getItemHoldingsInstanceFromItemId(TestContext context) {
+    Async async = context.async();
+    CRUtil.lookupItemHoldingsInstanceByItemId(OkapiMock.item1Id, okapiHeaders,
+        vertx.getOrCreateContext()).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          JsonObject result = res.result();
+          JsonObject itemJson = result.getJsonObject("item");
+          JsonObject holdingsJson = result.getJsonObject("holdings");
+          JsonObject instanceJson = result.getJsonObject("instance");
+          if(!itemJson.getString("id").equals(OkapiMock.item1Id)) {
+            context.fail("Retrieved item id does not match");
+            return;
+          }
+          if(!instanceJson.getString("id").equals(OkapiMock.instance1Id)) {
+            context.fail("Retrieved instance id does not match");
+            return;
+          }
+          if(!holdingsJson.getString("id").equals(OkapiMock.holdings1Id)) {
+            context.fail("Retrieved holdings id does not match");
+            return;
+          }
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
   
   /* UTILITY CLASSES */
 
