@@ -43,6 +43,45 @@ public class CRUtil {
           CRUtil.class);
 
 
+  public static Future<JsonObject> lookupItemHoldingsInstanceByItemId(String itemId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<JsonObject> future = Future.future();
+    JsonObject result = new JsonObject();
+    String itemPath = "/item-storage/items/";
+    String holdingsPath = "/holdings-storage/holdings/";
+    String instancePath = "/instance-storage/instances/";
+    makeOkapiRequest(context.owner(), okapiHeaders, itemPath + itemId, HttpMethod.GET,
+        null, null, 200).setHandler(itemRes -> {
+      if(itemRes.failed()) {
+        future.fail(itemRes.cause());
+      } else {
+        JsonObject itemJson = itemRes.result();
+        String holdingsId = itemJson.getString("holdingsRecordId");
+        result.put("item", itemJson);
+        makeOkapiRequest(context.owner(), okapiHeaders, holdingsPath + holdingsId,
+            HttpMethod.GET, null, null, 200).setHandler(holdingsRes -> {
+          if(holdingsRes.failed()) {
+            future.fail(holdingsRes.cause());
+          } else {
+            JsonObject holdingsJson = holdingsRes.result();
+            String instanceId = holdingsJson.getString("instanceId");
+            result.put("holdings", holdingsJson);
+            makeOkapiRequest(context.owner(), okapiHeaders, instancePath + instanceId,
+                HttpMethod.GET, null, null, 200).setHandler(instanceRes -> {
+              if(instanceRes.failed()) {
+                future.fail(instanceRes.cause());
+              } else {
+                JsonObject instanceJson = instanceRes.result();
+                result.put("instance", instanceJson);
+                future.complete(result);
+              }
+            });
+          }
+        });
+      }
+    });
+    return future;
+  }
   public static Future<JsonObject> lookupUserAndGroupByUserId(String userId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
