@@ -17,7 +17,8 @@ import java.util.UUID;
 
 
 public class OkapiMock extends AbstractVerticle {
-  private final Logger logger = LoggerFactory.getLogger(OkapiMock.class.getClass().getName());
+  private final Logger logger = LoggerFactory.getLogger(OkapiMock.class.getClass()
+      .getName());
   public static String user1Id = UUID.randomUUID().toString();
   public static String user2Id = UUID.randomUUID().toString();
   public static String user3Id = UUID.randomUUID().toString();
@@ -100,7 +101,8 @@ public class OkapiMock extends AbstractVerticle {
           }
         }
       } else {
-        String message = String.format("Unsupported method %s", context.request().method().toString());
+        String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
         context.response().setStatusCode(400)
           .end(message);
         return;
@@ -124,7 +126,8 @@ public class OkapiMock extends AbstractVerticle {
           }
         }
       } else {
-        String message = String.format("Unsupported method %s", context.request().method().toString());
+        String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
         context.response().setStatusCode(400)
           .end(message);
         return;
@@ -148,7 +151,8 @@ public class OkapiMock extends AbstractVerticle {
           }
         }
       } else {
-        String message = String.format("Unsupported method %s", context.request().method().toString());
+        String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
         context.response().setStatusCode(400)
           .end(message);
         return;
@@ -172,7 +176,8 @@ public class OkapiMock extends AbstractVerticle {
           }
         }
       } else {
-        String message = String.format("Unsupported method %s", context.request().method().toString());
+        String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
         context.response().setStatusCode(400)
           .end(message);
         return;
@@ -196,7 +201,8 @@ public class OkapiMock extends AbstractVerticle {
           }
         }
       } else {
-        String message = String.format("Unsupported method %s", context.request().method().toString());
+        String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
         context.response().setStatusCode(400)
           .end(message);
         return;
