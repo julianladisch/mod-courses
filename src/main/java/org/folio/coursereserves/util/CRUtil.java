@@ -8,6 +8,7 @@ import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -19,6 +20,8 @@ import static org.folio.rest.impl.CourseAPI.COURSE_TYPES_TABLE;
 import static org.folio.rest.impl.CourseAPI.DEPARTMENTS_TABLE;
 import static org.folio.rest.impl.CourseAPI.INSTRUCTORS_TABLE;
 import static org.folio.rest.impl.CourseAPI.TERMS_TABLE;
+import org.folio.rest.jaxrs.model.Contributor;
+import org.folio.rest.jaxrs.model.CopiedItem;
 import org.folio.rest.jaxrs.model.Course;
 import org.folio.rest.jaxrs.model.Courselisting;
 import org.folio.rest.jaxrs.model.CourseListingObject;
@@ -29,6 +32,8 @@ import org.folio.rest.jaxrs.model.DepartmentObject;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.InstructorObject;
 import org.folio.rest.jaxrs.model.PatronGroupObject;
+import org.folio.rest.jaxrs.model.Publication;
+import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
 import org.folio.rest.persist.Criteria.Criteria;
@@ -43,6 +48,125 @@ public class CRUtil {
           CRUtil.class);
 
 
+  public static Future<Void> populateReserveInventoryCache(Reserve reserve,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<Void> future = Future.future();
+    String itemId = reserve.getItemId();
+    logger.info("Looking up information for item " + itemId + " from inventory module");
+    lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders, context)
+        .setHandler(inventoryRes -> {
+      if(inventoryRes.failed()) {
+        future.fail(inventoryRes.cause());
+      } else {
+        try {
+          JsonObject result = inventoryRes.result();
+          JsonObject itemJson = result.getJsonObject("item");
+          JsonObject holdingsJson = result.getJsonObject("holdings");
+          JsonObject instanceJson = result.getJsonObject("instance");
+          CopiedItem copiedItem = new CopiedItem();
+          copiedItem.setBarcode(itemJson.getString("barcode"));
+          copiedItem.setVolume(itemJson.getString("volume"));
+          copiedItem.setTitle(instanceJson.getString("title"));
+          copiedItem.setEnumeration(itemJson.getString("enumeration"));
+          try {
+            copiedItem.setCopy(itemJson.getJsonArray("copyNumbers").getString(0));
+          } catch(Exception e) {
+            logger.info("Unable to copy copyNumbers field from item: " + e.getLocalizedMessage());
+          }
+          try {
+            JsonObject eAJson = itemJson.getJsonArray("electronicAccess").getJsonObject(0);
+            copiedItem.setUri(eAJson.getString("uri"));
+            copiedItem.setUrl(eAJson.getString("publicNote"));
+          } catch(Exception e) {
+            logger.info("Unable to copy electronic access field from item: " + e.getLocalizedMessage());
+          }
+          copiedItem.setPermanentLocationId(holdingsJson.getString("permanentLocationId"));
+          copiedItem.setTemporaryLocationId(holdingsJson.getString("temporaryLocationId"));
+          copiedItem.setCallNumber(holdingsJson.getString("callNumber"));
+          JsonArray contributors = instanceJson.getJsonArray("contributors");
+          if(contributors != null && contributors.size() > 0) {
+            List<Contributor> contributorList = new ArrayList<>();
+            for(int i = 0; i < contributors.size(); i++) {
+              JsonObject contributorJson = contributors.getJsonObject(i);
+              Contributor contributor = new Contributor();
+              contributor.setContributorNameTypeId(contributorJson.getString("contributorNameTypeId"));
+              contributor.setContributorTypeId(contributorJson.getString("contributorTypeId"));
+              contributor.setContributorTypeText(contributorJson.getString("contributorTypeText"));
+              contributor.setName(contributorJson.getString("name"));
+              contributor.setPrimary(contributorJson.getBoolean("primary"));
+              contributorList.add(contributor);
+            }
+            copiedItem.setContributors(contributorList);
+          }
+
+          JsonArray publishers = instanceJson.getJsonArray("publication");
+          if(publishers != null && publishers.size() > 0) {
+            List<Publication> publisherList = new ArrayList<>();
+            for(int i = 0; i < publishers.size(); i++) {
+              JsonObject publisherJson = publishers.getJsonObject(i);
+              Publication publication = new Publication();
+              publication.setPlace(publisherJson.getString("place"));
+              publication.setPublisher(publisherJson.getString("publisher"));
+              publication.setDateOfPublication(publisherJson.getString("dateOfPublication"));
+              publication.setRole(publisherJson.getString("role"));
+              publisherList.add(publication);
+            }
+            copiedItem.setPublication(publisherList);
+          }
+
+          reserve.setCopiedItem(copiedItem);
+          future.complete();
+        } catch(Exception e) {
+          future.fail(e);
+        }
+      }
+    });
+    return future;
+  }
+
+  public static Future<JsonObject> lookupItemHoldingsInstanceByItemId(String itemId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<JsonObject> future = Future.future();
+    JsonObject result = new JsonObject();
+    String itemPath = "/item-storage/items/";
+    String holdingsPath = "/holdings-storage/holdings/";
+    String instancePath = "/instance-storage/instances/";
+    logger.info("Making request for item at " + itemPath + itemId);
+    makeOkapiRequest(context.owner(), okapiHeaders, itemPath + itemId, HttpMethod.GET,
+        null, null, 200).setHandler(itemRes -> {
+      if(itemRes.failed()) {
+        future.fail(itemRes.cause());
+      } else {
+        JsonObject itemJson = itemRes.result();
+        String holdingsId = itemJson.getString("holdingsRecordId");
+        result.put("item", itemJson);
+        logger.info("Making request for holdings at " +holdingsPath + holdingsId);
+        makeOkapiRequest(context.owner(), okapiHeaders, holdingsPath + holdingsId,
+            HttpMethod.GET, null, null, 200).setHandler(holdingsRes -> {
+          if(holdingsRes.failed()) {
+            future.fail(holdingsRes.cause());
+          } else {
+            JsonObject holdingsJson = holdingsRes.result();
+            String instanceId = holdingsJson.getString("instanceId");
+            result.put("holdings", holdingsJson);
+            logger.info("Making request for instance at " + instancePath + instanceId);
+            makeOkapiRequest(context.owner(), okapiHeaders, instancePath + instanceId,
+                HttpMethod.GET, null, null, 200).setHandler(instanceRes -> {
+              if(instanceRes.failed()) {
+                future.fail(instanceRes.cause());
+              } else {
+                JsonObject instanceJson = instanceRes.result();
+                result.put("instance", instanceJson);
+                logger.info("Inventory lookup complete");
+                future.complete(result);
+              }
+            });
+          }
+        });
+      }
+    });
+    return future;
+  }
   public static Future<JsonObject> lookupUserAndGroupByUserId(String userId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
@@ -118,8 +242,9 @@ public class CRUtil {
         try {
           String response = bodyHandlerRes.toString();
           if(expectedCode != requestRes.statusCode()) {
-            future.fail(String.format("Expected status code %s, got %s: %s",
-                expectedCode, requestRes.statusCode(), response));
+            future.fail(String.format("Expected status code %s for %s request to url %s, got %s: %s",
+                expectedCode, method.toString(), requestUrl, requestRes.statusCode(),
+                response));
           } else {
             JsonObject responseJson = new JsonObject(response);
             future.complete(responseJson);

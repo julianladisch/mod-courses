@@ -493,6 +493,45 @@ public class CourseAPITest {
       }
     });
   }
+  
+  @Test
+  public void postReserveToCourseListing(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id);
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201, 
+        "Post Course Reserve").setHandler(res -> {
+      if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+        JsonObject reserveJson = res.result().getJson();
+        if(!reserveJson.containsKey("copiedItem") || 
+            reserveJson.getJsonObject("copiedItem") == null) {
+          context.fail("No copiedItem field found");
+          return;
+        }
+        JsonObject itemJson = reserveJson.getJsonObject("copiedItem");
+        if(! itemJson.getString("barcode").equals(OkapiMock.barcode1)) {
+          context.fail("Expected bardcode " + OkapiMock.barcode1 + " got " +
+              itemJson.getString("barcode"));
+          return;
+        }
+        if(! itemJson.getString("title").equals(OkapiMock.title1)) {
+          context.fail("Expected title" + OkapiMock.title1 + " got " +
+              itemJson.getString("title"));
+          return;
+        }
+        if(! itemJson.getString("temporaryLocationId").equals(OkapiMock.location2Id)) {
+          context.fail("Expected temporaryLocationId" + OkapiMock.location2Id + " got " +
+              itemJson.getString("temporaryLocatonId"));
+          return;
+        }
+        async.complete();
+       }
+    });
+  }
 
   @Test
   public void getUser(TestContext context) {
@@ -552,6 +591,39 @@ public class CourseAPITest {
           JsonObject json = res.result();
           if(!json.getJsonObject("group").getString("id").equals(OkapiMock.group1Id)) {
             context.fail("Retrieved Group ID does not match");
+            return;
+          }
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
+
+  @Test
+  public void getItemHoldingsInstanceFromItemId(TestContext context) {
+    Async async = context.async();
+    CRUtil.lookupItemHoldingsInstanceByItemId(OkapiMock.item1Id, okapiHeaders,
+        vertx.getOrCreateContext()).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          JsonObject result = res.result();
+          JsonObject itemJson = result.getJsonObject("item");
+          JsonObject holdingsJson = result.getJsonObject("holdings");
+          JsonObject instanceJson = result.getJsonObject("instance");
+          if(!itemJson.getString("id").equals(OkapiMock.item1Id)) {
+            context.fail("Retrieved item id does not match");
+            return;
+          }
+          if(!instanceJson.getString("id").equals(OkapiMock.instance1Id)) {
+            context.fail("Retrieved instance id does not match");
+            return;
+          }
+          if(!holdingsJson.getString("id").equals(OkapiMock.holdings1Id)) {
+            context.fail("Retrieved holdings id does not match");
             return;
           }
           async.complete();
