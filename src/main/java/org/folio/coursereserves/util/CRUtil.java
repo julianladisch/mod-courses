@@ -12,9 +12,12 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.folio.coursereserves.util.PopulateMapping.ImportType;
 import static org.folio.rest.impl.CourseAPI.COURSE_LISTINGS_TABLE;
 import static org.folio.rest.impl.CourseAPI.COURSE_TYPES_TABLE;
 import static org.folio.rest.impl.CourseAPI.DEPARTMENTS_TABLE;
@@ -31,6 +34,7 @@ import org.folio.rest.jaxrs.model.Department;
 import org.folio.rest.jaxrs.model.DepartmentObject;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.InstructorObject;
+import org.folio.rest.jaxrs.model.LocationObject;
 import org.folio.rest.jaxrs.model.PatronGroupObject;
 import org.folio.rest.jaxrs.model.Publication;
 import org.folio.rest.jaxrs.model.Reserve;
@@ -218,6 +222,10 @@ public class CRUtil {
     CaseInsensitiveHeaders originalHeaders = new CaseInsensitiveHeaders();
     originalHeaders.setAll(okapiHeaders);
     String okapiUrl = originalHeaders.get("x-okapi-url");
+    if(okapiUrl == null) {
+      future.fail("No okapi URL found in headers");
+      return future;
+    }
     String requestUrl = okapiUrl + requestPath;
     headers.add("x-okapi-token", originalHeaders.get("x-okapi-token"));
     headers.add("x-okapi-tenant", originalHeaders.get("x-okapi-tenant"));
@@ -228,6 +236,7 @@ public class CRUtil {
         headers.add(entry.getKey(), entry.getValue());
       }
     }
+    logger.debug("Creating request for url " + requestUrl);
     HttpClientRequest request = client.requestAbs(method, requestUrl);
     for(Map.Entry entry : headers.entries()) {
       String key = (String)entry.getKey();
@@ -256,7 +265,9 @@ public class CRUtil {
     });
     if(method == HttpMethod.PUT || method == HttpMethod.POST) {
       request.end(payload);
+      logger.debug("Sending request with payload");
     } else {
+      logger.debug("Sending payload-free request");
       request.end();
     }
     return future;
@@ -274,9 +285,9 @@ public class CRUtil {
       } else if(courseListingReply.result() == null) {
         future.complete(null);
       } else {
-        Courselisting result = courseListingReply.result();
+        Courselisting courselisting = courseListingReply.result();
         if(expandTerm == Boolean.TRUE) {
-          String termId = result.getTermId();
+          String termId = courselisting.getTermId();
           Future<Term> termFuture;
           if(termId == null) {
             termFuture = Future.succeededFuture();
@@ -294,14 +305,14 @@ public class CRUtil {
                 termObject.setStartDate(term.getStartDate());
                 termObject.setId(term.getId());
                 termObject.setName(term.getName());
-                result.setTermObject(termObject);
+                courselisting.setTermObject(termObject);
               }
-              String courseTypeId = result.getCourseTypeId();
+              String courseTypeId = courselisting.getCourseTypeId();
               Future<Coursetype> courseTypeFuture;
               if(courseTypeId == null) {
                 courseTypeFuture = Future.succeededFuture();
               } else {
-                courseTypeFuture = lookupCourseType(result.getCourseTypeId(),
+                courseTypeFuture = lookupCourseType(courselisting.getCourseTypeId(),
                     okapiHeaders, context);
               }
               courseTypeFuture.setHandler(courseTypeReply -> {
@@ -314,27 +325,62 @@ public class CRUtil {
                     courseTypeObject.setId(coursetype.getId());
                     courseTypeObject.setDescription(coursetype.getDescription());
                     courseTypeObject.setName(coursetype.getName());
-                    result.setCourseTypeObject(courseTypeObject);
+                    courselisting.setCourseTypeObject(courseTypeObject);
                   }
-                  lookupInstructorsForCourseListing(courseListingId, okapiHeaders.get("X-OKAPI-TENANT"),
-                      context).setHandler(instructorLookupReply -> {
-                    if(instructorLookupReply.failed()) {
-                      future.fail(instructorLookupReply.cause());
-                    } else {
-                      List<Instructor> instructorList = instructorLookupReply.result();
-                      List<InstructorObject> instructorObjectList = new ArrayList<>();
-                      for(Instructor instructor : instructorList) {
-                        InstructorObject instructorObject = new InstructorObject();
-                        instructorObject.setBarcode(instructor.getBarcode());
-                        instructorObject.setCourseListingId(instructor.getCourseListingId());
-                        instructorObject.setId(instructor.getId());
-                        instructorObject.setName(instructor.getName());
-                        instructorObject.setPatronGroup(instructor.getPatronGroup());
-                        instructorObject.setPatronGroupObject(instructor.getPatronGroupObject());
-                        instructorObjectList.add(instructorObject);                        
+                  String locationId = courselisting.getLocationId();
+                  Future<JsonObject> locationObjectFuture = Future.succeededFuture(null);
+                  if(locationId != null) {
+                    locationObjectFuture = lookupLocation(locationId, okapiHeaders,
+                        context);
+                  }
+                  locationObjectFuture.setHandler(locationRes -> {
+                    if(locationRes.failed()) {
+                      future.fail(locationRes.cause());
+                    } else { 
+                      LocationObject locationObject = null;
+                      if(locationRes.result() != null) {
+                        locationObject = new LocationObject();
+                        List<PopulateMapping> mapList = new ArrayList<>();
+                        mapList.add(new PopulateMapping("id"));
+                        mapList.add(new PopulateMapping("name"));
+                        mapList.add(new PopulateMapping("code"));
+                        mapList.add(new PopulateMapping("description"));
+                        mapList.add(new PopulateMapping("discoveryDisplayName"));
+                        mapList.add(new PopulateMapping("isActive", ImportType.BOOLEAN));
+                        mapList.add(new PopulateMapping("institutionId"));
+                        mapList.add(new PopulateMapping("campusId"));
+                        mapList.add(new PopulateMapping("libraryId"));
+                        mapList.add(new PopulateMapping("primaryServicePoint"));
+                        mapList.add(new PopulateMapping("servicePointIds", ImportType.STRINGLIST));
+                        try {
+                          populatePojoFromJson(locationObject, locationRes.result(), mapList);
+                          courselisting.setLocationObject(locationObject);
+                        } catch(Exception e) {
+                          future.fail(e);
+                          return;
+                        }
                       }
-                      result.setInstructorObjects(instructorObjectList);
-                      future.complete(result);
+                      lookupInstructorsForCourseListing(courseListingId, okapiHeaders.get("X-OKAPI-TENANT"),
+                          context).setHandler(instructorLookupReply -> {
+                        if(instructorLookupReply.failed()) {
+                          future.fail(instructorLookupReply.cause());
+                        } else {
+                          List<Instructor> instructorList = instructorLookupReply.result();
+                          List<InstructorObject> instructorObjectList = new ArrayList<>();
+                          for(Instructor instructor : instructorList) {
+                            InstructorObject instructorObject = new InstructorObject();
+                            instructorObject.setBarcode(instructor.getBarcode());
+                            instructorObject.setCourseListingId(instructor.getCourseListingId());
+                            instructorObject.setId(instructor.getId());
+                            instructorObject.setName(instructor.getName());
+                            instructorObject.setPatronGroup(instructor.getPatronGroup());
+                            instructorObject.setPatronGroupObject(instructor.getPatronGroupObject());
+                            instructorObjectList.add(instructorObject);                        
+                          }
+                          courselisting.setInstructorObjects(instructorObjectList);
+                          future.complete(courselisting);
+                        }
+                      });
                     }
                   });
                 }
@@ -342,8 +388,61 @@ public class CRUtil {
             }
           });
         } else {
-          future.complete(result);
+          future.complete(courselisting);
         }
+      }
+    });
+    return future;
+  }
+  
+  public static void populatePojoFromJson(Object pojo, JsonObject json,
+      List<PopulateMapping> mapList) throws NoSuchMethodException,
+      IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    for( PopulateMapping popMap : mapList ) {
+      Object value = null;
+      Method method = null;
+      if(popMap.type.equals(ImportType.STRING)) {
+        value = json.getString(popMap.fieldName);
+        method = pojo.getClass().getMethod(popMap.methodName, String.class);
+      } else if(popMap.type.equals(ImportType.INTEGER)) {
+        value = json.getInteger(popMap.fieldName);
+        method = pojo.getClass().getMethod(popMap.methodName, Integer.class);
+      } else if(popMap.type.equals(ImportType.BOOLEAN)) {
+        value = json.getBoolean(popMap.fieldName);
+        method = pojo.getClass().getMethod(popMap.methodName, Boolean.class);
+      } else if(popMap.type.equals(ImportType.STRINGLIST)) {
+        List<String> stringList = new ArrayList<>();
+        JsonArray jsonArray = json.getJsonArray(popMap.fieldName);
+        if(jsonArray != null) {
+          for(Object ob : jsonArray) {
+            stringList.add((String) ob);
+          }
+        }
+        method = pojo.getClass().getMethod(popMap.methodName, List.class);
+        value = stringList;
+      } else {
+        throw new RuntimeException(popMap.type + " is not a valid type");
+      }
+      if(value != null) {
+        method.invoke(pojo, value);
+      }
+    }
+  }
+  
+  public static Future<JsonObject> lookupLocation(String locationId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<JsonObject> future = Future.future();
+    String locationPath = "/locations/" + locationId;
+    logger.debug("Making request for location at " + locationPath);
+    makeOkapiRequest(context.owner(), okapiHeaders, locationPath, HttpMethod.GET,
+        null, null, 200).setHandler(locationRes-> {
+      if(locationRes.failed()) {
+        logger.debug("Location request failed");
+        future.fail(locationRes.cause());
+      } else {
+        logger.debug("Location request succeeded");
+        JsonObject locationJson = locationRes.result();
+        future.complete(locationJson);
       }
     });
     return future;
@@ -480,6 +579,7 @@ public class CRUtil {
           expandedCourseListing.setTermId(courseListing.getTermId());
           expandedCourseListing.setTermObject(courseListing.getTermObject());
           expandedCourseListing.setInstructorObjects(courseListing.getInstructorObjects());
+          expandedCourseListing.setLocationObject(courseListing.getLocationObject());
         }
         newCourse.setCourseListingObject(expandedCourseListing);
 

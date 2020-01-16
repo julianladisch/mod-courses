@@ -372,6 +372,24 @@
             ]
         }
     ],
+    "requires" : [
+        {
+            "id" : "item-storage",
+            "version": "7.0"
+        },
+        {
+            "id" : "instance-storage",
+            "version": "7.2"
+        },
+        {
+            "id" : "holdings-storage",
+            "version": "2.0 3.0 4.0"
+        },
+        {
+            "id" : "locations",
+            "version": "2.0 3.0"
+        }
+    ],
     "permissionSets": [
         {
             "permissionName": "course-reserves-storage.courselistings.collection.get",

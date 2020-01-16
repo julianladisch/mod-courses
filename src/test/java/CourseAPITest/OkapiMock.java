@@ -47,13 +47,19 @@ public class OkapiMock extends AbstractVerticle {
   public static String publication1Place = "London";
   public static String publication1Date = "2011-11-11T03:34:45.823+0000";
   public static String publication1Role = "Publisher";
-
+  public static String servicePoint1Id = UUID.randomUUID().toString();
+  public static String servicePoint2Id = UUID.randomUUID().toString();
+  public static String servicePoint3Id = UUID.randomUUID().toString();
+  public static String library1Id = UUID.randomUUID().toString();
+  public static String institution1Id = UUID.randomUUID().toString();
+  public static String campus1Id = UUID.randomUUID().toString();
 
   private static Map<String, JsonObject> userMap = new HashMap<>();
   private static Map<String, JsonObject> groupMap = new HashMap<>();
   private static Map<String, JsonObject> itemMap = new HashMap<>();
   private static Map<String, JsonObject> holdingsMap = new HashMap<>();
   private static Map<String, JsonObject> instanceMap = new HashMap<>();
+  private static Map<String, JsonObject> locationMap = new HashMap<>();
 
   public void start(Future<Void> future) {
     final String defaultPort = context.config().getInteger("port", 9130).toString();
@@ -71,8 +77,7 @@ public class OkapiMock extends AbstractVerticle {
     router.route("/item-storage/items/:id").handler(this::handleItems);
     router.route("/holdings-storage/holdings/:id").handler(this::handleHoldings);
     router.route("/instance-storage/instances/:id").handler(this::handleInstances);
-    //router.route("/instances").handler(this::handleInstances);
-    //router.route("/bl-users/login").handler(this::handleLogin);
+    router.route("/locations/:id").handler(this::handleLocations);
 
     logger.info("Running OkapiMock on port " + port);
     server.requestHandler(router::accept).listen(port, result -> {
@@ -208,6 +213,32 @@ public class OkapiMock extends AbstractVerticle {
         return;
       }
    }
+   
+   private void handleLocations(RoutingContext context) {
+     logger.info("Got location request");
+     String id = context.request().getParam("id");
+     if(context.request().method() == HttpMethod.GET) {
+        if(id == null) {
+          String message = String.format("List retrieval currently unsupported");
+          context.response().setStatusCode(400)
+          .end(message);
+          return;
+        } else {
+          if(locationMap.containsKey(id)) {
+            context.response().setStatusCode(200).end(locationMap.get(id).encode());
+            return;
+          } else {
+            context.response().setStatusCode(404).end("id '" + id + "' not found");
+          }
+        }
+      } else {
+        String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
+        context.response().setStatusCode(400)
+          .end(message);
+        return;
+      }
+   }
 
    private void initData() {
     userMap.put(user1Id, new JsonObject()
@@ -295,8 +326,23 @@ public class OkapiMock extends AbstractVerticle {
         )
       )
     );
+    
+    locationMap.put(location1Id, new JsonObject()
+        .put("id", location1Id)
+        .put("name", "Location 1")
+        .put("discoveryDisplayName", "The Mighty Location One")
+        .put("isActive", true)
+        .put("code", "loc1")
+        .put("institutionId", institution1Id)
+        .put("campusId", campus1Id)
+        .put("libraryId", library1Id)
+        .put("primaryServicePoint", servicePoint1Id)
+        .put("servicePointIds", new JsonArray()
+          .add(servicePoint1Id)
+          .add(servicePoint2Id)
+          .add(servicePoint3Id)
+        )        
+    );
 
-   }
-
-
+  }
 }
