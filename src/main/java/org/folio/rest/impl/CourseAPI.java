@@ -337,8 +337,9 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         getUserAndGroupFuture = CRUtil.lookupUserAndGroupByUserId(entity.getUserId(),
             okapiHeaders, vertxContext);
       } else {
-        logger.info("No user id to look up patrongroup");
-        getUserAndGroupFuture = Future.succeededFuture(null);
+        String message = "No user id to look up patrongroup";
+        logger.info(message);
+        getUserAndGroupFuture = Future.failedFuture(message);
       }
       getUserAndGroupFuture.setHandler(getUserAndGroupRes -> {
         if(getUserAndGroupRes.failed()) {
