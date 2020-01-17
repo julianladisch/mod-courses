@@ -335,7 +335,8 @@ public class CRUtil {
                   }
                   locationObjectFuture.setHandler(locationRes -> {
                     if(locationRes.failed()) {
-                      future.fail(locationRes.cause());
+                      logger.info(String.format("Unable to lookup location %s: %s",
+                          locationId, locationRes.cause().getLocalizedMessage()));
                     } else { 
                       LocationObject locationObject = null;
                       if(locationRes.result() != null) {
@@ -360,28 +361,30 @@ public class CRUtil {
                           return;
                         }
                       }
-                      lookupInstructorsForCourseListing(courseListingId, okapiHeaders.get("X-OKAPI-TENANT"),
-                          context).setHandler(instructorLookupReply -> {
-                        if(instructorLookupReply.failed()) {
-                          future.fail(instructorLookupReply.cause());
-                        } else {
-                          List<Instructor> instructorList = instructorLookupReply.result();
-                          List<InstructorObject> instructorObjectList = new ArrayList<>();
-                          for(Instructor instructor : instructorList) {
-                            InstructorObject instructorObject = new InstructorObject();
-                            instructorObject.setBarcode(instructor.getBarcode());
-                            instructorObject.setCourseListingId(instructor.getCourseListingId());
-                            instructorObject.setId(instructor.getId());
-                            instructorObject.setName(instructor.getName());
-                            instructorObject.setPatronGroup(instructor.getPatronGroup());
-                            instructorObject.setPatronGroupObject(instructor.getPatronGroupObject());
-                            instructorObjectList.add(instructorObject);                        
-                          }
-                          courselisting.setInstructorObjects(instructorObjectList);
-                          future.complete(courselisting);
-                        }
-                      });
                     }
+                    
+                    lookupInstructorsForCourseListing(courseListingId, okapiHeaders.get("X-OKAPI-TENANT"),
+                        context).setHandler(instructorLookupReply -> {
+                      if(instructorLookupReply.failed()) {
+                        future.fail(instructorLookupReply.cause());
+                      } else {
+                        List<Instructor> instructorList = instructorLookupReply.result();
+                        List<InstructorObject> instructorObjectList = new ArrayList<>();
+                        for(Instructor instructor : instructorList) {
+                          InstructorObject instructorObject = new InstructorObject();
+                          instructorObject.setBarcode(instructor.getBarcode());
+                          instructorObject.setCourseListingId(instructor.getCourseListingId());
+                          instructorObject.setId(instructor.getId());
+                          instructorObject.setName(instructor.getName());
+                          instructorObject.setPatronGroup(instructor.getPatronGroup());
+                          instructorObject.setPatronGroupObject(instructor.getPatronGroupObject());
+                          instructorObjectList.add(instructorObject);                        
+                        }
+                        courselisting.setInstructorObjects(instructorObjectList);
+                        future.complete(courselisting);
+                      }
+                    });
+                    
                   });
                 }
               });

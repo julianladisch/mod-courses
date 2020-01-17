@@ -679,37 +679,50 @@ public class CourseAPITest {
             }
           }
         });
-    
-    /*.setHandler(res -> {
-      if(res.failed()) {
-        context.fail(res.cause());
-      } else {
-        try {
-          String id = courseListingJson.getString("id");
-          TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + id, GET,
-              null, null, 200, "Get newly created courselisting")
-              .setHandler(getRes -> {
-            if(getRes.failed()) {
-              context.fail(getRes.cause());
+   
+  }
+  
+  @Test
+  public void loadAndRetrieveCourseListingWithNonExistantLocation(TestContext context) {
+    Async async = context.async();
+    String courseListingId = UUID.randomUUID().toString();
+    String fakeLocationId = UUID.randomUUID().toString();
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", courseListingId)
+        .put("termId", TERM_1_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("externalId", UUID.randomUUID().toString())
+        .put("locationId", fakeLocationId);
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, standardHeaders,
+        courseListingJson.encode(), 201, "Post CourseListing with fake location id")
+        .compose(w -> {
+          JsonObject courseJson = new JsonObject()
+            .put("id", UUID.randomUUID().toString())
+            .put("departmentId", DEPARTMENT_1_ID)
+            .put("courseListingId", courseListingId)
+            .put("name", "Bogus Test Course");
+          return TestUtil.doRequest(vertx, baseUrl + "/courses", POST, standardHeaders,
+              courseJson.encode(), 201, "Post Course with new Course Listing");
+        })
+        .compose(w -> {
+          String courseId = w.getJson().getString("id");
+          return TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId, GET,
+              standardHeaders, null, 200, "Get newly created course record");
+        }).setHandler(w -> {
+          if(w.failed()) {
+            context.fail(w.cause());
+          } else {
+            JsonObject resultJson = w.result().getJson();
+            JsonObject clJson = resultJson.getJsonObject("courseListingObject");
+            if(clJson == null) {
+              context.fail("No courseListingObject found in result json");
+            } else if(clJson.containsKey("locationObject")) {
+              context.fail("Result should not contain a location object");
             } else {
-              JsonObject resultJson = getRes.result().getJson();
-              if(!resultJson.containsKey("locationObject")) {
-                context.fail("No location object in result");
-              } else if(resultJson.getJsonObject("locationObject") == null) {
-                context.fail("Null location object result");
-              } else if(!resultJson.getJsonObject("locationObject")
-                  .getString("id").equals(OkapiMock.location1Id)) {
-                context.fail("Returned id for locationObject does not match");
-              } else {
-                async.complete();
-              }
-            } 
-          });
-        } catch(Exception e) {
-          context.fail(e);
-        }
-      }
-    }); */
+              async.complete();
+            }
+          }
+        });
   }
   
   /* UTILITY CLASSES */
