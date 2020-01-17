@@ -32,12 +32,16 @@ import org.folio.rest.jaxrs.model.CourseTypeObject;
 import org.folio.rest.jaxrs.model.Coursetype;
 import org.folio.rest.jaxrs.model.Department;
 import org.folio.rest.jaxrs.model.DepartmentObject;
+import org.folio.rest.jaxrs.model.HoldShelfExpiryPeriod;
+import org.folio.rest.jaxrs.model.HoldShelfExpiryPeriod.IntervalId;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.InstructorObject;
 import org.folio.rest.jaxrs.model.LocationObject;
 import org.folio.rest.jaxrs.model.PatronGroupObject;
 import org.folio.rest.jaxrs.model.Publication;
 import org.folio.rest.jaxrs.model.Reserve;
+import org.folio.rest.jaxrs.model.ServicepointObject;
+import org.folio.rest.jaxrs.model.StaffSlip;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
 import org.folio.rest.persist.Criteria.Criteria;
@@ -287,9 +291,11 @@ public class CRUtil {
         String termId = courselisting.getTermId();
         String courseTypeId = courselisting.getCourseTypeId();
         String locationId = courselisting.getLocationId();
+        String servicepointId = courselisting.getServicepointId();
         Future<Term> termFuture;
         Future<Coursetype> coursetypeFuture;
         Future<JsonObject> locationFuture;
+        Future<JsonObject> servicePointFuture;
         Future<List<Instructor>> instructorFuture;
         if(expandTerm && termId != null) {
           termFuture = lookupTerm(termId, okapiHeaders, context);
@@ -306,6 +312,11 @@ public class CRUtil {
         } else {
           locationFuture = Future.failedFuture("No lookup");
         }
+        if(expandTerm && servicepointId != null) {
+          servicePointFuture = lookupServicepoint(servicepointId, okapiHeaders, context);
+        } else {
+          servicePointFuture = Future.failedFuture("No lookup");
+        }
         if(expandTerm) {
           instructorFuture = lookupInstructorsForCourseListing(courseListingId,
               okapiHeaders.get("X-OKAPI-TENANT"), context);
@@ -316,6 +327,7 @@ public class CRUtil {
         futureList.add(termFuture);
         futureList.add(coursetypeFuture);
         futureList.add(locationFuture);
+        futureList.add(servicePointFuture);
         futureList.add(instructorFuture);
         CompositeFuture compositeFuture = CompositeFuture.join(futureList);
         compositeFuture.setHandler(compRes -> {
@@ -328,6 +340,9 @@ public class CRUtil {
           }
           if(locationFuture.succeeded()) {
             courselisting.setLocationObject(locationObjectFromJson(locationFuture.result()));
+          }
+          if(servicePointFuture.succeeded()) {
+            courselisting.setServicepointObject(servicepointObjectFromJson(servicePointFuture.result()));
           }
           if(instructorFuture.succeeded()) {
             courselisting.setInstructorObjects(instructorObjectListFromInstructorList(
@@ -411,10 +426,10 @@ public class CRUtil {
     return future;
   }
   
-  public static Future<JsonObject> lookupServicePoint(String servicePointId,
+  public static Future<JsonObject> lookupServicepoint(String servicepointId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
-    String servicePointPath = servicePointsEndpoint + "/" + servicePointId;
+    String servicePointPath = servicePointsEndpoint + "/" + servicepointId;
     logger.debug("Making request for servicepoint at " + servicePointPath);
     makeOkapiRequest(context.owner(), okapiHeaders, servicePointPath,
         HttpMethod.GET, null, null, 200).setHandler(spRes -> {
@@ -560,6 +575,7 @@ public class CRUtil {
           expandedCourseListing.setTermObject(courseListing.getTermObject());
           expandedCourseListing.setInstructorObjects(courseListing.getInstructorObjects());
           expandedCourseListing.setLocationObject(courseListing.getLocationObject());
+          expandedCourseListing.setServicepointObject(courseListing.getServicepointObject());
         }
         newCourse.setCourseListingObject(expandedCourseListing);
 
@@ -646,6 +662,69 @@ public class CRUtil {
       return null;
     }
     return locationObject;
+  }
+  
+  private static ServicepointObject servicepointObjectFromJson(JsonObject json) {
+    if(json == null) {
+      return null;
+    }
+    ServicepointObject servicepointObject = new ServicepointObject();
+    List<PopulateMapping> mapList = new ArrayList<>();
+    mapList.add(new PopulateMapping("id"));
+    mapList.add(new PopulateMapping("name"));
+    mapList.add(new PopulateMapping("code"));
+    mapList.add(new PopulateMapping("discoveryDisplayName"));
+    mapList.add(new PopulateMapping("description"));
+    mapList.add(new PopulateMapping("shelvingLagTime", ImportType.INTEGER));
+    mapList.add(new PopulateMapping("pickupLocation", ImportType.BOOLEAN));
+    try {
+      populatePojoFromJson(servicepointObject, json, mapList);
+    } catch(Exception e) {
+      logger.error("Unable to create service point object from json: " 
+        +e.getLocalizedMessage());
+      return null;
+    }
+    try {
+      List<StaffSlip> staffSlipList = new ArrayList<>();
+      JsonArray staffSlips = json.getJsonArray("staffSlips");
+      for(int i = 0; i < staffSlips.size();i++) {
+        JsonObject slip = staffSlips.getJsonObject(i);
+        StaffSlip staffSlip = new StaffSlip();
+        staffSlip.setId(slip.getString("id"));
+        staffSlip.setPrintByDefault(slip.getBoolean("printByDefault"));
+        staffSlipList.add(staffSlip);
+      }
+      if(!staffSlipList.isEmpty()) {
+        servicepointObject.setStaffSlips(staffSlipList);
+      }
+    } catch(Exception e) {
+      logger.error("Unable to add staffslips from json: " + e.getLocalizedMessage());
+    }
+    
+    try {
+      JsonObject hsepJson = json.getJsonObject("holdShelfExpiryPeriod");
+      if(hsepJson != null) {
+        HoldShelfExpiryPeriod hsep = new HoldShelfExpiryPeriod();
+        hsep.setDuration(hsepJson.getInteger("duration"));
+        String intervalIdString = hsepJson.getString("intervalId");
+        if(intervalIdString.equals("Minutes")) {
+          hsep.setIntervalId(IntervalId.MINUTES);
+        } else if(intervalIdString.equals("Hours")) {
+          hsep.setIntervalId(IntervalId.HOURS);
+        } else if(intervalIdString.equals("Days")) {
+          hsep.setIntervalId(IntervalId.DAYS);
+        } else if(intervalIdString.equals("Weeks")) {
+          hsep.setIntervalId(IntervalId.WEEKS);
+        } else if(intervalIdString.equals("Months")) {
+          hsep.setIntervalId(IntervalId.MONTHS);
+        }
+        servicepointObject.setHoldShelfExpiryPeriod(hsep);
+      }
+    } catch(Exception e) {
+      logger.error("Unable to add hold shelf expiry from json: " 
+          + e.getLocalizedMessage());
+    }
+    return servicepointObject;    
   }
   
   private static List<InstructorObject> instructorObjectListFromInstructorList(

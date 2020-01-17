@@ -53,6 +53,7 @@ public class OkapiMock extends AbstractVerticle {
   public static String library1Id = UUID.randomUUID().toString();
   public static String institution1Id = UUID.randomUUID().toString();
   public static String campus1Id = UUID.randomUUID().toString();
+  public static String staffSlip1Id = UUID.randomUUID().toString();
 
   private static Map<String, JsonObject> userMap = new HashMap<>();
   private static Map<String, JsonObject> groupMap = new HashMap<>();
@@ -386,7 +387,7 @@ public class OkapiMock extends AbstractVerticle {
         )
         .put("staffSlips", new JsonArray()
           .add(new JsonObject()
-            .put("id", UUID.randomUUID().toString())
+            .put("id", staffSlip1Id)
             .put("printByDefault", true)
           )
           .add(new JsonObject()

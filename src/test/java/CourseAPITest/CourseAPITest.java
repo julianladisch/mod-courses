@@ -725,6 +725,101 @@ public class CourseAPITest {
         });
   }
   
+  @Test
+  public void loadAndRetrieveCourseListingWithServicePoint(TestContext context) {
+    Async async = context.async();
+    String courseListingId = UUID.randomUUID().toString();
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", courseListingId)
+        .put("termId", TERM_1_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("externalId", UUID.randomUUID().toString())
+        .put("servicepointId", OkapiMock.servicePoint1Id);
+    Future<WrappedResponse> clFuture = TestUtil.doRequest(vertx, baseUrl + "/courselistings",
+        POST, standardHeaders, courseListingJson.encode(), 201, 
+        "Post CourseListing With Service Point")
+          .compose(res -> {
+              JsonObject courseJson = new JsonObject()
+                  .put("id", UUID.randomUUID().toString())
+                  .put("departmentId", DEPARTMENT_1_ID)
+                  .put("courseListingId", courseListingId)
+                  .put("name", "Bogus Test Course");
+              return TestUtil.doRequest(vertx, baseUrl + "/courses", POST, standardHeaders,
+                  courseJson.encode(), 201, "Post Course with new Course Listing");
+        }).compose(res -> {
+          String courseId = res.getJson().getString("id");
+          return TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId,
+              GET, standardHeaders, null, 200, "Get newly created Course");
+        }).setHandler(res -> {
+          if(res.failed()) {
+          context.fail(res.cause());
+          } else {
+            JsonObject resultJson = res.result().getJson();
+            JsonObject clJson = resultJson.getJsonObject("courseListingObject");
+            if(clJson == null) {
+              context.fail("No courseListingObject found in result");
+            } else if(!clJson.containsKey("servicepointObject")) {
+              context.fail("No service point object in result: " + resultJson.encode());
+            } else if(clJson.getJsonObject("servicepointObject") == null) {
+              context.fail("Null service point object result");
+            } else if(!clJson.getJsonObject("servicepointObject")
+                .getString("id").equals(OkapiMock.servicePoint1Id)) {
+              context.fail("Returned id for service point object does not match");
+            } else if(!clJson.getJsonObject("servicepointObject")
+                .getJsonArray("staffSlips").getJsonObject(0).getString("id")
+                .equals(OkapiMock.staffSlip1Id)) {
+              context.fail("Expected Staff Slip ID does not match");
+            } else {
+              async.complete();
+            }
+          }
+        });
+   
+  }
+  
+  @Test
+  public void loadAndRetrieveCourseListingWithNonExistantServicepoint(TestContext context) {
+    Async async = context.async();
+    String courseListingId = UUID.randomUUID().toString();
+    String fakeServicepointId = UUID.randomUUID().toString();
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", courseListingId)
+        .put("termId", TERM_1_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("externalId", UUID.randomUUID().toString())
+        .put("servicepointId", fakeServicepointId);
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, standardHeaders,
+        courseListingJson.encode(), 201, "Post CourseListing with fake location id")
+        .compose(w -> {
+          JsonObject courseJson = new JsonObject()
+            .put("id", UUID.randomUUID().toString())
+            .put("departmentId", DEPARTMENT_1_ID)
+            .put("courseListingId", courseListingId)
+            .put("name", "Bogus Test Course");
+          return TestUtil.doRequest(vertx, baseUrl + "/courses", POST, standardHeaders,
+              courseJson.encode(), 201, "Post Course with new Course Listing");
+        })
+        .compose(w -> {
+          String courseId = w.getJson().getString("id");
+          return TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId, GET,
+              standardHeaders, null, 200, "Get newly created course record");
+        }).setHandler(w -> {
+          if(w.failed()) {
+            context.fail(w.cause());
+          } else {
+            JsonObject resultJson = w.result().getJson();
+            JsonObject clJson = resultJson.getJsonObject("courseListingObject");
+            if(clJson == null) {
+              context.fail("No courseListingObject found in result json");
+            } else if(clJson.containsKey("servicepointObject")) {
+              context.fail("Result should not contain a service point object");
+            } else {
+              async.complete();
+            }
+          }
+        });
+  }
+  
   /* UTILITY CLASSES */
 
    private Future<Void> loadCourseListing1Instructor1() {
