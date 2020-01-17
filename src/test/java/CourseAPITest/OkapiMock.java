@@ -53,6 +53,7 @@ public class OkapiMock extends AbstractVerticle {
   public static String library1Id = UUID.randomUUID().toString();
   public static String institution1Id = UUID.randomUUID().toString();
   public static String campus1Id = UUID.randomUUID().toString();
+  public static String staffSlip1Id = UUID.randomUUID().toString();
 
   private static Map<String, JsonObject> userMap = new HashMap<>();
   private static Map<String, JsonObject> groupMap = new HashMap<>();
@@ -60,6 +61,7 @@ public class OkapiMock extends AbstractVerticle {
   private static Map<String, JsonObject> holdingsMap = new HashMap<>();
   private static Map<String, JsonObject> instanceMap = new HashMap<>();
   private static Map<String, JsonObject> locationMap = new HashMap<>();
+  private static Map<String, JsonObject> servicePointMap = new HashMap<>();
 
   public void start(Future<Void> future) {
     final String defaultPort = context.config().getInteger("port", 9130).toString();
@@ -78,6 +80,7 @@ public class OkapiMock extends AbstractVerticle {
     router.route("/holdings-storage/holdings/:id").handler(this::handleHoldings);
     router.route("/instance-storage/instances/:id").handler(this::handleInstances);
     router.route("/locations/:id").handler(this::handleLocations);
+    router.route("/service-points/:id").handler(this::handleServicePoints);
 
     logger.info("Running OkapiMock on port " + port);
     server.requestHandler(router::accept).listen(port, result -> {
@@ -239,6 +242,32 @@ public class OkapiMock extends AbstractVerticle {
         return;
       }
    }
+   
+   private void handleServicePoints(RoutingContext context) {
+     logger.info("Got service poins request");
+     String id = context.request().getParam("id");
+     if(context.request().method() == HttpMethod.GET) {
+        if(id == null) {
+          String message = String.format("List retrieval currently unsupported");
+          context.response().setStatusCode(400)
+          .end(message);
+          return;
+        } else {
+          if(servicePointMap.containsKey(id)) {
+            context.response().setStatusCode(200).end(servicePointMap.get(id).encode());
+            return;
+          } else {
+            context.response().setStatusCode(404).end("id '" + id + "' not found");
+          }
+        }
+      } else {
+        String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
+        context.response().setStatusCode(400)
+          .end(message);
+        return;
+      }
+   }
 
    private void initData() {
     userMap.put(user1Id, new JsonObject()
@@ -343,6 +372,81 @@ public class OkapiMock extends AbstractVerticle {
           .add(servicePoint3Id)
         )        
     );
-
+    
+    //TODO: Populate Service Points
+    servicePointMap
+      .put(servicePoint1Id, new JsonObject()
+        .put("id", servicePoint1Id)
+        .put("name", "Circ Desk 1")
+        .put("code", "cd1")
+        .put("discoveryDisplayName", "Circulation Desk -- Main")
+        .put("pickupLocation", true)
+        .put("holdShelfExpiryPeriod", new JsonObject()
+          .put("duration", 5)
+          .put("intervalId", "Days")
+        )
+        .put("staffSlips", new JsonArray()
+          .add(new JsonObject()
+            .put("id", staffSlip1Id)
+            .put("printByDefault", true)
+          )
+          .add(new JsonObject()
+            .put("id", UUID.randomUUID().toString())
+            .put("printByDefault", true)
+          )
+          .add(new JsonObject()
+            .put("id", UUID.randomUUID().toString())
+            .put("printByDefault", true)
+          )
+        )
+    );
+    
+    servicePointMap.put(servicePoint2Id, new JsonObject()
+      .put("id", servicePoint2Id)
+      .put("name", "Circ Desk 2")
+      .put("code", "cd2")
+      .put("discoveryDisplayName", "Circulation Desk -- Secondary")
+      .put("pickupLocation", true)
+      .put("holdShelfExpiryPeriod", new JsonObject()
+        .put("duration", 5)
+        .put("intervalId", "Days")
+      )
+      .put("staffSlips", new JsonArray()
+        .add(new JsonObject()
+          .put("id", UUID.randomUUID().toString())
+          .put("printByDefault", true)
+        )
+        .add(new JsonObject()
+          .put("id", UUID.randomUUID().toString())
+          .put("printByDefault", true)
+        )
+        .add(new JsonObject()
+          .put("id", UUID.randomUUID().toString())
+          .put("printByDefault", true)
+        )
+      )
+    );
+    servicePointMap.put(servicePoint3Id, new JsonObject()
+      .put("id", servicePoint3Id)
+      .put("name", "Library Service Desk")
+      .put("code", "lsd")
+      .put("discoveryDisplayName", "Yet Another Library Service Desk")
+      .put("pickupLocation", true)
+      .put("holdShelfExpiryPeriod", new JsonObject()
+        .put("duration", 7)
+        .put("intervalId", "Days")
+      )
+      .put("staffSlips", new JsonArray()
+        .add(new JsonObject()
+          .put("id", UUID.randomUUID().toString())
+          .put("printByDefault", true)
+        )
+        .add(new JsonObject()
+          .put("id", UUID.randomUUID().toString())
+          .put("printByDefault", true)
+        )
+      )
+    );
+        
   }
 }

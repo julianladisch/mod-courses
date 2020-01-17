@@ -32,12 +32,16 @@ import org.folio.rest.jaxrs.model.CourseTypeObject;
 import org.folio.rest.jaxrs.model.Coursetype;
 import org.folio.rest.jaxrs.model.Department;
 import org.folio.rest.jaxrs.model.DepartmentObject;
+import org.folio.rest.jaxrs.model.HoldShelfExpiryPeriod;
+import org.folio.rest.jaxrs.model.HoldShelfExpiryPeriod.IntervalId;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.InstructorObject;
 import org.folio.rest.jaxrs.model.LocationObject;
 import org.folio.rest.jaxrs.model.PatronGroupObject;
 import org.folio.rest.jaxrs.model.Publication;
 import org.folio.rest.jaxrs.model.Reserve;
+import org.folio.rest.jaxrs.model.ServicepointObject;
+import org.folio.rest.jaxrs.model.StaffSlip;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
 import org.folio.rest.persist.Criteria.Criteria;
@@ -50,6 +54,9 @@ public class CRUtil {
 
   public static final Logger logger = LoggerFactory.getLogger(
           CRUtil.class);
+  
+  public static final String servicePointsEndpoint = "/service-points";
+  public static final String locationsEndpoint = "/locations";
 
 
   public static Future<Void> populateReserveInventoryCache(Reserve reserve,
@@ -276,7 +283,82 @@ public class CRUtil {
   public static Future<Courselisting> lookupExpandedCourseListing(String courseListingId,
       Map<String, String> okapiHeaders, Context context, Boolean expandTerm) {
     Future<Courselisting> future = Future.future();
-
+    getCourseListingById(courseListingId, okapiHeaders, context).setHandler(clRes -> {
+      if(clRes.failed()) {
+        future.fail(clRes.cause());
+      } else {
+        Courselisting courselisting = clRes.result();
+        String termId = courselisting.getTermId();
+        String courseTypeId = courselisting.getCourseTypeId();
+        String locationId = courselisting.getLocationId();
+        String servicepointId = courselisting.getServicepointId();
+        Future<Term> termFuture;
+        Future<Coursetype> coursetypeFuture;
+        Future<JsonObject> locationFuture;
+        Future<JsonObject> servicePointFuture;
+        Future<List<Instructor>> instructorFuture;
+        if(expandTerm && termId != null) {
+          termFuture = lookupTerm(termId, okapiHeaders, context);
+        } else {
+          termFuture = Future.failedFuture("No lookup");
+        }      
+        if(expandTerm && courseTypeId != null) {
+          coursetypeFuture = lookupCourseType(courseTypeId, okapiHeaders, context);
+        } else {
+          coursetypeFuture = Future.failedFuture("No lookup");
+        }
+        if(expandTerm && locationId != null) {
+          locationFuture = lookupLocation(locationId, okapiHeaders, context);
+        } else {
+          locationFuture = Future.failedFuture("No lookup");
+        }
+        if(expandTerm && servicepointId != null) {
+          servicePointFuture = lookupServicepoint(servicepointId, okapiHeaders, context);
+        } else {
+          servicePointFuture = Future.failedFuture("No lookup");
+        }
+        if(expandTerm) {
+          instructorFuture = lookupInstructorsForCourseListing(courseListingId,
+              okapiHeaders.get("X-OKAPI-TENANT"), context);
+        } else {
+          instructorFuture = Future.failedFuture("No lookup");
+        }
+        List<Future> futureList = new ArrayList<>();
+        futureList.add(termFuture);
+        futureList.add(coursetypeFuture);
+        futureList.add(locationFuture);
+        futureList.add(servicePointFuture);
+        futureList.add(instructorFuture);
+        CompositeFuture compositeFuture = CompositeFuture.join(futureList);
+        compositeFuture.setHandler(compRes -> {
+          if(termFuture.succeeded()) {
+            courselisting.setTermObject(termObjectFromTerm(termFuture.result()));
+          }
+          if(coursetypeFuture.succeeded()) {
+            courselisting.setCourseTypeObject(courseTypeObjectFromCourseType(
+                coursetypeFuture.result()));
+          }
+          if(locationFuture.succeeded()) {
+            courselisting.setLocationObject(locationObjectFromJson(locationFuture.result()));
+          }
+          if(servicePointFuture.succeeded()) {
+            courselisting.setServicepointObject(servicepointObjectFromJson(servicePointFuture.result()));
+          }
+          if(instructorFuture.succeeded()) {
+            courselisting.setInstructorObjects(instructorObjectListFromInstructorList(
+                instructorFuture.result()));
+          }
+          future.complete(courselisting);
+        });       
+      }
+    });    
+    return future;
+  }
+  
+  /* Basic lookup for courselisting, wrapped in a future */
+  public static Future<Courselisting> getCourseListingById(String courseListingId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<Courselisting> future = Future.future();
     PostgresClient postgresClient = postgresClient(context, okapiHeaders);
     postgresClient.getById(COURSE_LISTINGS_TABLE, courseListingId, Courselisting.class,
         courseListingReply -> {
@@ -285,114 +367,7 @@ public class CRUtil {
       } else if(courseListingReply.result() == null) {
         future.complete(null);
       } else {
-        Courselisting courselisting = courseListingReply.result();
-        if(expandTerm == Boolean.TRUE) {
-          String termId = courselisting.getTermId();
-          Future<Term> termFuture;
-          if(termId == null) {
-            termFuture = Future.succeededFuture();
-          } else {
-            termFuture = lookupTerm(termId, okapiHeaders, context);
-          }
-          termFuture.setHandler(termReply -> {
-            if(termReply.failed()) {
-              future.fail(termReply.cause());
-            } else {
-              Term term = termReply.result();
-              if(term != null) {
-                TermObject termObject = new TermObject();
-                termObject.setEndDate(term.getEndDate());
-                termObject.setStartDate(term.getStartDate());
-                termObject.setId(term.getId());
-                termObject.setName(term.getName());
-                courselisting.setTermObject(termObject);
-              }
-              String courseTypeId = courselisting.getCourseTypeId();
-              Future<Coursetype> courseTypeFuture;
-              if(courseTypeId == null) {
-                courseTypeFuture = Future.succeededFuture();
-              } else {
-                courseTypeFuture = lookupCourseType(courselisting.getCourseTypeId(),
-                    okapiHeaders, context);
-              }
-              courseTypeFuture.setHandler(courseTypeReply -> {
-                if(courseTypeReply.failed()) {
-                  future.fail(courseTypeReply.cause());
-                } else {
-                  if(courseTypeReply.result() != null) {
-                    CourseTypeObject courseTypeObject = new CourseTypeObject();
-                    Coursetype coursetype = courseTypeReply.result();
-                    courseTypeObject.setId(coursetype.getId());
-                    courseTypeObject.setDescription(coursetype.getDescription());
-                    courseTypeObject.setName(coursetype.getName());
-                    courselisting.setCourseTypeObject(courseTypeObject);
-                  }
-                  String locationId = courselisting.getLocationId();
-                  Future<JsonObject> locationObjectFuture = Future.succeededFuture(null);
-                  if(locationId != null) {
-                    locationObjectFuture = lookupLocation(locationId, okapiHeaders,
-                        context);
-                  }
-                  locationObjectFuture.setHandler(locationRes -> {
-                    if(locationRes.failed()) {
-                      logger.info(String.format("Unable to lookup location %s: %s",
-                          locationId, locationRes.cause().getLocalizedMessage()));
-                    } else { 
-                      LocationObject locationObject = null;
-                      if(locationRes.result() != null) {
-                        locationObject = new LocationObject();
-                        List<PopulateMapping> mapList = new ArrayList<>();
-                        mapList.add(new PopulateMapping("id"));
-                        mapList.add(new PopulateMapping("name"));
-                        mapList.add(new PopulateMapping("code"));
-                        mapList.add(new PopulateMapping("description"));
-                        mapList.add(new PopulateMapping("discoveryDisplayName"));
-                        mapList.add(new PopulateMapping("isActive", ImportType.BOOLEAN));
-                        mapList.add(new PopulateMapping("institutionId"));
-                        mapList.add(new PopulateMapping("campusId"));
-                        mapList.add(new PopulateMapping("libraryId"));
-                        mapList.add(new PopulateMapping("primaryServicePoint"));
-                        mapList.add(new PopulateMapping("servicePointIds", ImportType.STRINGLIST));
-                        try {
-                          populatePojoFromJson(locationObject, locationRes.result(), mapList);
-                          courselisting.setLocationObject(locationObject);
-                        } catch(Exception e) {
-                          future.fail(e);
-                          return;
-                        }
-                      }
-                    }
-                    
-                    lookupInstructorsForCourseListing(courseListingId, okapiHeaders.get("X-OKAPI-TENANT"),
-                        context).setHandler(instructorLookupReply -> {
-                      if(instructorLookupReply.failed()) {
-                        future.fail(instructorLookupReply.cause());
-                      } else {
-                        List<Instructor> instructorList = instructorLookupReply.result();
-                        List<InstructorObject> instructorObjectList = new ArrayList<>();
-                        for(Instructor instructor : instructorList) {
-                          InstructorObject instructorObject = new InstructorObject();
-                          instructorObject.setBarcode(instructor.getBarcode());
-                          instructorObject.setCourseListingId(instructor.getCourseListingId());
-                          instructorObject.setId(instructor.getId());
-                          instructorObject.setName(instructor.getName());
-                          instructorObject.setPatronGroup(instructor.getPatronGroup());
-                          instructorObject.setPatronGroupObject(instructor.getPatronGroupObject());
-                          instructorObjectList.add(instructorObject);                        
-                        }
-                        courselisting.setInstructorObjects(instructorObjectList);
-                        future.complete(courselisting);
-                      }
-                    });
-                    
-                  });
-                }
-              });
-            }
-          });
-        } else {
-          future.complete(courselisting);
-        }
+        future.complete(courseListingReply.result());
       }
     });
     return future;
@@ -435,7 +410,7 @@ public class CRUtil {
   public static Future<JsonObject> lookupLocation(String locationId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
-    String locationPath = "/locations/" + locationId;
+    String locationPath = locationsEndpoint + "/" + locationId;
     logger.debug("Making request for location at " + locationPath);
     makeOkapiRequest(context.owner(), okapiHeaders, locationPath, HttpMethod.GET,
         null, null, 200).setHandler(locationRes-> {
@@ -446,6 +421,23 @@ public class CRUtil {
         logger.debug("Location request succeeded");
         JsonObject locationJson = locationRes.result();
         future.complete(locationJson);
+      }
+    });
+    return future;
+  }
+  
+  public static Future<JsonObject> lookupServicepoint(String servicepointId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<JsonObject> future = Future.future();
+    String servicePointPath = servicePointsEndpoint + "/" + servicepointId;
+    logger.debug("Making request for servicepoint at " + servicePointPath);
+    makeOkapiRequest(context.owner(), okapiHeaders, servicePointPath,
+        HttpMethod.GET, null, null, 200).setHandler(spRes -> {
+      if(spRes.failed()) {
+        future.fail(spRes.cause());
+      } else {
+        JsonObject spJson = spRes.result();
+        future.complete(spJson);
       }
     });
     return future;
@@ -583,6 +575,7 @@ public class CRUtil {
           expandedCourseListing.setTermObject(courseListing.getTermObject());
           expandedCourseListing.setInstructorObjects(courseListing.getInstructorObjects());
           expandedCourseListing.setLocationObject(courseListing.getLocationObject());
+          expandedCourseListing.setServicepointObject(courseListing.getServicepointObject());
         }
         newCourse.setCourseListingObject(expandedCourseListing);
 
@@ -627,4 +620,127 @@ public class CRUtil {
     newCourse.setName(originalCourse.getName());
     return newCourse;
   }
+  
+  private static TermObject termObjectFromTerm(Term term) {
+    TermObject termObject = new TermObject();
+    termObject.setEndDate(term.getEndDate());
+    termObject.setStartDate(term.getStartDate());
+    termObject.setId(term.getId());
+    termObject.setName(term.getName());
+    return termObject;
+  }
+  
+  private static CourseTypeObject courseTypeObjectFromCourseType(Coursetype coursetype) {
+    CourseTypeObject courseTypeObject = new CourseTypeObject();
+    courseTypeObject.setId(coursetype.getId());
+    courseTypeObject.setDescription(coursetype.getDescription());
+    courseTypeObject.setName(coursetype.getName());
+    return courseTypeObject;
+  }
+  
+  private static LocationObject locationObjectFromJson(JsonObject json) {
+    if(json == null) {
+      return null;
+    }
+    LocationObject locationObject = new LocationObject();
+    List<PopulateMapping> mapList = new ArrayList<>();
+    mapList.add(new PopulateMapping("id"));
+    mapList.add(new PopulateMapping("name"));
+    mapList.add(new PopulateMapping("code"));
+    mapList.add(new PopulateMapping("description"));
+    mapList.add(new PopulateMapping("discoveryDisplayName"));
+    mapList.add(new PopulateMapping("isActive", ImportType.BOOLEAN));
+    mapList.add(new PopulateMapping("institutionId"));
+    mapList.add(new PopulateMapping("campusId"));
+    mapList.add(new PopulateMapping("libraryId"));
+    mapList.add(new PopulateMapping("primaryServicePoint"));
+    mapList.add(new PopulateMapping("servicePointIds", ImportType.STRINGLIST));
+    try {
+      populatePojoFromJson(locationObject, json, mapList);
+    } catch(Exception e) {
+      logger.error("Unable to create location object from json: " + e.getLocalizedMessage());
+      return null;
+    }
+    return locationObject;
+  }
+  
+  private static ServicepointObject servicepointObjectFromJson(JsonObject json) {
+    if(json == null) {
+      return null;
+    }
+    ServicepointObject servicepointObject = new ServicepointObject();
+    List<PopulateMapping> mapList = new ArrayList<>();
+    mapList.add(new PopulateMapping("id"));
+    mapList.add(new PopulateMapping("name"));
+    mapList.add(new PopulateMapping("code"));
+    mapList.add(new PopulateMapping("discoveryDisplayName"));
+    mapList.add(new PopulateMapping("description"));
+    mapList.add(new PopulateMapping("shelvingLagTime", ImportType.INTEGER));
+    mapList.add(new PopulateMapping("pickupLocation", ImportType.BOOLEAN));
+    try {
+      populatePojoFromJson(servicepointObject, json, mapList);
+    } catch(Exception e) {
+      logger.error("Unable to create service point object from json: " 
+        +e.getLocalizedMessage());
+      return null;
+    }
+    try {
+      List<StaffSlip> staffSlipList = new ArrayList<>();
+      JsonArray staffSlips = json.getJsonArray("staffSlips");
+      for(int i = 0; i < staffSlips.size();i++) {
+        JsonObject slip = staffSlips.getJsonObject(i);
+        StaffSlip staffSlip = new StaffSlip();
+        staffSlip.setId(slip.getString("id"));
+        staffSlip.setPrintByDefault(slip.getBoolean("printByDefault"));
+        staffSlipList.add(staffSlip);
+      }
+      if(!staffSlipList.isEmpty()) {
+        servicepointObject.setStaffSlips(staffSlipList);
+      }
+    } catch(Exception e) {
+      logger.error("Unable to add staffslips from json: " + e.getLocalizedMessage());
+    }
+    
+    try {
+      JsonObject hsepJson = json.getJsonObject("holdShelfExpiryPeriod");
+      if(hsepJson != null) {
+        HoldShelfExpiryPeriod hsep = new HoldShelfExpiryPeriod();
+        hsep.setDuration(hsepJson.getInteger("duration"));
+        String intervalIdString = hsepJson.getString("intervalId");
+        if(intervalIdString.equals("Minutes")) {
+          hsep.setIntervalId(IntervalId.MINUTES);
+        } else if(intervalIdString.equals("Hours")) {
+          hsep.setIntervalId(IntervalId.HOURS);
+        } else if(intervalIdString.equals("Days")) {
+          hsep.setIntervalId(IntervalId.DAYS);
+        } else if(intervalIdString.equals("Weeks")) {
+          hsep.setIntervalId(IntervalId.WEEKS);
+        } else if(intervalIdString.equals("Months")) {
+          hsep.setIntervalId(IntervalId.MONTHS);
+        }
+        servicepointObject.setHoldShelfExpiryPeriod(hsep);
+      }
+    } catch(Exception e) {
+      logger.error("Unable to add hold shelf expiry from json: " 
+          + e.getLocalizedMessage());
+    }
+    return servicepointObject;    
+  }
+  
+  private static List<InstructorObject> instructorObjectListFromInstructorList(
+      List<Instructor> instructorList) {
+    List<InstructorObject> instructorObjectList = new ArrayList<>();
+    for(Instructor instructor : instructorList) {
+      InstructorObject instructorObject = new InstructorObject();
+      instructorObject.setBarcode(instructor.getBarcode());
+      instructorObject.setCourseListingId(instructor.getCourseListingId());
+      instructorObject.setId(instructor.getId());
+      instructorObject.setName(instructor.getName());
+      instructorObject.setPatronGroup(instructor.getPatronGroup());
+      instructorObject.setPatronGroupObject(instructor.getPatronGroupObject());
+      instructorObjectList.add(instructorObject);  
+    }
+    return instructorObjectList;
+  }
+ 
 }
