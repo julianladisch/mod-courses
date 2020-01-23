@@ -80,7 +80,7 @@ public class CRUtil {
           copiedItem.setTitle(instanceJson.getString("title"));
           copiedItem.setEnumeration(itemJson.getString("enumeration"));
           try {
-            copiedItem.setCopy(itemJson.getJsonArray("copyNumbers").getString(0));
+            copiedItem.setCopy(itemJson.getString("copyNumber"));
           } catch(Exception e) {
             logger.info("Unable to copy copyNumbers field from item: " + e.getLocalizedMessage());
           }
