@@ -80,9 +80,13 @@ public class CRUtil {
           copiedItem.setTitle(instanceJson.getString("title"));
           copiedItem.setEnumeration(itemJson.getString("enumeration"));
           try {
-            copiedItem.setCopy(itemJson.getString("copyNumber"));
+            if(itemJson.containsKey("copyNumber")) {
+              copiedItem.setCopy(itemJson.getString("copyNumber"));
+            } else if(itemJson.containsKey("copyNumbers")) {
+              copiedItem.setCopy(itemJson.getJsonArray("copyNumbers").getString(0));
+            }
           } catch(Exception e) {
-            logger.info("Unable to copy copyNumbers field from item: " + e.getLocalizedMessage());
+            logger.info("Unable to copy copyNumber(s) field from item: " + e.getLocalizedMessage());
           }
           try {
             JsonObject eAJson = itemJson.getJsonArray("electronicAccess").getJsonObject(0);
