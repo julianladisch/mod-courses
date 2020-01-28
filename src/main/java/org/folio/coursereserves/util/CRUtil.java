@@ -22,6 +22,7 @@ import static org.folio.rest.impl.CourseAPI.COURSE_LISTINGS_TABLE;
 import static org.folio.rest.impl.CourseAPI.COURSE_TYPES_TABLE;
 import static org.folio.rest.impl.CourseAPI.DEPARTMENTS_TABLE;
 import static org.folio.rest.impl.CourseAPI.INSTRUCTORS_TABLE;
+import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.TERMS_TABLE;
 import org.folio.rest.jaxrs.model.Contributor;
 import org.folio.rest.jaxrs.model.CopiedItem;
@@ -42,6 +43,7 @@ import org.folio.rest.jaxrs.model.Publication;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.jaxrs.model.ServicepointObject;
 import org.folio.rest.jaxrs.model.StaffSlip;
+import org.folio.rest.jaxrs.model.TemporaryLocationObject;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
 import org.folio.rest.persist.Criteria.Criteria;
@@ -57,6 +59,25 @@ public class CRUtil {
   
   public static final String servicePointsEndpoint = "/service-points";
   public static final String locationsEndpoint = "/locations";
+
+  public static List<PopulateMapping> locationMapList = getLocationMapList();
+
+  public static List<PopulateMapping> getLocationMapList() {
+    List<PopulateMapping> mapList = new ArrayList();
+    mapList.add(new PopulateMapping("id"));
+    mapList.add(new PopulateMapping("name"));
+    mapList.add(new PopulateMapping("code"));
+    mapList.add(new PopulateMapping("description"));
+    mapList.add(new PopulateMapping("discoveryDisplayName"));
+    mapList.add(new PopulateMapping("isActive", ImportType.BOOLEAN));
+    mapList.add(new PopulateMapping("institutionId"));
+    mapList.add(new PopulateMapping("campusId"));
+    mapList.add(new PopulateMapping("libraryId"));
+    mapList.add(new PopulateMapping("primaryServicePoint"));
+    mapList.add(new PopulateMapping("servicePointIds", ImportType.STRINGLIST));
+
+    return mapList;
+  }
 
 
   public static Future<Void> populateReserveInventoryCache(Reserve reserve,
@@ -203,13 +224,6 @@ public class CRUtil {
                 future.fail(groupRes.cause());
               } else {
                 result.put("group", groupRes.result());
-                //TODO, delete comments
-                /*
-                PatronGroupObject patronGroupObject = new PatronGroupObject();
-                patronGroupObject.setId(groupRes.result().getString("id"));
-                patronGroupObject.setGroup(groupRes.result().getString("group"));
-                patronGroupObject.setDesc(groupRes.result().getString("desc"));
-                */
                 future.complete(result);
               }
             } catch(Exception e) {
@@ -281,6 +295,50 @@ public class CRUtil {
       logger.debug("Sending payload-free request");
       request.end();
     }
+    return future;
+  }
+
+  public static Future<Reserve> lookupExpandedReserve(String reserveId,
+      Map<String, String> okapiHeaders, Context context, Boolean expand) {
+    Future<Reserve> future = Future.future();
+    getReserveById(reserveId, okapiHeaders, context).setHandler(reserveRes -> {
+      if(reserveRes.failed()) {
+        future.fail(reserveRes.cause());
+      } else if(expand == false || reserveRes.result().getCopiedItem() == null) {
+        future.complete(reserveRes.result());
+      } else {
+        Reserve reserve = reserveRes.result();
+        List<Future> futureList = new ArrayList<>();
+        Future<JsonObject> tempLocationFuture = lookupLocation(
+            reserve.getCopiedItem().getTemporaryLocationId(), okapiHeaders, context);
+        Future<JsonObject> permLocationFuture = lookupLocation(
+            reserve.getCopiedItem().getPermanentLocationId(), okapiHeaders, context);
+        futureList.add(tempLocationFuture);
+        futureList.add(permLocationFuture);
+        CompositeFuture compositeFuture = CompositeFuture.join(futureList);
+        compositeFuture.setHandler(compRes -> {
+          try {
+            if(tempLocationFuture.succeeded()) {
+              reserve.getCopiedItem().setTemporaryLocationObject(
+                  temporaryLocationObjectFromJson(tempLocationFuture.result()));
+            } else {
+              logger.info("TemporaryLocationObject lookup failed "
+                  + tempLocationFuture.cause().getLocalizedMessage());
+            }
+            if(permLocationFuture.succeeded()) {
+              reserve.getCopiedItem().setPermanentLocationObject(
+                  temporaryLocationObjectFromJson(permLocationFuture.result()));
+            } else {
+              logger.info("PermanentLocationObject lookup failed "
+                  + permLocationFuture.cause().getLocalizedMessage());
+            }
+            future.complete(reserve);
+          } catch(Exception e) {
+            future.fail(e);
+          }
+        });
+      }
+    });
     return future;
   }
 
@@ -372,6 +430,21 @@ public class CRUtil {
         future.complete(null);
       } else {
         future.complete(courseListingReply.result());
+      }
+    });
+    return future;
+  }
+
+  public static Future<Reserve> getReserveById(String reserveId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<Reserve> future = Future.future();
+    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    postgresClient.getById(RESERVES_TABLE, reserveId, Reserve.class,
+        reserveReply -> {
+      if(reserveReply.failed()) {
+        future.fail(reserveReply.cause());
+      } else {
+        future.complete(reserveReply.result());
       }
     });
     return future;
@@ -647,22 +720,26 @@ public class CRUtil {
       return null;
     }
     LocationObject locationObject = new LocationObject();
-    List<PopulateMapping> mapList = new ArrayList<>();
-    mapList.add(new PopulateMapping("id"));
-    mapList.add(new PopulateMapping("name"));
-    mapList.add(new PopulateMapping("code"));
-    mapList.add(new PopulateMapping("description"));
-    mapList.add(new PopulateMapping("discoveryDisplayName"));
-    mapList.add(new PopulateMapping("isActive", ImportType.BOOLEAN));
-    mapList.add(new PopulateMapping("institutionId"));
-    mapList.add(new PopulateMapping("campusId"));
-    mapList.add(new PopulateMapping("libraryId"));
-    mapList.add(new PopulateMapping("primaryServicePoint"));
-    mapList.add(new PopulateMapping("servicePointIds", ImportType.STRINGLIST));
     try {
-      populatePojoFromJson(locationObject, json, mapList);
+      populatePojoFromJson(locationObject, json, locationMapList);
     } catch(Exception e) {
       logger.error("Unable to create location object from json: " + e.getLocalizedMessage());
+      return null;
+    }
+    return locationObject;
+  }
+
+  /*
+     Highly annoying to have to pretty much clone this function because of the odd
+     POJO name generation that RMB uses. Is there a better way?
+  */
+  private static TemporaryLocationObject temporaryLocationObjectFromJson(JsonObject json) {
+    TemporaryLocationObject locationObject = new TemporaryLocationObject();
+    try {
+      populatePojoFromJson(locationObject, json, locationMapList);
+    } catch(Exception e) {
+      logger.error("Unable to create temporary location object from json: "
+          + e.getLocalizedMessage());
       return null;
     }
     return locationObject;

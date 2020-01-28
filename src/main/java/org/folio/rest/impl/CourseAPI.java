@@ -521,10 +521,25 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String reserveId, String lang,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    /*
     PgUtil.getById(RESERVES_TABLE, Reserve.class, reserveId, okapiHeaders,
         vertxContext,
         GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
         asyncResultHandler);
+    */
+    CRUtil.lookupExpandedReserve(reserveId, okapiHeaders, vertxContext, true)
+        .setHandler(res -> {
+      if(res.failed()) {
+        String message = logAndSaveError(res.cause());
+        asyncResultHandler.handle(Future.succeededFuture(
+            GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse
+            .respond500WithTextPlain(getErrorResponse(message))));
+      } else {
+        asyncResultHandler.handle(Future.succeededFuture(
+            GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse
+            .respond200WithApplicationJson(res.result())));
+      }
+    });
   }
 
   @Override

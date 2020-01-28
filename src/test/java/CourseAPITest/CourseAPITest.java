@@ -534,7 +534,32 @@ public class CourseAPITest {
               itemJson.getString("copy"));
           return;
         }
-        async.complete();
+
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" +
+            COURSE_LISTING_1_ID + "/reserves/" + reserveJson.getString("id"),
+            GET, standardHeaders, null, 200, "Get Posted Reserve").setHandler(getRes -> {
+              if(getRes.failed()) {
+                context.fail(getRes.cause());
+              } else {
+                JsonObject getReserveJson = getRes.result().getJson();
+                JsonObject getItemJson = getReserveJson.getJsonObject("copiedItem");
+                JsonObject permanentLocationJson = getItemJson.getJsonObject("permanentLocationObject");
+                JsonObject temporaryLocationJson = getItemJson.getJsonObject("temporaryLocationObject");
+                if(permanentLocationJson == null || temporaryLocationJson == null) {
+                  context.fail("Null result for permanent or temporary location object");
+                  return;
+                }
+                if(!permanentLocationJson.getString("id").equals(OkapiMock.location1Id)) {
+                  context.fail("Expected permanentLocationObject with id " + OkapiMock.location1Id);
+                  return;
+                }                
+                if(!temporaryLocationJson.getString("id").equals(OkapiMock.location2Id)) {
+                  context.fail("Expected temporaryLocationObject with id " + OkapiMock.location2Id);
+                  return;
+                }
+              }
+              async.complete();
+            });
        }
     });
   }

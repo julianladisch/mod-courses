@@ -24,6 +24,11 @@
             "description": "The ID of the processing status of the reserve",
             "$ref": "uuid.json"
         },
+        "processingStatusObject": {
+            "type": "object",
+            "description": "The processing status object associated with the reserve",
+            "$ref": "processingstatus.json"
+        },
         "startDate": {
             "type": "string",
             "description": "The beginning of the time period for this reserve"
@@ -45,9 +50,19 @@
                     "type": "string",
                     "description": "Temporary Location ID, from item"
                 },
+                "temporaryLocationObject": {
+                    "type": "object",
+                    "description": "Temporary location object",
+                    "$ref": "location.json"
+                },
                 "permanentLocationId": {
                     "type": "string",
+                    "description": "Permanent location object",
                     "description": "Permanent Location ID, from item"
+                },
+                "permanentLocationObject": {
+                    "type": "object",
+                    "$ref": "location.json"
                 },
                 "title": {
                     "type": "string",
@@ -138,6 +153,11 @@
             "description": "The type to temporarily set the loan to while on reserve",
             "$ref": "uuid.json"
         },
+        "temporaryLoanTypeObject": {
+            "type": "object",
+            "description": "The loan type object of what the item is set to while on reserve",
+            "$ref": "loantype.json"
+        },
         "copyrightTracking": {
             "type": "object",
             "description": "Information about copyright status, volume of material used, etc.",
@@ -150,6 +170,11 @@
                     "type": "string",
                     "description": "The id of the copyright status",
                     "$ref": "uuid.json"
+                },
+                "copyrightStatusObject": {
+                    "type": "object",
+                    "description": "The copyright status object",
+                    "$ref": "copyrightstatus.json"
                 },
                 "totalPagesInItem": {
                     "type": "integer",
