@@ -70,7 +70,7 @@ public class CRUtil {
   public static final String locationsEndpoint = "/locations";
   public static final String loanTypesEndpoint = "/loan-types";
 
-  public static List<PopulateMapping> locationMapList = getLocationMapList();
+  protected static final List<PopulateMapping> LOCATION_MAP_LIST = getLocationMapList();
 
   public static List<PopulateMapping> getLocationMapList() {
     List<PopulateMapping> mapList = new ArrayList();
@@ -325,7 +325,7 @@ public class CRUtil {
       } else {
         try {
           Reserve reserve = reserveRes.result();
-          List<Future> futureList = new ArrayList<>();
+          
           Future<JsonObject> tempLocationFuture = lookupLocation(
               reserve.getCopiedItem().getTemporaryLocationId(), okapiHeaders, context);
           Future<JsonObject> permLocationFuture = lookupLocation(
@@ -337,7 +337,6 @@ public class CRUtil {
           } else {
             processingStatusFuture = Future.failedFuture("No processing status id");
           }
-
           Future<Copyrightstatus> copyrightStatusFuture;
           if(reserve.getCopyrightTracking() != null) {
             copyrightStatusFuture = lookupCopyrightStatus(
@@ -351,53 +350,70 @@ public class CRUtil {
             loanTypeFuture = lookupLoanType(reserve.getTemporaryLoanTypeId(),
                 okapiHeaders, context);
           } else {
-            loanTypeFuture = Future.failedFuture("No tempory loan type id");
+            loanTypeFuture = Future.failedFuture("No temporary loan type id");
           }
-          futureList.add(tempLocationFuture);
-          futureList.add(permLocationFuture);
-          futureList.add(processingStatusFuture);
-          futureList.add(copyrightStatusFuture);
-          futureList.add(loanTypeFuture);
-          CompositeFuture compositeFuture = CompositeFuture.join(futureList);
-          compositeFuture.setHandler(compRes -> {
-            try {
-              if(tempLocationFuture.succeeded()) {
-                reserve.getCopiedItem().setTemporaryLocationObject(
-                    temporaryLocationObjectFromJson(tempLocationFuture.result()));
-              } else {
-                logger.info("TemporaryLocationObject lookup failed "
-                    + tempLocationFuture.cause().getLocalizedMessage());
-              }
-              if(permLocationFuture.succeeded()) {
-                reserve.getCopiedItem().setPermanentLocationObject(
-                    temporaryLocationObjectFromJson(permLocationFuture.result()));
-              } else {
-                logger.info("PermanentLocationObject lookup failed "
-                    + permLocationFuture.cause().getLocalizedMessage());
-              }
-              if(processingStatusFuture.succeeded()) {
-                ProcessingStatusObject pso = new ProcessingStatusObject();
-                copyFields(pso, processingStatusFuture.result());
-                reserve.setProcessingStatusObject(pso);
-              }
-              if(copyrightStatusFuture.succeeded()) {
-                CopyrightStatusObject cso = new CopyrightStatusObject();
-                copyFields(cso, copyrightStatusFuture.result());
-                reserve.getCopyrightTracking().setCopyrightStatusObject(cso);
-              }
-              if(loanTypeFuture.succeeded()) {
-                TemporaryLoanTypeObject tlto = temporaryLoanTypeObjectFromJson(
-                    loanTypeFuture.result());
-                reserve.setTemporaryLoanTypeObject(tlto);
-              }
+          populateReserve(reserve, tempLocationFuture, permLocationFuture,
+              processingStatusFuture, copyrightStatusFuture, loanTypeFuture)
+              .setHandler(populateRes -> {
+            if(populateRes.failed()) {
+              future.fail(populateRes.cause());
+            } else {
               future.complete(reserve);
-            } catch(Exception e) {
-              future.fail(e);
             }
           });
         } catch(Exception e) {
           future.fail(e);
         }
+      }
+    });
+    return future;
+  }
+
+  public static Future<Void> populateReserve(Reserve reserve, Future<JsonObject> tempLocationFuture,
+      Future<JsonObject> permLocationFuture, Future<Processingstatus> processingStatusFuture,
+      Future<Copyrightstatus> copyrightStatusFuture, Future<JsonObject> loanTypeFuture) {
+    Future<Void> future = Future.future();
+    List<Future> futureList = new ArrayList<>();
+    futureList.add(tempLocationFuture);
+    futureList.add(permLocationFuture);
+    futureList.add(processingStatusFuture);
+    futureList.add(copyrightStatusFuture);
+    futureList.add(loanTypeFuture);
+    CompositeFuture compositeFuture = CompositeFuture.join(futureList);
+    compositeFuture.setHandler(compRes -> {
+      try {
+        if(tempLocationFuture.succeeded()) {
+          reserve.getCopiedItem().setTemporaryLocationObject(
+              temporaryLocationObjectFromJson(tempLocationFuture.result()));
+        } else {
+          logger.info("TemporaryLocationObject lookup failed "
+              + tempLocationFuture.cause().getLocalizedMessage());
+        }
+        if(permLocationFuture.succeeded()) {
+          reserve.getCopiedItem().setPermanentLocationObject(
+              temporaryLocationObjectFromJson(permLocationFuture.result()));
+        } else {
+          logger.info("PermanentLocationObject lookup failed "
+              + permLocationFuture.cause().getLocalizedMessage());
+        }
+        if(processingStatusFuture.succeeded()) {
+          ProcessingStatusObject pso = new ProcessingStatusObject();
+          copyFields(pso, processingStatusFuture.result());
+          reserve.setProcessingStatusObject(pso);
+        }
+        if(copyrightStatusFuture.succeeded()) {
+          CopyrightStatusObject cso = new CopyrightStatusObject();
+          copyFields(cso, copyrightStatusFuture.result());
+          reserve.getCopyrightTracking().setCopyrightStatusObject(cso);
+        }
+        if(loanTypeFuture.succeeded()) {
+          TemporaryLoanTypeObject tlto = temporaryLoanTypeObjectFromJson(
+              loanTypeFuture.result());
+          reserve.setTemporaryLoanTypeObject(tlto);
+        }
+        future.complete();
+      } catch(Exception e) {
+        future.fail(e);
       }
     });
     return future;
@@ -878,7 +894,7 @@ public class CRUtil {
     }
     LocationObject locationObject = new LocationObject();
     try {
-      populatePojoFromJson(locationObject, json, locationMapList);
+      populatePojoFromJson(locationObject, json, LOCATION_MAP_LIST);
     } catch(Exception e) {
       logger.error("Unable to create location object from json: " + e.getLocalizedMessage());
       return null;
@@ -893,7 +909,7 @@ public class CRUtil {
   private static TemporaryLocationObject temporaryLocationObjectFromJson(JsonObject json) {
     TemporaryLocationObject locationObject = new TemporaryLocationObject();
     try {
-      populatePojoFromJson(locationObject, json, locationMapList);
+      populatePojoFromJson(locationObject, json, LOCATION_MAP_LIST);
     } catch(Exception e) {
       logger.error("Unable to create temporary location object from json: "
           + e.getLocalizedMessage());
