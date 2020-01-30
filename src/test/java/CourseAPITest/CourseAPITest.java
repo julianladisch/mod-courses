@@ -57,6 +57,7 @@ public class CourseAPITest {
   public final static String PROCESSING_STATUS_1_ID = UUID.randomUUID().toString();
   public static Map<String, String> okapiHeaders = new HashMap<>();
   public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
+  public static CaseInsensitiveHeaders deleteHeaders = new CaseInsensitiveHeaders();
 
 
 
@@ -75,6 +76,8 @@ public class CourseAPITest {
     okapiHeaders.put("x-okapi-tenant", "diku");
     okapiHeaders.put("x-okapi-url", okapiUrl);
     standardHeaders.add("x-okapi-url", okapiUrl);
+    deleteHeaders.add("accept", "text/plain");
+    deleteHeaders.add("x-okapi-url", okapiUrl);
     vertx = Vertx.vertx();
     DeploymentOptions options = new DeploymentOptions()
         .setConfig(new JsonObject().put("http.port", port));
@@ -992,6 +995,7 @@ public class CourseAPITest {
     });
   }
 
+
   @Test
   public void deleteAllReservesForCourseListing(TestContext context) {
     Async async = context.async();
@@ -1036,10 +1040,106 @@ public class CourseAPITest {
       }
     });
   }
+
+  @Test
+  public void testRoles(TestContext context) {
+    Async async = context.async();
+    String roleId = UUID.randomUUID().toString();
+    JsonObject roleJson = new JsonObject()
+        .put("id", roleId)
+        .put("name", "newrole");
+    JsonObject roleModJson = new JsonObject()
+        .put("id", roleId)
+        .put("name", "oldrole");
+    String postUrl = baseUrl + "/roles";
+    String getUrl = baseUrl + "/roles/" + roleId;
+    String putUrl = getUrl;
+    String deleteUrl = getUrl;
+    String deleteAllUrl = postUrl;
+    testPostGetPutDelete(roleJson, roleModJson, postUrl, getUrl, putUrl, deleteUrl,
+        deleteAllUrl).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
+
+  @Test
+  public void testCoursesForCourseListing(TestContext context) {
+    Async async = context.async();
+    String courseId = UUID.randomUUID().toString();
+    JsonObject courseJson = new JsonObject()
+        .put("id", courseId)
+        .put("name", "Basket Weaving")
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("departmentId", DEPARTMENT_1_ID);
+    JsonObject courseModJson = new JsonObject()
+        .put("id", courseId)
+        .put("name", "Underwater Basket Weaving")
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("departmentId", DEPARTMENT_1_ID);
+    String postUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/courses";
+    String getUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/courses/" + courseId;
+    String putUrl = getUrl;
+    String deleteUrl = getUrl;
+    String deleteAllUrl = postUrl;
+    testPostGetPutDelete(courseJson, courseModJson, postUrl, getUrl, putUrl, deleteUrl,
+        deleteAllUrl).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
   
   /* UTILITY CLASSES */
 
-   private Future<Void> loadCourseListing1Instructor1() {
+  private Future<Void> testPostGetPutDelete(JsonObject originalJson, JsonObject modifiedJson,
+      String postUrl, String getUrl, String putUrl, String deleteUrl, String deleteAllUrl) {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, postUrl, POST, standardHeaders, originalJson.encode(), 201,
+        "Post to " + postUrl)
+        .compose( f -> {
+          return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
+              "Get from " + getUrl);
+        })
+        .compose(f -> {
+          return TestUtil.doRequest(vertx, putUrl, PUT, standardHeaders,
+              modifiedJson.encode(), 204, "Put to " + putUrl);
+        })
+        .compose(f -> {
+          return TestUtil.doRequest(vertx, deleteUrl, DELETE, deleteHeaders, null,
+              204, "Delete at " + deleteUrl);
+        })
+        .compose(f -> {
+          return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 404,
+              "Get from " + getUrl);
+        })
+        .compose(f -> {
+          return TestUtil.doRequest(vertx, postUrl, POST, standardHeaders,
+              originalJson.encode(), 201, "Post to " + postUrl);
+        })
+        .compose(f -> {
+          return TestUtil.doRequest(vertx, deleteUrl, DELETE, deleteHeaders, null,
+              204, "Delete all at " + deleteAllUrl);
+        })
+        .compose(f -> {
+          return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 404,
+              "Get from " + getUrl);
+        }).setHandler(res -> {
+          if(res.failed()) {
+            future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourseListing1Instructor1() {
     Future<Void> future = Future.future();
     JsonObject departmentJson = new JsonObject()
         .put("id", INSTRUCTOR_1_ID)
