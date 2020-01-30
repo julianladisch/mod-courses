@@ -44,7 +44,6 @@ import org.folio.rest.jaxrs.model.HoldShelfExpiryPeriod.IntervalId;
 import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.InstructorObject;
 import org.folio.rest.jaxrs.model.LocationObject;
-import org.folio.rest.jaxrs.model.PatronGroupObject;
 import org.folio.rest.jaxrs.model.ProcessingStatusObject;
 import org.folio.rest.jaxrs.model.Processingstatus;
 import org.folio.rest.jaxrs.model.Publication;
@@ -382,19 +381,23 @@ public class CRUtil {
     CompositeFuture compositeFuture = CompositeFuture.join(futureList);
     compositeFuture.setHandler(compRes -> {
       try {
-        if(tempLocationFuture.succeeded()) {
-          reserve.getCopiedItem().setTemporaryLocationObject(
-              temporaryLocationObjectFromJson(tempLocationFuture.result()));
+        if(reserve.getCopiedItem() != null) {
+          if(tempLocationFuture.succeeded()) {
+            reserve.getCopiedItem().setTemporaryLocationObject(
+                temporaryLocationObjectFromJson(tempLocationFuture.result()));
+          } else {
+            logger.info("TemporaryLocationObject lookup failed "
+                + tempLocationFuture.cause().getLocalizedMessage());
+          }
+          if(permLocationFuture.succeeded()) {
+            reserve.getCopiedItem().setPermanentLocationObject(
+                temporaryLocationObjectFromJson(permLocationFuture.result()));
+          } else {
+            logger.info("PermanentLocationObject lookup failed "
+                + permLocationFuture.cause().getLocalizedMessage());
+          }
         } else {
-          logger.info("TemporaryLocationObject lookup failed "
-              + tempLocationFuture.cause().getLocalizedMessage());
-        }
-        if(permLocationFuture.succeeded()) {
-          reserve.getCopiedItem().setPermanentLocationObject(
-              temporaryLocationObjectFromJson(permLocationFuture.result()));
-        } else {
-          logger.info("PermanentLocationObject lookup failed "
-              + permLocationFuture.cause().getLocalizedMessage());
+          logger.info("No copied item field in reserve to populate");
         }
         if(processingStatusFuture.succeeded()) {
           ProcessingStatusObject pso = new ProcessingStatusObject();

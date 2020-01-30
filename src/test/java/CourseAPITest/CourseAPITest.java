@@ -24,7 +24,6 @@ import javax.ws.rs.HttpMethod;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
-//import org.folio.rest.jaxrs.model.PatronGroupObject;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.joda.time.DateTime;
