@@ -491,7 +491,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         final String DELETE_ALL_QUERY = String.format(
             "DELETE FROM %s_%s.%s WHERE jsonb->>'courseListingId' = '%s'",
                 tenantId, "mod_courses", RESERVES_TABLE, listingId);
-        logger.info(String.format("Deleting all courses with query %s",
+        logger.info(String.format("Deleting all reserves with query %s",
                 DELETE_ALL_QUERY));
         pgClient.execute(DELETE_ALL_QUERY, mutateReply -> {
           if(mutateReply.failed()) {
@@ -520,12 +520,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String reserveId, String lang,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    /*
-    PgUtil.getById(RESERVES_TABLE, Reserve.class, reserveId, okapiHeaders,
-        vertxContext,
-        GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
-        asyncResultHandler);
-    */
+
+    try {
     CRUtil.lookupExpandedReserve(reserveId, okapiHeaders, vertxContext, true)
         .setHandler(res -> {
       if(res.failed()) {
@@ -539,6 +535,13 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             .respond200WithApplicationJson(res.result())));
       }
     });
+    } catch(Exception e) {
+       String message = logAndSaveError(e);
+        asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse
+              .respond500WithTextPlain(
+          getErrorResponse(message))));
+    }
   }
 
   @Override

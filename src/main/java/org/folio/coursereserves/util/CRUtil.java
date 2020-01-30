@@ -319,12 +319,12 @@ public class CRUtil {
     getReserveById(reserveId, okapiHeaders, context).setHandler(reserveRes -> {
       if(reserveRes.failed()) {
         future.fail(reserveRes.cause());
-      } else if(expand == false || reserveRes.result().getCopiedItem() == null) {
+      } else if(expand == false ||  reserveRes.result() == null ||
+          reserveRes.result().getCopiedItem() == null) {
         future.complete(reserveRes.result());
       } else {
         try {
           Reserve reserve = reserveRes.result();
-          
           Future<JsonObject> tempLocationFuture = lookupLocation(
               reserve.getCopiedItem().getTemporaryLocationId(), okapiHeaders, context);
           Future<JsonObject> permLocationFuture = lookupLocation(
@@ -798,18 +798,7 @@ public class CRUtil {
         CourseListingObject expandedCourseListing = new CourseListingObject();
         Courselisting courseListing = courselistingReply.result();
         if(courseListing != null) {
-          expandedCourseListing.setCourseTypeId(courseListing.getCourseTypeId());
-          expandedCourseListing.setCourseTypeObject(courseListing.getCourseTypeObject());
-          expandedCourseListing.setExternalId(courseListing.getExternalId());
-          expandedCourseListing.setId(courseListing.getId());
-          expandedCourseListing.setLocationId(courseListing.getLocationId());
-          expandedCourseListing.setRegistrarId(courseListing.getRegistrarId());
-          expandedCourseListing.setServicepointId(courseListing.getServicepointId());
-          expandedCourseListing.setTermId(courseListing.getTermId());
-          expandedCourseListing.setTermObject(courseListing.getTermObject());
-          expandedCourseListing.setInstructorObjects(courseListing.getInstructorObjects());
-          expandedCourseListing.setLocationObject(courseListing.getLocationObject());
-          expandedCourseListing.setServicepointObject(courseListing.getServicepointObject());
+          copyFields(expandedCourseListing, courseListing);
         }
         newCourse.setCourseListingObject(expandedCourseListing);
 
@@ -827,9 +816,7 @@ public class CRUtil {
             Department department = departmentReply.result();
             if(department != null) {
               DepartmentObject departmentObject = new DepartmentObject();
-              departmentObject.setId(department.getId());
-              departmentObject.setName(department.getName());
-              departmentObject.setDescription(department.getDescription());
+              copyFields(departmentObject, department);
               newCourse.setDepartmentObject(departmentObject);
             }
             future.complete(newCourse);
@@ -843,15 +830,7 @@ public class CRUtil {
 
   private static Course copyCourse(Course originalCourse) {
     Course newCourse = new Course();
-    newCourse.setId(originalCourse.getId());
-    newCourse.setCourseListingId(originalCourse.getCourseListingId());
-    newCourse.setCourseListingObject(originalCourse.getCourseListingObject());
-    newCourse.setCourseNumber(originalCourse.getCourseNumber());
-    newCourse.setDepartmentId(originalCourse.getDepartmentId());
-    newCourse.setDepartmentObject(newCourse.getDepartmentObject());
-    newCourse.setDescription(originalCourse.getDescription());
-    newCourse.setSectionName(originalCourse.getSectionName());
-    newCourse.setName(originalCourse.getName());
+    copyFields(newCourse, originalCourse);
     return newCourse;
   }
   
@@ -871,25 +850,6 @@ public class CRUtil {
     courseTypeObject.setName(coursetype.getName());
     return courseTypeObject;
   }
-
-  private static ProcessingStatusObject processingStatusObjectFromProcessingStatus(
-      Processingstatus processingStatus) {
-    ProcessingStatusObject pso = new ProcessingStatusObject();
-    pso.setId(processingStatus.getId());
-    pso.setDescription(processingStatus.getDescription());
-    pso.setName(processingStatus.getName());
-    return pso;
-  }
-  
-  private static CopyrightStatusObject copyrightStatusObjectFromCopyrightStatus(
-    Copyrightstatus copyrightStatus) {
-    CopyrightStatusObject cso = new CopyrightStatusObject();
-    cso.setDescription(copyrightStatus.getDescription());
-    cso.setId(copyrightStatus.getId());
-    cso.setName(copyrightStatus.getName());
-    return cso;
-  }
-
 
   private static LocationObject locationObjectFromJson(JsonObject json) {
     if(json == null) {
@@ -996,12 +956,7 @@ public class CRUtil {
     List<InstructorObject> instructorObjectList = new ArrayList<>();
     for(Instructor instructor : instructorList) {
       InstructorObject instructorObject = new InstructorObject();
-      instructorObject.setBarcode(instructor.getBarcode());
-      instructorObject.setCourseListingId(instructor.getCourseListingId());
-      instructorObject.setId(instructor.getId());
-      instructorObject.setName(instructor.getName());
-      instructorObject.setPatronGroup(instructor.getPatronGroup());
-      instructorObject.setPatronGroupObject(instructor.getPatronGroupObject());
+      copyFields(instructorObject, instructor);
       instructorObjectList.add(instructorObject);  
     }
     return instructorObjectList;

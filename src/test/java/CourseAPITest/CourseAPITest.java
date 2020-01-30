@@ -991,6 +991,51 @@ public class CourseAPITest {
        }
     });
   }
+
+  @Test
+  public void deleteAllReservesForCourseListing(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reservePostJson = new JsonObject()
+        .put("id", reserveId)
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", UUID.randomUUID().toString());
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").setHandler(postRes -> {
+      if(postRes.failed()) {
+         context.fail(postRes.cause());
+       } else {       
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves/" + reserveId, GET, standardHeaders, null, 200, "Get reserve")
+            .setHandler(getRes -> {
+          if(getRes.failed()) {
+            context.fail(getRes.cause());
+          } else {
+            TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+                "/reserves", DELETE, standardHeaders, null, 204, 
+                "Delete reserves with courselisting " + COURSE_LISTING_1_ID)
+                .setHandler(deleteRes -> {
+              if(deleteRes.failed()) { 
+                context.fail(deleteRes.cause());
+              } else {
+                TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+                 "/reserves/" + reserveId, GET, standardHeaders, null, 200, "Get reserve again")
+                   .setHandler(getAgainRes-> {
+                   if(getAgainRes.failed()) {
+                     context.fail(getAgainRes.cause());
+                   } else {
+                     logger.info("getAgainRes succeeded");
+                     async.complete();
+                   }
+                 });
+              }     
+            });
+          }
+        });
+      }
+    });
+  }
   
   /* UTILITY CLASSES */
 
