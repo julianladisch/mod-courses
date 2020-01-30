@@ -636,6 +636,34 @@ public class CourseAPITest {
   }
 
   @Test
+  public void postReserveToCourseListingWithBogusCopyrightAndProcessingStatuses(
+      TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", UUID.randomUUID().toString())
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", UUID.randomUUID().toString()));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").setHandler(res -> {
+      if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+        JsonObject reserveJson = res.result().getJson();
+        if(!reserveJson.containsKey("copiedItem") ||
+            reserveJson.getJsonObject("copiedItem") == null) {
+          context.fail("No copiedItem field found");
+          return;
+        }
+        async.complete();
+      }
+    });
+  }
+
+  @Test
   public void getUser(TestContext context) {
     Async async = context.async();
     String userId = OkapiMock.user1Id;
