@@ -463,21 +463,19 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         } else {
           getCopiedItemsFuture = Future.succeededFuture();
         }
-        getCopiedItemsFuture.setHandler(copyItemsRes->{
+        getCopiedItemsFuture.setHandler(copyItemsRes-> {
           if(copyItemsRes.failed()) {
-            String message = logAndSaveError(copyItemsRes.cause());
-            PostCoursereservesCourselistingsReservesByListingIdResponse
-                .respond500WithTextPlain(getErrorResponse(message));
-          } else {
-            PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
-              PostCoursereservesCourselistingsReservesByListingIdResponse.class,
-              asyncResultHandler);
+            String message = logAndSaveError(copyItemsRes.cause());      
           }
+          PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
+            PostCoursereservesCourselistingsReservesByListingIdResponse.class,
+            asyncResultHandler);
         }); 
       } catch(Exception e) {
         String message = logAndSaveError(e);
-        PostCoursereservesCourselistingsReservesByListingIdResponse
-            .respond500WithTextPlain(getErrorResponse(message));
+        asyncResultHandler.handle(Future.succeededFuture(
+            PostCoursereservesCourselistingsReservesByListingIdResponse
+            .respond500WithTextPlain(getErrorResponse(message))));
       }
     }
   }

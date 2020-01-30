@@ -9,8 +9,13 @@ import org.folio.coursereserves.util.CRUtil;
 import org.folio.coursereserves.util.PopulateMapping;
 import org.folio.coursereserves.util.PopulateMapping.ImportType;
 import org.folio.rest.jaxrs.model.LocationObject;
+import org.folio.rest.jaxrs.model.LocationObject;
+import org.folio.rest.jaxrs.model.TemporaryLocationObject;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 
 public class UnitTest {
   
@@ -39,5 +44,20 @@ public class UnitTest {
     assertTrue(locationObject.getIsActive());
     assertTrue(locationObject.getServicePointIds().size() == 3);
   }
+  
+  @Test
+  public void testCopyFields() {
+    TemporaryLocationObject tempLocationObject = new TemporaryLocationObject();
+    LocationObject locationObject = new LocationObject();
+    locationObject.setId(UUID.randomUUID().toString());
+    locationObject.setName("Big Library");
+    locationObject.setIsActive(Boolean.TRUE);
+    CRUtil.copyFields(tempLocationObject, locationObject);
+    assertTrue(tempLocationObject.getId().equals(locationObject.getId()));
+    assertTrue(tempLocationObject.getName().equals(locationObject.getName()));
+    assertTrue(tempLocationObject.getIsActive().equals(locationObject.getIsActive()));
+  }
+
+
   
 }

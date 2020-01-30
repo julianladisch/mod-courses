@@ -24,7 +24,7 @@ import javax.ws.rs.HttpMethod;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
-import org.folio.rest.jaxrs.model.PatronGroupObject;
+//import org.folio.rest.jaxrs.model.PatronGroupObject;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.joda.time.DateTime;
@@ -54,6 +54,8 @@ public class CourseAPITest {
   public final static String COURSE_TYPE_1_ID = UUID.randomUUID().toString();
   public final static String INSTRUCTOR_1_ID = UUID.randomUUID().toString();
   public final static String INSTRUCTOR_2_ID = UUID.randomUUID().toString();
+  public final static String COPYRIGHT_STATUS_1_ID = UUID.randomUUID().toString();
+  public final static String PROCESSING_STATUS_1_ID = UUID.randomUUID().toString();
   public static Map<String, String> okapiHeaders = new HashMap<>();
   public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
 
@@ -147,6 +149,12 @@ public class CourseAPITest {
       .compose(f -> {
         return loadCourse2();
       })
+      .compose(f -> {
+        return loadProcessingStatus();
+      })
+      .compose(f -> {
+        return loadCopyrightStatus();
+      })
       .setHandler(res -> {
         if(res.failed()) {
           context.fail(res.cause());
@@ -172,6 +180,10 @@ public class CourseAPITest {
           return deleteDepartments();
         }).compose(f -> {
           return deleteCourseTypes();
+        }).compose(f -> {
+          return deleteCopyrightStatuses();
+        }).compose(f -> {
+          return deleteProcessingStatuses();
         }).setHandler(res -> {
         if(res.failed()) {
           context.fail(res.cause());
@@ -500,7 +512,11 @@ public class CourseAPITest {
     Async async = context.async();
     JsonObject reservePostJson = new JsonObject()
         .put("courseListingId", COURSE_LISTING_1_ID)
-        .put("itemId", OkapiMock.item1Id);
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 201, 
         "Post Course Reserve").setHandler(res -> {
@@ -545,7 +561,10 @@ public class CourseAPITest {
                 JsonObject getItemJson = getReserveJson.getJsonObject("copiedItem");
                 JsonObject permanentLocationJson = getItemJson.getJsonObject("permanentLocationObject");
                 JsonObject temporaryLocationJson = getItemJson.getJsonObject("temporaryLocationObject");
-                if(permanentLocationJson == null || temporaryLocationJson == null) {
+                JsonObject temporaryLoanTypeJson = getReserveJson.getJsonObject("temporaryLoanTypeObject");
+                JsonObject copyrightTrackingJson = getReserveJson.getJsonObject("copyrightTracking");
+                JsonObject processingStatusJson = getReserveJson.getJsonObject("processingStatusObject");
+                if(permanentLocationJson == null || temporaryLocationJson == null ) {
                   context.fail("Null result for permanent or temporary location object");
                   return;
                 }
@@ -557,10 +576,62 @@ public class CourseAPITest {
                   context.fail("Expected temporaryLocationObject with id " + OkapiMock.location2Id);
                   return;
                 }
+                if(temporaryLoanTypeJson == null) {
+                  context.fail("No temporaryLoanTypeObject found in result");
+                  return;
+                }
+                if(!temporaryLoanTypeJson.getString("id").equals(OkapiMock.loanType1Id)) {
+                  context.fail("Retrieved loan type id does not match existing");
+                  return;
+                }
+                if(copyrightTrackingJson == null) {
+                  context.fail("No copyrightTracking object found in result");
+                  return;
+                }
+                JsonObject copyrightStatusJson = copyrightTrackingJson.getJsonObject("copyrightStatusObject");
+                if(copyrightStatusJson == null) {
+                  context.fail("No copyrightStatus object found in result");
+                  return;
+                }
+                if(copyrightStatusJson.getString("id") == null || !copyrightStatusJson.getString("id").equals(COPYRIGHT_STATUS_1_ID)) {
+                  context.fail("Retrieved copyright status id does not match existing");
+                  return;
+                }
+                if(processingStatusJson == null) {
+                  context.fail("No copyrightStatus object found in result");
+                  return;
+                }
+                if(processingStatusJson.getString("id") == null || !processingStatusJson.getString("id").equals(PROCESSING_STATUS_1_ID)) {
+                  context.fail("Retrieved processing status id does not match existing");
+                  return;
+                }
               }
               async.complete();
             });
        }
+    });
+  }
+
+  @Test
+  public void postReserveToCourseListingWithBogusItem(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", UUID.randomUUID().toString());
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").setHandler(res -> {
+      if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+        JsonObject reserveJson = res.result().getJson();
+        if(reserveJson.containsKey("copiedItem") ||
+            reserveJson.getJsonObject("copiedItem") != null) {
+          context.fail("Copied Item field found. Not expected");
+          return;
+        }
+        async.complete();
+      }
     });
   }
 
@@ -1042,6 +1113,40 @@ public class CourseAPITest {
     return future;
   }
 
+  private Future<Void> loadCopyrightStatus() {
+     Future<Void> future = Future.future();
+     JsonObject copyrightStatusJson = new JsonObject()
+        .put("id", COPYRIGHT_STATUS_1_ID)
+        .put("description", "Creative Commons")
+        .put("name", "cc");
+    TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", POST, null,
+        copyrightStatusJson.encode(), 201, "Post Copyright Status").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+    private Future<Void> loadProcessingStatus() {
+     Future<Void> future = Future.future();
+     JsonObject copyrightStatusJson = new JsonObject()
+        .put("id", PROCESSING_STATUS_1_ID)
+        .put("description", "Processing")
+        .put("name", "processing");
+    TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", POST, null,
+        copyrightStatusJson.encode(), 201, "Post Processing Status").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
   private Future<Void> loadCourse2() {
     Future<Void> future = Future.future();
     JsonObject courseJson = new JsonObject()
@@ -1125,11 +1230,37 @@ public class CourseAPITest {
     return future;
   }
 
-    private Future<Void> deleteCourseListing1Instructors() {
+  private Future<Void> deleteCourseListing1Instructors() {
     Future<Void> future = Future.future();
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/"+COURSE_LISTING_1_ID+
         "/instructors", DELETE, null, null, 204,
         "Delete All Instructors").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> deleteCopyrightStatuses() {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", DELETE, null, null, 204,
+        "Delete All CopyrightStatuses").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> deleteProcessingStatuses() {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", DELETE, null, null, 204,
+        "Delete All ProcessingStatuses").setHandler(res -> {
           if(res.failed()) {
            future.fail(res.cause());
           } else {

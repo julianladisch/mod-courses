@@ -17,15 +17,21 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.folio.coursereserves.util.PopulateMapping.ImportType;
+import static org.folio.rest.impl.CourseAPI.COPYRIGHT_STATUSES_TABLE;
 import static org.folio.rest.impl.CourseAPI.COURSE_LISTINGS_TABLE;
 import static org.folio.rest.impl.CourseAPI.COURSE_TYPES_TABLE;
 import static org.folio.rest.impl.CourseAPI.DEPARTMENTS_TABLE;
 import static org.folio.rest.impl.CourseAPI.INSTRUCTORS_TABLE;
+import static org.folio.rest.impl.CourseAPI.PROCESSING_STATUSES_TABLE;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.TERMS_TABLE;
 import org.folio.rest.jaxrs.model.Contributor;
 import org.folio.rest.jaxrs.model.CopiedItem;
+import org.folio.rest.jaxrs.model.CopyrightStatusObject;
+import org.folio.rest.jaxrs.model.Copyrightstatus;
 import org.folio.rest.jaxrs.model.Course;
 import org.folio.rest.jaxrs.model.Courselisting;
 import org.folio.rest.jaxrs.model.CourseListingObject;
@@ -39,10 +45,13 @@ import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.InstructorObject;
 import org.folio.rest.jaxrs.model.LocationObject;
 import org.folio.rest.jaxrs.model.PatronGroupObject;
+import org.folio.rest.jaxrs.model.ProcessingStatusObject;
+import org.folio.rest.jaxrs.model.Processingstatus;
 import org.folio.rest.jaxrs.model.Publication;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.jaxrs.model.ServicepointObject;
 import org.folio.rest.jaxrs.model.StaffSlip;
+import org.folio.rest.jaxrs.model.TemporaryLoanTypeObject;
 import org.folio.rest.jaxrs.model.TemporaryLocationObject;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
@@ -59,6 +68,7 @@ public class CRUtil {
   
   public static final String servicePointsEndpoint = "/service-points";
   public static final String locationsEndpoint = "/locations";
+  public static final String loanTypesEndpoint = "/loan-types";
 
   public static List<PopulateMapping> locationMapList = getLocationMapList();
 
@@ -88,6 +98,8 @@ public class CRUtil {
     lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders, context)
         .setHandler(inventoryRes -> {
       if(inventoryRes.failed()) {
+        logger.error("Unable to do inventory lookup: "
+            + inventoryRes.cause().getLocalizedMessage());
         future.fail(inventoryRes.cause());
       } else {
         try {
@@ -171,6 +183,7 @@ public class CRUtil {
     makeOkapiRequest(context.owner(), okapiHeaders, itemPath + itemId, HttpMethod.GET,
         null, null, 200).setHandler(itemRes -> {
       if(itemRes.failed()) {
+        logger.error("Unable to lookup item by id " + itemId);
         future.fail(itemRes.cause());
       } else {
         JsonObject itemJson = itemRes.result();
@@ -276,9 +289,12 @@ public class CRUtil {
         try {
           String response = bodyHandlerRes.toString();
           if(expectedCode != requestRes.statusCode()) {
-            future.fail(String.format("Expected status code %s for %s request to url %s, got %s: %s",
+            String message = String.format(
+                "Expected status code %s for %s request to url %s, got %s: %s",
                 expectedCode, method.toString(), requestUrl, requestRes.statusCode(),
-                response));
+                response);
+            logger.error(message);
+            future.fail(message);
           } else {
             JsonObject responseJson = new JsonObject(response);
             future.complete(responseJson);
@@ -307,36 +323,81 @@ public class CRUtil {
       } else if(expand == false || reserveRes.result().getCopiedItem() == null) {
         future.complete(reserveRes.result());
       } else {
-        Reserve reserve = reserveRes.result();
-        List<Future> futureList = new ArrayList<>();
-        Future<JsonObject> tempLocationFuture = lookupLocation(
-            reserve.getCopiedItem().getTemporaryLocationId(), okapiHeaders, context);
-        Future<JsonObject> permLocationFuture = lookupLocation(
-            reserve.getCopiedItem().getPermanentLocationId(), okapiHeaders, context);
-        futureList.add(tempLocationFuture);
-        futureList.add(permLocationFuture);
-        CompositeFuture compositeFuture = CompositeFuture.join(futureList);
-        compositeFuture.setHandler(compRes -> {
-          try {
-            if(tempLocationFuture.succeeded()) {
-              reserve.getCopiedItem().setTemporaryLocationObject(
-                  temporaryLocationObjectFromJson(tempLocationFuture.result()));
-            } else {
-              logger.info("TemporaryLocationObject lookup failed "
-                  + tempLocationFuture.cause().getLocalizedMessage());
-            }
-            if(permLocationFuture.succeeded()) {
-              reserve.getCopiedItem().setPermanentLocationObject(
-                  temporaryLocationObjectFromJson(permLocationFuture.result()));
-            } else {
-              logger.info("PermanentLocationObject lookup failed "
-                  + permLocationFuture.cause().getLocalizedMessage());
-            }
-            future.complete(reserve);
-          } catch(Exception e) {
-            future.fail(e);
+        try {
+          Reserve reserve = reserveRes.result();
+          List<Future> futureList = new ArrayList<>();
+          Future<JsonObject> tempLocationFuture = lookupLocation(
+              reserve.getCopiedItem().getTemporaryLocationId(), okapiHeaders, context);
+          Future<JsonObject> permLocationFuture = lookupLocation(
+              reserve.getCopiedItem().getPermanentLocationId(), okapiHeaders, context);
+          Future<Processingstatus> processingStatusFuture;
+          if(reserve.getProcessingStatusId() != null) {
+            processingStatusFuture = lookupProcessingStatus(
+              reserve.getProcessingStatusId(), okapiHeaders, context);
+          } else {
+            processingStatusFuture = Future.failedFuture("No processing status id");
           }
-        });
+
+          Future<Copyrightstatus> copyrightStatusFuture;
+          if(reserve.getCopyrightTracking() != null) {
+            copyrightStatusFuture = lookupCopyrightStatus(
+            reserve.getCopyrightTracking().getCopyrightStatusId(), okapiHeaders,
+                context);
+          } else {
+            copyrightStatusFuture = Future.failedFuture("No copyright tracking object");
+          }
+          Future<JsonObject> loanTypeFuture;
+          if(reserve.getTemporaryLoanTypeId() != null) {
+            loanTypeFuture = lookupLoanType(reserve.getTemporaryLoanTypeId(),
+                okapiHeaders, context);
+          } else {
+            loanTypeFuture = Future.failedFuture("No tempory loan type id");
+          }
+          futureList.add(tempLocationFuture);
+          futureList.add(permLocationFuture);
+          futureList.add(processingStatusFuture);
+          futureList.add(copyrightStatusFuture);
+          futureList.add(loanTypeFuture);
+          CompositeFuture compositeFuture = CompositeFuture.join(futureList);
+          compositeFuture.setHandler(compRes -> {
+            try {
+              if(tempLocationFuture.succeeded()) {
+                reserve.getCopiedItem().setTemporaryLocationObject(
+                    temporaryLocationObjectFromJson(tempLocationFuture.result()));
+              } else {
+                logger.info("TemporaryLocationObject lookup failed "
+                    + tempLocationFuture.cause().getLocalizedMessage());
+              }
+              if(permLocationFuture.succeeded()) {
+                reserve.getCopiedItem().setPermanentLocationObject(
+                    temporaryLocationObjectFromJson(permLocationFuture.result()));
+              } else {
+                logger.info("PermanentLocationObject lookup failed "
+                    + permLocationFuture.cause().getLocalizedMessage());
+              }
+              if(processingStatusFuture.succeeded()) {
+                ProcessingStatusObject pso = new ProcessingStatusObject();
+                copyFields(pso, processingStatusFuture.result());
+                reserve.setProcessingStatusObject(pso);
+              }
+              if(copyrightStatusFuture.succeeded()) {
+                CopyrightStatusObject cso = new CopyrightStatusObject();
+                copyFields(cso, copyrightStatusFuture.result());
+                reserve.getCopyrightTracking().setCopyrightStatusObject(cso);
+              }
+              if(loanTypeFuture.succeeded()) {
+                TemporaryLoanTypeObject tlto = temporaryLoanTypeObjectFromJson(
+                    loanTypeFuture.result());
+                reserve.setTemporaryLoanTypeObject(tlto);
+              }
+              future.complete(reserve);
+            } catch(Exception e) {
+              future.fail(e);
+            }
+          });
+        } catch(Exception e) {
+          future.fail(e);
+        }
       }
     });
     return future;
@@ -483,6 +544,30 @@ public class CRUtil {
       }
     }
   }
+
+  public static void copyFields(Object destinationPojo, Object sourcePojo) {
+    if(destinationPojo == null || sourcePojo == null) {
+      return;
+    }
+    Method[] destinationMethods = destinationPojo.getClass().getMethods();
+    String patternString = "set(.+)";
+    Pattern pattern = Pattern.compile(patternString);
+    for(Method method : destinationMethods) {
+      String name = method.getName();
+      Matcher matcher = pattern.matcher(name);
+      if(!matcher.find()) {
+        continue;
+      }
+      String methodPart = matcher.group(1);
+      String getName = "get" + methodPart;
+      try {
+        Method getMethod = sourcePojo.getClass().getMethod(getName);
+        method.invoke(destinationPojo, getMethod.invoke(sourcePojo));
+      } catch(Exception e) {
+        logger.error(e.getLocalizedMessage());
+      }
+    }
+  }
   
   public static Future<JsonObject> lookupLocation(String locationId,
       Map<String, String> okapiHeaders, Context context) {
@@ -498,6 +583,25 @@ public class CRUtil {
         logger.debug("Location request succeeded");
         JsonObject locationJson = locationRes.result();
         future.complete(locationJson);
+      }
+    });
+    return future;
+  }
+
+  public static Future<JsonObject> lookupLoanType(String loanTypeId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<JsonObject> future = Future.future();
+    String loanTypePath = loanTypesEndpoint + "/" + loanTypeId;
+    logger.debug("Making request for location at " + loanTypePath);
+    makeOkapiRequest(context.owner(), okapiHeaders, loanTypePath, HttpMethod.GET,
+        null, null, 200).setHandler(loanTypeRes-> {
+      if(loanTypeRes.failed()) {
+        logger.error("Loan type request failed");
+        future.fail(loanTypeRes.cause());
+      } else {
+        logger.debug("Loan type request succeeded");
+        JsonObject loanTypeJson = loanTypeRes.result();
+        future.complete(loanTypeJson);
       }
     });
     return future;
@@ -598,7 +702,41 @@ public class CRUtil {
     return future;
   }
 
+  public static Future<Processingstatus> lookupProcessingStatus(String processingStatusId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<Processingstatus> future = Future.future();
+    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    postgresClient.getById(PROCESSING_STATUSES_TABLE, processingStatusId,
+        Processingstatus.class,
+        reply -> {
+      if(reply.failed()) {
+        future.fail(reply.cause());
+      } else if(reply.result() == null) {
+        future.complete(null);
+      } else {
+        future.complete(reply.result());
+      }
+    });
+    return future;
+  }
 
+  public static Future<Copyrightstatus> lookupCopyrightStatus(String copyrightStatusId,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<Copyrightstatus> future = Future.future();
+    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    postgresClient.getById(COPYRIGHT_STATUSES_TABLE, copyrightStatusId,
+        Copyrightstatus.class,
+        reply -> {
+      if(reply.failed()) {
+        future.fail(reply.cause());
+      } else if(reply.result() == null) {
+        future.complete(null);
+      } else {
+        future.complete(reply.result());
+      }
+    });
+    return future;
+  }
   public static Future<List<Course>> expandListOfCourses(List<Course> listOfCourses,
       Map<String, String> okapiHeaders, Context context) {
     Future<List<Course>> future = Future.future();
@@ -714,7 +852,26 @@ public class CRUtil {
     courseTypeObject.setName(coursetype.getName());
     return courseTypeObject;
   }
+
+  private static ProcessingStatusObject processingStatusObjectFromProcessingStatus(
+      Processingstatus processingStatus) {
+    ProcessingStatusObject pso = new ProcessingStatusObject();
+    pso.setId(processingStatus.getId());
+    pso.setDescription(processingStatus.getDescription());
+    pso.setName(processingStatus.getName());
+    return pso;
+  }
   
+  private static CopyrightStatusObject copyrightStatusObjectFromCopyrightStatus(
+    Copyrightstatus copyrightStatus) {
+    CopyrightStatusObject cso = new CopyrightStatusObject();
+    cso.setDescription(copyrightStatus.getDescription());
+    cso.setId(copyrightStatus.getId());
+    cso.setName(copyrightStatus.getName());
+    return cso;
+  }
+
+
   private static LocationObject locationObjectFromJson(JsonObject json) {
     if(json == null) {
       return null;
@@ -743,6 +900,13 @@ public class CRUtil {
       return null;
     }
     return locationObject;
+  }
+
+  private static TemporaryLoanTypeObject temporaryLoanTypeObjectFromJson(JsonObject json) {
+    TemporaryLoanTypeObject tlto = new TemporaryLoanTypeObject();
+    tlto.setId(json.getString("id"));
+    tlto.setName(json.getString("name"));
+    return tlto;
   }
   
   private static ServicepointObject servicepointObjectFromJson(JsonObject json) {
