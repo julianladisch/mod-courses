@@ -1186,6 +1186,16 @@ public class CourseAPITest {
               "Get from " + getUrl);
         })
         .compose(f -> {
+          String getManyUrl = postUrl;
+          return TestUtil.doRequest(vertx, getManyUrl, GET, standardHeaders, null, 200,
+              "Get from " + getManyUrl);
+        })
+        .compose(f -> {
+          String getManyQueryUrl = postUrl + "?query=cql.allRecords=1";
+          return TestUtil.doRequest(vertx, postUrl, GET, standardHeaders, null, 200,
+              "Get from " + getManyQueryUrl);
+        })
+        .compose(f -> {
           return TestUtil.doRequest(vertx, putUrl, PUT, acceptTextHeaders,
               modifiedJson.encode(), 204, "Put to " + putUrl);
         })
