@@ -1,19 +1,18 @@
-package UnitTest;
+package org.folio.coursereserves.util;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.folio.coursereserves.util.CRUtil;
-import org.folio.coursereserves.util.PopulateMapping;
-import org.folio.coursereserves.util.PopulateMapping.ImportType;
 import org.folio.rest.jaxrs.model.LocationObject;
+import org.folio.rest.jaxrs.model.TemporaryLocationObject;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 import org.junit.Test;
 
-public class UnitTest {
-  
+public class UtilTest {
+
   @Test
   public void testPojoFromJson() throws Exception {
     LocationObject locationObject = new LocationObject();
@@ -31,13 +30,33 @@ public class UnitTest {
     List<PopulateMapping> mapList = new ArrayList<>();
     mapList.add(new PopulateMapping("id"));
     mapList.add(new PopulateMapping("name"));
-    mapList.add(new PopulateMapping("isActive", ImportType.BOOLEAN));
-    mapList.add(new PopulateMapping("servicePointIds", ImportType.STRINGLIST));
+    mapList.add(new PopulateMapping("isActive", PopulateMapping.ImportType.BOOLEAN));
+    mapList.add(new PopulateMapping("servicePointIds", PopulateMapping.ImportType.STRINGLIST));
     CRUtil.populatePojoFromJson(locationObject, json, mapList);
     assertTrue(locationObject.getName().equals(name));
     assertTrue(locationObject.getId().equals(id));
     assertTrue(locationObject.getIsActive());
     assertTrue(locationObject.getServicePointIds().size() == 3);
   }
-  
+
+  @Test
+  public void testCopyFields() {
+    TemporaryLocationObject tempLocationObject = new TemporaryLocationObject();
+    LocationObject locationObject = new LocationObject();
+    locationObject.setId(UUID.randomUUID().toString());
+    locationObject.setName("Big Library");
+    locationObject.setIsActive(Boolean.TRUE);
+    CRUtil.copyFields(tempLocationObject, locationObject);
+    assertTrue(tempLocationObject.getId().equals(locationObject.getId()));
+    assertTrue(tempLocationObject.getName().equals(locationObject.getName()));
+    assertTrue(tempLocationObject.getIsActive().equals(locationObject.getIsActive()));
+  }
+
+  @Test
+  public void testNullCopyFields() {
+    TemporaryLocationObject tempLocationObject = new TemporaryLocationObject();
+    CRUtil.copyFields(tempLocationObject, null);
+    assertNull(tempLocationObject.getId());
+  }
+
 }

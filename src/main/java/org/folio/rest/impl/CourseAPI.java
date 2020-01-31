@@ -9,8 +9,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.logging.Level;
 import javax.ws.rs.core.Response;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.cql2pgjson.CQL2PgJSON;
@@ -19,7 +17,6 @@ import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.Copyrightstatus;
 import org.folio.rest.jaxrs.model.Copyrightstatuses;
 import org.folio.rest.jaxrs.model.Course;
-import org.folio.rest.jaxrs.model.CourseListingObject;
 import org.folio.rest.jaxrs.model.Courselisting;
 import org.folio.rest.jaxrs.model.Courselistings;
 import org.folio.rest.jaxrs.model.Courses;
@@ -76,38 +73,42 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public static final String ROLES_PREFIX = "/roles";
   public static final String ID_FIELD = "'id'";
   
-  public static boolean SUPPRESS_ERRORS = false;
+  private static boolean SUPPRESS_ERRORS = false;
   
   PostgresClient getPGClient(Context vertxContext, String tenantId) {
     return PostgresClient.getInstance(vertxContext.owner(), tenantId);
   }
 
-  private String getErrorResponse(String response) {
+  protected static void setSuppressErrors(boolean suppress) {
+    SUPPRESS_ERRORS = suppress;
+  }
+
+  protected static String getErrorResponse(String response) {
     if(!SUPPRESS_ERRORS) {
       return response;
     }
     return "An error occurred";
   }
 
-  private String logAndSaveError(Throwable err) {
+  protected String logAndSaveError(Throwable err) {
     String message = err.getLocalizedMessage();
     logger.error(message, err);
     return message;
   }
 
-  private String getTenant(Map<String, String> headers)  {
+  protected String getTenant(Map<String, String> headers)  {
     return TenantTool.calculateTenantId(headers.get(
             RestVerticle.OKAPI_HEADER_TENANT));
   }
 
-  private CQLWrapper getCQL(String query, int limit, int offset,
+  protected CQLWrapper getCQL(String query, int limit, int offset,
           String tableName) throws FieldException {
     CQL2PgJSON cql2pgJson = new CQL2PgJSON(tableName + ".jsonb");
     return new CQLWrapper(cql2pgJson, query).setLimit(new Limit(limit))
             .setOffset(new Offset(offset));
   }
 
-  private boolean isDuplicate(String errorMessage){
+  protected static boolean isDuplicate(String errorMessage){
     if(errorMessage != null && errorMessage.contains(
             "duplicate key value violates unique constraint")){
       return true;
@@ -115,7 +116,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     return false;
   }
 
-  private boolean isCQLError(Throwable err) {
+  protected static boolean isCQLError(Throwable err) {
     if(err.getCause() != null && err.getCause().getClass().getSimpleName()
             .endsWith("CQLParseException")) {
       return true;
@@ -463,21 +464,19 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         } else {
           getCopiedItemsFuture = Future.succeededFuture();
         }
-        getCopiedItemsFuture.setHandler(copyItemsRes->{
+        getCopiedItemsFuture.setHandler(copyItemsRes-> {
           if(copyItemsRes.failed()) {
-            String message = logAndSaveError(copyItemsRes.cause());
-            PostCoursereservesCourselistingsReservesByListingIdResponse
-                .respond500WithTextPlain(getErrorResponse(message));
-          } else {
-            PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
-              PostCoursereservesCourselistingsReservesByListingIdResponse.class,
-              asyncResultHandler);
+            String message = logAndSaveError(copyItemsRes.cause());      
           }
+          PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
+            PostCoursereservesCourselistingsReservesByListingIdResponse.class,
+            asyncResultHandler);
         }); 
       } catch(Exception e) {
         String message = logAndSaveError(e);
-        PostCoursereservesCourselistingsReservesByListingIdResponse
-            .respond500WithTextPlain(getErrorResponse(message));
+        asyncResultHandler.handle(Future.succeededFuture(
+            PostCoursereservesCourselistingsReservesByListingIdResponse
+            .respond500WithTextPlain(getErrorResponse(message))));
       }
     }
   }
@@ -492,7 +491,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         final String DELETE_ALL_QUERY = String.format(
             "DELETE FROM %s_%s.%s WHERE jsonb->>'courseListingId' = '%s'",
                 tenantId, "mod_courses", RESERVES_TABLE, listingId);
-        logger.info(String.format("Deleting all courses with query %s",
+        logger.info(String.format("Deleting all reserves with query %s",
                 DELETE_ALL_QUERY));
         pgClient.execute(DELETE_ALL_QUERY, mutateReply -> {
           if(mutateReply.failed()) {
@@ -521,10 +520,28 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String reserveId, String lang,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    PgUtil.getById(RESERVES_TABLE, Reserve.class, reserveId, okapiHeaders,
-        vertxContext,
-        GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
-        asyncResultHandler);
+
+    try {
+    CRUtil.lookupExpandedReserve(reserveId, okapiHeaders, vertxContext, true)
+        .setHandler(res -> {
+      if(res.failed()) {
+        String message = logAndSaveError(res.cause());
+        asyncResultHandler.handle(Future.succeededFuture(
+            GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse
+            .respond500WithTextPlain(getErrorResponse(message))));
+      } else {
+        asyncResultHandler.handle(Future.succeededFuture(
+            GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse
+            .respond200WithApplicationJson(res.result())));
+      }
+    });
+    } catch(Exception e) {
+       String message = logAndSaveError(e);
+        asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse
+              .respond500WithTextPlain(
+          getErrorResponse(message))));
+    }
   }
 
   @Override

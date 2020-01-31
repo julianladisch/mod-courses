@@ -55,6 +55,7 @@ public class OkapiMock extends AbstractVerticle {
   public static String institution1Id = UUID.randomUUID().toString();
   public static String campus1Id = UUID.randomUUID().toString();
   public static String staffSlip1Id = UUID.randomUUID().toString();
+  public static String loanType1Id = UUID.randomUUID().toString();
 
   private static Map<String, JsonObject> userMap = new HashMap<>();
   private static Map<String, JsonObject> groupMap = new HashMap<>();
@@ -63,6 +64,7 @@ public class OkapiMock extends AbstractVerticle {
   private static Map<String, JsonObject> instanceMap = new HashMap<>();
   private static Map<String, JsonObject> locationMap = new HashMap<>();
   private static Map<String, JsonObject> servicePointMap = new HashMap<>();
+  private static Map<String, JsonObject> loanTypeMap = new HashMap<>();
 
   public void start(Future<Void> future) {
     final String defaultPort = context.config().getInteger("port", 9130).toString();
@@ -82,6 +84,7 @@ public class OkapiMock extends AbstractVerticle {
     router.route("/instance-storage/instances/:id").handler(this::handleInstances);
     router.route("/locations/:id").handler(this::handleLocations);
     router.route("/service-points/:id").handler(this::handleServicePoints);
+    router.route("/loan-types/:id").handler(this::handleLoanTypes);
 
     logger.info("Running OkapiMock on port " + port);
     server.requestHandler(router::accept).listen(port, result -> {
@@ -245,7 +248,7 @@ public class OkapiMock extends AbstractVerticle {
    }
    
    private void handleServicePoints(RoutingContext context) {
-     logger.info("Got service poins request");
+     logger.info("Got service points request");
      String id = context.request().getParam("id");
      if(context.request().method() == HttpMethod.GET) {
         if(id == null) {
@@ -256,6 +259,32 @@ public class OkapiMock extends AbstractVerticle {
         } else {
           if(servicePointMap.containsKey(id)) {
             context.response().setStatusCode(200).end(servicePointMap.get(id).encode());
+            return;
+          } else {
+            context.response().setStatusCode(404).end("id '" + id + "' not found");
+          }
+        }
+      } else {
+        String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
+        context.response().setStatusCode(400)
+          .end(message);
+        return;
+      }
+   }
+
+   private void handleLoanTypes(RoutingContext context) {
+     logger.info("Got loan types request");
+     String id = context.request().getParam("id");
+     if(context.request().method() == HttpMethod.GET) {
+        if(id == null) {
+          String message = String.format("List retrieval currently unsupported");
+          context.response().setStatusCode(400)
+          .end(message);
+          return;
+        } else {
+          if(loanTypeMap.containsKey(id)) {
+            context.response().setStatusCode(200).end(loanTypeMap.get(id).encode());
             return;
           } else {
             context.response().setStatusCode(404).end("id '" + id + "' not found");
@@ -389,6 +418,22 @@ public class OkapiMock extends AbstractVerticle {
           .add(servicePoint3Id)
         )        
     );
+
+    locationMap.put(location2Id, new JsonObject()
+      .put("id", location2Id)
+      .put("name", "Location 2")
+      .put("discoveryDisplayName", "The Mightly Location Two")
+      .put("isActive", true)
+      .put("code", "loc2")
+      .put("institutionId", institution1Id)
+      .put("campusId", campus1Id)
+      .put("libraryId", library1Id)
+      .put("primaryServicePoint", servicePoint2Id)
+      .put("servicePointIds", new JsonArray()
+          .add(servicePoint2Id)
+          .add(servicePoint3Id)
+        )
+    );
     
     //TODO: Populate Service Points
     servicePointMap
@@ -463,6 +508,11 @@ public class OkapiMock extends AbstractVerticle {
           .put("printByDefault", true)
         )
       )
+    );
+
+    loanTypeMap.put(loanType1Id, new JsonObject()
+      .put("id", loanType1Id)
+      .put("name", "Reserved Loan")
     );
         
   }
