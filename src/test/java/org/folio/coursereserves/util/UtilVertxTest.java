@@ -54,4 +54,41 @@ public class UtilVertxTest {
     }
   }
 
+  @Test
+  public void TestPopulateReserveWithFailedFutures(TestContext context) {
+    Async async = context.async();
+    try {
+      Reserve reserve = new Reserve();
+      CopyrightTracking ct = new CopyrightTracking();
+      reserve.setCopyrightTracking(ct);
+      CopiedItem ci = new CopiedItem();
+      reserve.setCopiedItem(ci);
+      reserve.setId(UUID.randomUUID().toString());
+      Future<JsonObject> tempLocationFuture =
+          Future.failedFuture("Failed location");
+      Future<JsonObject> permLocationFuture =
+          Future.failedFuture("Failed location");
+      Processingstatus ps = new Processingstatus();
+      ps.setId(UUID.randomUUID().toString());
+      Future<Processingstatus> processingStatusFuture = Future.failedFuture("Failed status");
+      Copyrightstatus cs = new Copyrightstatus();
+      cs.setId(UUID.randomUUID().toString());
+      Future<Copyrightstatus> copyrightStatusFuture = Future.failedFuture("Failed status");
+      Future<JsonObject> loanTypeFuture =
+          Future.failedFuture("Failed loantype");
+      CRUtil.populateReserve(reserve, tempLocationFuture, permLocationFuture,
+          processingStatusFuture, copyrightStatusFuture, loanTypeFuture)
+          .setHandler(res -> {
+        if(res.failed()) {
+          context.fail(res.cause());
+        } else {
+          async.complete();
+        }
+      });
+    } catch(Exception e) {
+      e.printStackTrace();
+      context.fail(e);
+    }
+  }
+
 }
