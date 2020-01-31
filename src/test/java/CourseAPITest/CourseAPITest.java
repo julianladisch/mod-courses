@@ -57,7 +57,7 @@ public class CourseAPITest {
   public final static String PROCESSING_STATUS_1_ID = UUID.randomUUID().toString();
   public static Map<String, String> okapiHeaders = new HashMap<>();
   public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
-  public static CaseInsensitiveHeaders deleteHeaders = new CaseInsensitiveHeaders();
+  public static CaseInsensitiveHeaders acceptTextHeaders = new CaseInsensitiveHeaders();
 
 
 
@@ -76,8 +76,8 @@ public class CourseAPITest {
     okapiHeaders.put("x-okapi-tenant", "diku");
     okapiHeaders.put("x-okapi-url", okapiUrl);
     standardHeaders.add("x-okapi-url", okapiUrl);
-    deleteHeaders.add("accept", "text/plain");
-    deleteHeaders.add("x-okapi-url", okapiUrl);
+    acceptTextHeaders.add("accept", "text/plain");
+    acceptTextHeaders.add("x-okapi-url", okapiUrl);
     vertx = Vertx.vertx();
     DeploymentOptions options = new DeploymentOptions()
         .setConfig(new JsonObject().put("http.port", port));
@@ -1094,6 +1094,85 @@ public class CourseAPITest {
       }
     });
   }
+
+    @Test
+  public void testInstructorsForCourseListing(TestContext context) {
+    Async async = context.async();
+    String instructorId = UUID.randomUUID().toString();
+    JsonObject instructorJson = new JsonObject()
+        .put("id", instructorId)
+        .put("name", "John Brown")
+        .put("courseListingId", COURSE_LISTING_1_ID);
+    JsonObject instructorModJson = new JsonObject()
+        .put("id", instructorId)
+        .put("name", "Johann Brown")
+        .put("courseListingId", COURSE_LISTING_1_ID);
+    String postUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID 
+        + "/instructors";
+    String getUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID 
+        + "/instructors/" + instructorId;
+    String putUrl = getUrl;
+    String deleteUrl = getUrl;
+    String deleteAllUrl = postUrl;
+    testPostGetPutDelete(instructorJson, instructorModJson, postUrl, getUrl,
+        putUrl, deleteUrl, deleteAllUrl).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
+
+  @Test
+  public void testProcessingStatuses(TestContext context) {
+    Async async = context.async();
+    String statusId = UUID.randomUUID().toString();
+    JsonObject statusJson = new JsonObject()
+        .put("id", statusId)
+        .put("name", "status1");
+    JsonObject statusModJson = new JsonObject()
+        .put("id", statusId)
+        .put("name", "status2");
+    String postUrl = baseUrl + "/processingstatuses";
+    String getUrl = baseUrl + "/processingstatuses/" + statusId;
+    String putUrl = getUrl;
+    String deleteUrl = getUrl;
+    String deleteAllUrl = postUrl;
+    testPostGetPutDelete(statusJson, statusModJson, postUrl, getUrl, putUrl, deleteUrl,
+        deleteAllUrl).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
+
+    @Test
+  public void testCopyrightStatuses(TestContext context) {
+    Async async = context.async();
+    String statusId = UUID.randomUUID().toString();
+    JsonObject statusJson = new JsonObject()
+        .put("id", statusId)
+        .put("name", "status1");
+    JsonObject statusModJson = new JsonObject()
+        .put("id", statusId)
+        .put("name", "status2");
+    String postUrl = baseUrl + "/processingstatuses";
+    String getUrl = baseUrl + "/processingstatuses/" + statusId;
+    String putUrl = getUrl;
+    String deleteUrl = getUrl;
+    String deleteAllUrl = postUrl;
+    testPostGetPutDelete(statusJson, statusModJson, postUrl, getUrl, putUrl, deleteUrl,
+        deleteAllUrl).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
   
   /* UTILITY CLASSES */
 
@@ -1107,11 +1186,11 @@ public class CourseAPITest {
               "Get from " + getUrl);
         })
         .compose(f -> {
-          return TestUtil.doRequest(vertx, putUrl, PUT, standardHeaders,
+          return TestUtil.doRequest(vertx, putUrl, PUT, acceptTextHeaders,
               modifiedJson.encode(), 204, "Put to " + putUrl);
         })
         .compose(f -> {
-          return TestUtil.doRequest(vertx, deleteUrl, DELETE, deleteHeaders, null,
+          return TestUtil.doRequest(vertx, deleteUrl, DELETE, acceptTextHeaders, null,
               204, "Delete at " + deleteUrl);
         })
         .compose(f -> {
@@ -1123,7 +1202,7 @@ public class CourseAPITest {
               originalJson.encode(), 201, "Post to " + postUrl);
         })
         .compose(f -> {
-          return TestUtil.doRequest(vertx, deleteUrl, DELETE, deleteHeaders, null,
+          return TestUtil.doRequest(vertx, deleteUrl, DELETE, acceptTextHeaders, null,
               204, "Delete all at " + deleteAllUrl);
         })
         .compose(f -> {
