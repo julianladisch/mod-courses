@@ -1095,7 +1095,7 @@ public class CourseAPITest {
     });
   }
 
-    @Test
+  @Test
   public void testInstructorsForCourseListing(TestContext context) {
     Async async = context.async();
     String instructorId = UUID.randomUUID().toString();
@@ -1149,7 +1149,7 @@ public class CourseAPITest {
     });
   }
 
-    @Test
+  @Test
   public void testCopyrightStatuses(TestContext context) {
     Async async = context.async();
     String statusId = UUID.randomUUID().toString();
@@ -1165,6 +1165,80 @@ public class CourseAPITest {
     String deleteUrl = getUrl;
     String deleteAllUrl = postUrl;
     testPostGetPutDelete(statusJson, statusModJson, postUrl, getUrl, putUrl, deleteUrl,
+        deleteAllUrl).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
+
+  public void testReservesForCourseListing(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reserveJson = new JsonObject()
+        .put("id", reserveId)
+        .put("itemId", OkapiMock.item1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyRightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+    JsonObject reserveModJson = new JsonObject()
+        .put("id", reserveId)
+        .put("itemId", OkapiMock.item1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyRightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-31T00:00:00Z");
+    String postUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
+        + "/reserves";
+    String getUrl = postUrl + "/" + reserveId;
+    String putUrl = getUrl;
+    String deleteUrl = getUrl;
+    String deleteAllUrl = postUrl;
+    testPostGetPutDelete(reserveJson, reserveModJson, postUrl, getUrl, putUrl, deleteUrl,
+        deleteAllUrl).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
+
+   public void testReservesForCourseListingWithBogusIds(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reserveJson = new JsonObject()
+        .put("id", reserveId)
+        .put("itemId", UUID.randomUUID().toString())
+        .put("processingStatusId", UUID.randomUUID().toString())
+        .put("temporaryLoanTypeId", UUID.randomUUID().toString())
+        .put("copyrightTracking", new JsonObject()
+          .put("copyRightStatusId", UUID.randomUUID().toString()))
+        .put("courseListingId", UUID.randomUUID().toString())
+        .put("startDate", "2020-01-01T00:00:00Z");
+    JsonObject reserveModJson = new JsonObject()
+        .put("id", reserveId)
+        .put("itemId", UUID.randomUUID().toString())
+        .put("processingStatusId", UUID.randomUUID().toString())
+        .put("temporaryLoanTypeId", UUID.randomUUID().toString())
+        .put("copyrightTracking", new JsonObject()
+          .put("copyRightStatusId", UUID.randomUUID().toString()))
+        .put("courseListingId", UUID.randomUUID().toString())
+        .put("startDate", "2019-01-01T00:00:00Z");
+    String postUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
+        + "/reserves";
+    String getUrl = postUrl + "/" + reserveId;
+    String putUrl = getUrl;
+    String deleteUrl = getUrl;
+    String deleteAllUrl = postUrl;
+    testPostGetPutDelete(reserveJson, reserveModJson, postUrl, getUrl, putUrl, deleteUrl,
         deleteAllUrl).setHandler(res -> {
       if(res.failed()) {
         context.fail(res.cause());

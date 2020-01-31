@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.folio.rest.jaxrs.model.LocationObject;
 import org.folio.rest.jaxrs.model.TemporaryLocationObject;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 import org.junit.Test;
 
 public class UtilTest {
@@ -49,6 +50,13 @@ public class UtilTest {
     assertTrue(tempLocationObject.getId().equals(locationObject.getId()));
     assertTrue(tempLocationObject.getName().equals(locationObject.getName()));
     assertTrue(tempLocationObject.getIsActive().equals(locationObject.getIsActive()));
+  }
+
+  @Test
+  public void testNullCopyFields() {
+    TemporaryLocationObject tempLocationObject = new TemporaryLocationObject();
+    CRUtil.copyFields(tempLocationObject, null);
+    assertNull(tempLocationObject.getId());
   }
 
 }
