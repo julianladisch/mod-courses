@@ -765,6 +765,28 @@ public class CourseAPITest {
       }
     });
   }
+
+  @Test
+  public void getItemByBarcode(TestContext context) {
+    Async async = context.async();
+    CRUtil.lookupItemByBarcode(OkapiMock.barcode1, okapiHeaders,
+        vertx.getOrCreateContext()).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        JsonObject result = res.result();
+        if(!result.getString("id").equals(OkapiMock.item1Id)) {
+          context.fail("Retrieved item does not match expect " + OkapiMock.item1Id);
+          return;
+        }
+        async.complete();
+        try {
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
   
   @Test
   public void loadAndRetrieveCourseListingWithLocation(TestContext context) {

@@ -65,9 +65,10 @@ public class CRUtil {
   public static final Logger logger = LoggerFactory.getLogger(
           CRUtil.class);
   
-  public static final String servicePointsEndpoint = "/service-points";
-  public static final String locationsEndpoint = "/locations";
-  public static final String loanTypesEndpoint = "/loan-types";
+  public static final String SERVICE_POINTS_ENDPOINT = "/service-points";
+  public static final String LOCATIONS_ENDPOINT = "/locations";
+  public static final String LOAN_TYPES_ENDPOINT = "/loan-types";
+  public static final String ITEMS_ENDPOINT = "/item-storage/items";
 
   protected static final List<PopulateMapping> LOCATION_MAP_LIST = getLocationMapList();
 
@@ -368,6 +369,36 @@ public class CRUtil {
     return future;
   }
 
+  public static Future<JsonObject> lookupItemByBarcode(String barcode,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<JsonObject> future = Future.future();
+    String itemRequestUrl = String.format("%s?query=barcode=%s", ITEMS_ENDPOINT,
+        barcode);
+    logger.debug("Looking up item by barcode with url " + itemRequestUrl);
+    makeOkapiRequest(context.owner(), okapiHeaders, itemRequestUrl, HttpMethod.GET,
+        null, null, 200).setHandler(itemQueryRes -> {
+      if(itemQueryRes.failed()) {
+        future.fail(itemQueryRes.cause());
+      } else {
+        try {
+          JsonObject itemsResultJson = itemQueryRes.result();
+          if(itemsResultJson.getInteger("totalRecords") > 1) {
+            future.fail(String.format("Expected 0 results for barcode %s, got multiple",
+                barcode));
+          } else if(itemsResultJson.getInteger("totalRecords") < 1) {
+            future.complete(null);
+          } else {
+            JsonObject itemJson = itemsResultJson.getJsonArray("items").getJsonObject(0);
+            future.complete(itemJson);
+          }
+        } catch(Exception e) {
+          future.fail(e);
+        }
+      }
+    });
+    return future;
+  }
+
   public static Future<Void> populateReserve(Reserve reserve, Future<JsonObject> tempLocationFuture,
       Future<JsonObject> permLocationFuture, Future<Processingstatus> processingStatusFuture,
       Future<Copyrightstatus> copyrightStatusFuture, Future<JsonObject> loanTypeFuture) {
@@ -591,7 +622,7 @@ public class CRUtil {
   public static Future<JsonObject> lookupLocation(String locationId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
-    String locationPath = locationsEndpoint + "/" + locationId;
+    String locationPath = LOCATIONS_ENDPOINT + "/" + locationId;
     logger.debug("Making request for location at " + locationPath);
     makeOkapiRequest(context.owner(), okapiHeaders, locationPath, HttpMethod.GET,
         null, null, 200).setHandler(locationRes-> {
@@ -610,7 +641,7 @@ public class CRUtil {
   public static Future<JsonObject> lookupLoanType(String loanTypeId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
-    String loanTypePath = loanTypesEndpoint + "/" + loanTypeId;
+    String loanTypePath = LOAN_TYPES_ENDPOINT + "/" + loanTypeId;
     logger.debug("Making request for location at " + loanTypePath);
     makeOkapiRequest(context.owner(), okapiHeaders, loanTypePath, HttpMethod.GET,
         null, null, 200).setHandler(loanTypeRes-> {
@@ -629,7 +660,7 @@ public class CRUtil {
   public static Future<JsonObject> lookupServicepoint(String servicepointId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
-    String servicePointPath = servicePointsEndpoint + "/" + servicepointId;
+    String servicePointPath = SERVICE_POINTS_ENDPOINT + "/" + servicepointId;
     logger.debug("Making request for servicepoint at " + servicePointPath);
     makeOkapiRequest(context.owner(), okapiHeaders, servicePointPath,
         HttpMethod.GET, null, null, 200).setHandler(spRes -> {
