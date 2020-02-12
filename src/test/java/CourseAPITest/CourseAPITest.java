@@ -615,6 +615,131 @@ public class CourseAPITest {
   }
 
   @Test
+  public void postReserveToCourseListingWithBarcode(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID)
+        )
+        .put("copiedItem", new JsonObject()
+          .put("barcode", OkapiMock.barcode1)
+        );
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").setHandler(res -> {
+      if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+        JsonObject reserveJson = null;
+        try {
+          logger.info("Post successful, checking results");
+          reserveJson = res.result().getJson();
+          if(!reserveJson.containsKey("copiedItem") ||
+              reserveJson.getJsonObject("copiedItem") == null) {
+            context.fail("No copiedItem field found");
+            return;
+          }
+          if(reserveJson.getString("itemId") == null
+              || !reserveJson.getString("itemId").equals(OkapiMock.item1Id)) {
+            context.fail("Expected item id " + OkapiMock.item1Id + " got " +
+                reserveJson.getString("itemId"));
+          }
+          JsonObject copiedItemJson = reserveJson.getJsonObject("copiedItem");
+         
+          if(! copiedItemJson.getString("barcode").equals(OkapiMock.barcode1)) {
+            context.fail("Expected barcode " + OkapiMock.barcode1 + " got " +
+                copiedItemJson.getString("barcode"));
+            return;
+          }
+          if(copiedItemJson.getString("title") == null ||
+              !copiedItemJson.getString("title").equals(OkapiMock.title1)) {
+            context.fail("Expected title" + OkapiMock.title1 + " got " +
+                copiedItemJson.getString("title"));
+            return;
+          }
+          if(copiedItemJson.getString("temporaryLocationId") == null
+             || !copiedItemJson.getString("temporaryLocationId").equals(OkapiMock.location2Id)) {
+            context.fail("Expected temporaryLocationId" + OkapiMock.location2Id + " got " +
+                copiedItemJson.getString("temporaryLocationId"));
+            return;
+          }
+          if(copiedItemJson.getString("copy") == null || ! copiedItemJson.getString("copy").equals(OkapiMock.copy1)) {
+            context.fail("Expected copy " + OkapiMock.copy1 + " got " +
+                copiedItemJson.getString("copy"));
+            return;
+          }
+        } catch(Exception e) {
+          context.fail(e);
+          return;
+        }
+
+        logger.info("Requesting new reserve to test populated values");
+
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" +
+            COURSE_LISTING_1_ID + "/reserves/" + reserveJson.getString("id"),
+            GET, standardHeaders, null, 200, "Get Posted Reserve").setHandler(getRes -> {
+              if(getRes.failed()) {
+                context.fail(getRes.cause());
+              } else {
+                JsonObject getReserveJson = getRes.result().getJson();
+                JsonObject getItemJson = getReserveJson.getJsonObject("copiedItem");
+                JsonObject permanentLocationJson = getItemJson.getJsonObject("permanentLocationObject");
+                JsonObject temporaryLocationJson = getItemJson.getJsonObject("temporaryLocationObject");
+                JsonObject temporaryLoanTypeJson = getReserveJson.getJsonObject("temporaryLoanTypeObject");
+                JsonObject copyrightTrackingJson = getReserveJson.getJsonObject("copyrightTracking");
+                JsonObject processingStatusJson = getReserveJson.getJsonObject("processingStatusObject");
+                if(permanentLocationJson == null || temporaryLocationJson == null ) {
+                  context.fail("Null result for permanent or temporary location object");
+                  return;
+                }
+                if(!permanentLocationJson.getString("id").equals(OkapiMock.location1Id)) {
+                  context.fail("Expected permanentLocationObject with id " + OkapiMock.location1Id);
+                  return;
+                }
+                if(!temporaryLocationJson.getString("id").equals(OkapiMock.location2Id)) {
+                  context.fail("Expected temporaryLocationObject with id " + OkapiMock.location2Id);
+                  return;
+                }
+                if(temporaryLoanTypeJson == null) {
+                  context.fail("No temporaryLoanTypeObject found in result");
+                  return;
+                }
+                if(!temporaryLoanTypeJson.getString("id").equals(OkapiMock.loanType1Id)) {
+                  context.fail("Retrieved loan type id does not match existing");
+                  return;
+                }
+                if(copyrightTrackingJson == null) {
+                  context.fail("No copyrightTracking object found in result");
+                  return;
+                }
+                JsonObject copyrightStatusJson = copyrightTrackingJson.getJsonObject("copyrightStatusObject");
+                if(copyrightStatusJson == null) {
+                  context.fail("No copyrightStatus object found in result");
+                  return;
+                }
+                if(copyrightStatusJson.getString("id") == null || !copyrightStatusJson.getString("id").equals(COPYRIGHT_STATUS_1_ID)) {
+                  context.fail("Retrieved copyright status id does not match existing");
+                  return;
+                }
+                if(processingStatusJson == null) {
+                  context.fail("No copyrightStatus object found in result");
+                  return;
+                }
+                if(processingStatusJson.getString("id") == null || !processingStatusJson.getString("id").equals(PROCESSING_STATUS_1_ID)) {
+                  context.fail("Retrieved processing status id does not match existing");
+                  return;
+                }
+              }
+              async.complete();
+            });
+      }
+    });
+  }
+
+  @Test
   public void postReserveToCourseListingWithBogusItem(TestContext context) {
     Async async = context.async();
     JsonObject reservePostJson = new JsonObject()

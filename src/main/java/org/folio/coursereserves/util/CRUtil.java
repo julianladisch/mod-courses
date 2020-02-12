@@ -93,83 +93,120 @@ public class CRUtil {
   public static Future<Void> populateReserveInventoryCache(Reserve reserve,
       Map<String, String> okapiHeaders, Context context) {
     Future<Void> future = Future.future();
+    Future<String> itemIdFuture;
     String itemId = reserve.getItemId();
-    logger.info("Looking up information for item " + itemId + " from inventory module");
-    lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders, context)
-        .setHandler(inventoryRes -> {
-      if(inventoryRes.failed()) {
-        logger.error("Unable to do inventory lookup: "
-            + inventoryRes.cause().getLocalizedMessage());
-        future.fail(inventoryRes.cause());
-      } else {
-        try {
-          JsonObject result = inventoryRes.result();
-          JsonObject itemJson = result.getJsonObject("item");
-          JsonObject holdingsJson = result.getJsonObject("holdings");
-          JsonObject instanceJson = result.getJsonObject("instance");
-          CopiedItem copiedItem = new CopiedItem();
-          copiedItem.setBarcode(itemJson.getString("barcode"));
-          copiedItem.setVolume(itemJson.getString("volume"));
-          copiedItem.setTitle(instanceJson.getString("title"));
-          copiedItem.setEnumeration(itemJson.getString("enumeration"));
-          try {
-            if(itemJson.containsKey("copyNumber")) {
-              copiedItem.setCopy(itemJson.getString("copyNumber"));
-            } else if(itemJson.containsKey("copyNumbers")) {
-              copiedItem.setCopy(itemJson.getJsonArray("copyNumbers").getString(0));
-            }
-          } catch(Exception e) {
-            logger.info("Unable to copy copyNumber(s) field from item: " + e.getLocalizedMessage());
+    if(itemId != null) {
+      itemIdFuture = Future.succeededFuture(itemId);
+    } else if(reserve.getCopiedItem() != null && reserve.getCopiedItem().getBarcode() != null) {
+      itemIdFuture = Future.future();
+      String barcode = reserve.getCopiedItem().getBarcode();
+      lookupItemByBarcode(barcode, okapiHeaders, context)
+          .setHandler(itemLookupRes -> {
+        if(itemLookupRes.failed()) {
+          itemIdFuture.fail(itemLookupRes.cause());
+        } else {
+          if(itemLookupRes.result() != null) {
+            itemIdFuture.complete(itemLookupRes.result().getString("id"));
+          } else {
+            itemIdFuture.fail("No item found for barcode " + barcode);
           }
-          try {
-            JsonObject eAJson = itemJson.getJsonArray("electronicAccess").getJsonObject(0);
-            copiedItem.setUri(eAJson.getString("uri"));
-            copiedItem.setUrl(eAJson.getString("publicNote"));
-          } catch(Exception e) {
-            logger.info("Unable to copy electronic access field from item: " + e.getLocalizedMessage());
-          }
-          copiedItem.setPermanentLocationId(holdingsJson.getString("permanentLocationId"));
-          copiedItem.setTemporaryLocationId(holdingsJson.getString("temporaryLocationId"));
-          copiedItem.setCallNumber(holdingsJson.getString("callNumber"));
-          JsonArray contributors = instanceJson.getJsonArray("contributors");
-          if(contributors != null && contributors.size() > 0) {
-            List<Contributor> contributorList = new ArrayList<>();
-            for(int i = 0; i < contributors.size(); i++) {
-              JsonObject contributorJson = contributors.getJsonObject(i);
-              Contributor contributor = new Contributor();
-              contributor.setContributorNameTypeId(contributorJson.getString("contributorNameTypeId"));
-              contributor.setContributorTypeId(contributorJson.getString("contributorTypeId"));
-              contributor.setContributorTypeText(contributorJson.getString("contributorTypeText"));
-              contributor.setName(contributorJson.getString("name"));
-              contributor.setPrimary(contributorJson.getBoolean("primary"));
-              contributorList.add(contributor);
-            }
-            copiedItem.setContributors(contributorList);
-          }
-
-          JsonArray publishers = instanceJson.getJsonArray("publication");
-          if(publishers != null && publishers.size() > 0) {
-            List<Publication> publisherList = new ArrayList<>();
-            for(int i = 0; i < publishers.size(); i++) {
-              JsonObject publisherJson = publishers.getJsonObject(i);
-              Publication publication = new Publication();
-              publication.setPlace(publisherJson.getString("place"));
-              publication.setPublisher(publisherJson.getString("publisher"));
-              publication.setDateOfPublication(publisherJson.getString("dateOfPublication"));
-              publication.setRole(publisherJson.getString("role"));
-              publisherList.add(publication);
-            }
-            copiedItem.setPublication(publisherList);
-          }
-
-          reserve.setCopiedItem(copiedItem);
-          future.complete();
-        } catch(Exception e) {
-          future.fail(e);
         }
+      });
+    } else {
+      future.fail("Must provide item id or item barcode to populate copied items");
+      return future;
+    }
+    itemIdFuture.setHandler(itemIdRes -> {
+      if(itemIdRes.failed()) {
+        logger.error("Failed to get item id " + itemIdRes.cause().getLocalizedMessage());
+        future.fail(itemIdRes.cause());
+      } else {
+        reserve.setItemId(itemIdRes.result());
+        String retrievedItemId = itemIdRes.result();
+        logger.info("Looking up information for item " + retrievedItemId
+            + " from inventory module");
+        lookupItemHoldingsInstanceByItemId(retrievedItemId, okapiHeaders, context)
+            .setHandler(inventoryRes -> {
+          if(inventoryRes.failed()) {
+            logger.error("Unable to do inventory lookup: "
+                + inventoryRes.cause().getLocalizedMessage());
+            future.fail(inventoryRes.cause());
+          } else {
+            try {
+              logger.info("Attempting to populate copied items with inventory lookup for item id "
+                  + retrievedItemId);
+              populateReserveCopiedItemFromJson(reserve, inventoryRes.result());
+              future.complete();
+            } catch(Exception e) {
+              future.fail(e);
+            }
+          }
+        });
       }
     });
     return future;
+  }
+
+  public static void populateReserveCopiedItemFromJson(Reserve reserve, JsonObject json) {
+    JsonObject itemJson = json.getJsonObject("item");
+    JsonObject instanceJson = json.getJsonObject("instance");
+    JsonObject holdingsJson = json.getJsonObject("holdings");
+    CopiedItem copiedItem = new CopiedItem();
+    copiedItem.setBarcode(itemJson.getString("barcode"));
+    copiedItem.setVolume(itemJson.getString("volume"));
+    copiedItem.setTitle(instanceJson.getString("title"));
+    copiedItem.setEnumeration(itemJson.getString("enumeration"));
+    try {
+      if (itemJson.containsKey("copyNumber")) {
+        copiedItem.setCopy(itemJson.getString("copyNumber"));
+      } else if (itemJson.containsKey("copyNumbers")) {
+        copiedItem.setCopy(itemJson.getJsonArray("copyNumbers").getString(0));
+      }
+    } catch (Exception e) {
+      logger.info("Unable to copy copyNumber(s) field from item: " + e.getLocalizedMessage());
+    }
+    try {
+      JsonObject eAJson = itemJson.getJsonArray("electronicAccess").getJsonObject(0);
+      copiedItem.setUri(eAJson.getString("uri"));
+      copiedItem.setUrl(eAJson.getString("publicNote"));
+    } catch(Exception e) {
+      logger.info("Unable to copy electronic access field from item: " + e.getLocalizedMessage());
+    }
+    copiedItem.setPermanentLocationId(holdingsJson.getString("permanentLocationId"));
+    copiedItem.setTemporaryLocationId(holdingsJson.getString("temporaryLocationId"));
+    copiedItem.setCallNumber(holdingsJson.getString("callNumber"));
+    JsonArray contributors = instanceJson.getJsonArray("contributors");
+    if(contributors != null && contributors.size() > 0) {
+      List<Contributor> contributorList = new ArrayList<>();
+      for(int i = 0; i < contributors.size(); i++) {
+        JsonObject contributorJson = contributors.getJsonObject(i);
+        Contributor contributor = new Contributor();
+        contributor.setContributorNameTypeId(contributorJson.getString("contributorNameTypeId"));
+        contributor.setContributorTypeId(contributorJson.getString("contributorTypeId"));
+        contributor.setContributorTypeText(contributorJson.getString("contributorTypeText"));
+        contributor.setName(contributorJson.getString("name"));
+        contributor.setPrimary(contributorJson.getBoolean("primary"));
+        contributorList.add(contributor);
+      }
+      copiedItem.setContributors(contributorList);
+    }
+
+    JsonArray publishers = instanceJson.getJsonArray("publication");
+    if(publishers != null && publishers.size() > 0) {
+      List<Publication> publisherList = new ArrayList<>();
+      for(int i = 0; i < publishers.size(); i++) {
+        JsonObject publisherJson = publishers.getJsonObject(i);
+        Publication publication = new Publication();
+        publication.setPlace(publisherJson.getString("place"));
+        publication.setPublisher(publisherJson.getString("publisher"));
+        publication.setDateOfPublication(publisherJson.getString("dateOfPublication"));
+        publication.setRole(publisherJson.getString("role"));
+        publisherList.add(publication);
+      }
+      copiedItem.setPublication(publisherList);
+    }
+
+    reserve.setCopiedItem(copiedItem);
   }
 
   public static Future<JsonObject> lookupItemHoldingsInstanceByItemId(String itemId,
