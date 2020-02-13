@@ -740,6 +740,95 @@ public class CourseAPITest {
   }
 
   @Test
+  public void postReserveToCourseListingWithBadBarcode(TestContext context) {
+    Async async = context.async();
+    String badBarcode = "123456";
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID)
+        )
+        .put("copiedItem", new JsonObject()
+          .put("barcode", badBarcode)
+        );
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").setHandler(res -> {
+      if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+        JsonObject reserveJson = null;
+        try {
+          logger.info("Post successful, checking results");
+          reserveJson = res.result().getJson();
+          if(!reserveJson.containsKey("copiedItem") ||
+              reserveJson.getJsonObject("copiedItem") == null) {
+            context.fail("No copiedItem field found");
+            return;
+          }
+          if(reserveJson.getString("itemId") != null ) {
+            context.fail("Expected null itemId");
+          }
+          JsonObject copiedItemJson = reserveJson.getJsonObject("copiedItem");
+
+          if(! copiedItemJson.getString("barcode").equals(badBarcode)) {
+            context.fail("Expected barcode " + badBarcode + " got " +
+                copiedItemJson.getString("barcode"));
+            return;
+          }
+          if(copiedItemJson.getString("title") != null ) {
+            context.fail("Expected null title");
+            return;
+          }
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+          return;
+        }
+      }
+    });
+  }
+
+  @Test
+  public void postReserveToCourseListingWithBadItem(TestContext context) {
+    Async async = context.async();
+    String badItemId = UUID.randomUUID().toString();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", badItemId)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID)
+        );
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").setHandler(res -> {
+      if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+        JsonObject reserveJson = null;
+        try {
+          logger.info("Post successful, checking results");
+          reserveJson = res.result().getJson();
+          if(reserveJson.containsKey("copiedItem") ||
+              reserveJson.getJsonObject("copiedItem") != null) {
+            context.fail("CopiedItem field should not be present");
+            return;
+          }
+
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+          return;
+        }
+      }
+    });
+  }
+
+  @Test
   public void postReserveToCourseListingWithBogusItem(TestContext context) {
     Async async = context.async();
     JsonObject reservePostJson = new JsonObject()
