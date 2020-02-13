@@ -201,7 +201,6 @@
         }
     },
     "required": [
-        "itemId",
         "courseListingId"
     ]
 }

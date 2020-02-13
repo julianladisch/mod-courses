@@ -14,6 +14,8 @@ import io.vertx.ext.web.handler.BodyHandler;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class OkapiMock extends AbstractVerticle {
@@ -80,6 +82,7 @@ public class OkapiMock extends AbstractVerticle {
     router.route("/users/:id").handler(this::handleUsers);
     router.route("/groups/:id").handler(this::handleGroups);
     router.route("/item-storage/items/:id").handler(this::handleItems);
+    router.route("/item-storage/items").handler(this::handleItems);
     router.route("/holdings-storage/holdings/:id").handler(this::handleHoldings);
     router.route("/instance-storage/instances/:id").handler(this::handleInstances);
     router.route("/locations/:id").handler(this::handleLocations);
@@ -146,29 +149,51 @@ public class OkapiMock extends AbstractVerticle {
       }
    }
    
-   private void handleItems(RoutingContext context) {
-     String id = context.request().getParam("id");
-     if(context.request().method() == HttpMethod.GET) {
-        if(id == null) {
-          String message = String.format("List retrieval currently unsupported");
-          context.response().setStatusCode(400)
-          .end(message);
-          return;
-        } else {
-          if(itemMap.containsKey(id)) {
-            context.response().setStatusCode(200).end(itemMap.get(id).encode());
-            return;
-          } else {
-            context.response().setStatusCode(404).end("id '" + id + "' not found");
+  private void handleItems(RoutingContext context) {
+    String id = context.request().getParam("id");
+    if (context.request().method() == HttpMethod.GET) {
+      String query = context.request().query();
+      if (query != null) {
+        String barcode = parseBarcode(query);
+        JsonArray matchingItems = new JsonArray();
+        for(JsonObject json : itemMap.values()) {
+          if(json.containsKey("barcode") && json.getString("barcode").equals(barcode)) {
+            matchingItems.add(json);
           }
         }
-      } else {
-        String message = String.format("Unsupported method %s", context.request()
-            .method().toString());
-        context.response().setStatusCode(400)
-          .end(message);
+        JsonObject result = new JsonObject()
+            .put("items", matchingItems)
+            .put("totalRecords", matchingItems.size());
+        context.response().setStatusCode(200).end(result.encode());
         return;
+      } else if (id == null) {
+        String message = String.format("List retrieval currently unsupported");
+        context.response().setStatusCode(400)
+            .end(message);
+        return;
+      } else if (itemMap.containsKey(id)) {
+        context.response().setStatusCode(200).end(itemMap.get(id).encode());
+        return;
+      } else {
+        context.response().setStatusCode(404).end("id '" + id + "' not found");
       }
+    } else {
+      String message = String.format("Unsupported method %s", context.request()
+          .method().toString());
+      context.response().setStatusCode(400)
+          .end(message);
+      return;
+    }
+  }
+
+   private static String parseBarcode(String query) {
+     Pattern pattern = Pattern.compile("barcode=(\\d+)");
+     Matcher matcher = pattern.matcher(query);
+     if(matcher.find()) {
+       return matcher.group(1);
+     } else {
+       return null;
+     }
    }
    
    private void handleHoldings(RoutingContext context) {

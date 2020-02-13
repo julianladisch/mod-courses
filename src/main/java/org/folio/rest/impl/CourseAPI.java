@@ -458,10 +458,12 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     } else {
       try {
         Future<Void> getCopiedItemsFuture;
-        if(entity.getItemId() != null) {
+        if(entity.getItemId() != null || (
+            entity.getCopiedItem() != null && entity.getCopiedItem().getBarcode() != null)) {
           getCopiedItemsFuture = CRUtil.populateReserveInventoryCache(entity,
               okapiHeaders, vertxContext);
         } else {
+          logger.info("Not attempting to look up copied items for reserve");
           getCopiedItemsFuture = Future.succeededFuture();
         }
         getCopiedItemsFuture.setHandler(copyItemsRes-> {
