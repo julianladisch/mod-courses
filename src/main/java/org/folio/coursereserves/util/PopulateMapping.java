@@ -2,9 +2,9 @@ package org.folio.coursereserves.util;
 
 public class PopulateMapping {
   public static enum ImportType { STRING, INTEGER, BOOLEAN, STRINGLIST };
-  public String methodName;
-  public String fieldName;
-  public ImportType type;
+  public final String methodName;
+  public final String fieldName;
+  public final ImportType type;
   
   public PopulateMapping(String fieldName, ImportType type, String methodName) {
     this.methodName = methodName;
