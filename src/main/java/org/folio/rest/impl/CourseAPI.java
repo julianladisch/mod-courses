@@ -126,7 +126,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     return false;
   }
 
-  protected static List<Reserf> reserfListFromReserveList(List<Reserve> reserveList) {
+  public static List<Reserf> reserfListFromReserveList(List<Reserve> reserveList) {
     List<Reserf> reserfList = new ArrayList<>();
     for(Reserve reserve : reserveList) {
       Reserf reserf = new Reserf();
