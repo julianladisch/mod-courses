@@ -171,6 +171,11 @@ resourceTypes:
                         schemaItem: reserve
                 get:
                     description: "Return a list of reserves"
+                    queryParameters:
+                        expand:
+                            description: Whether or not to expand the id fields
+                            type: boolean
+                            required: false
                     is: [
                         searchable: {description: "with valid searchable fields", example: "name=aaa"},
                         pageable

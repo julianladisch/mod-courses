@@ -7,6 +7,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.Response;
@@ -35,6 +36,7 @@ import org.folio.rest.jaxrs.model.Role;
 import org.folio.rest.jaxrs.model.Roles;
 import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.Terms;
+import org.folio.rest.jaxrs.model.Reserf;
 import org.folio.rest.persist.Criteria.Criteria;
 import org.folio.rest.persist.Criteria.Criterion;
 import org.folio.rest.persist.Criteria.Limit;
@@ -101,7 +103,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             RestVerticle.OKAPI_HEADER_TENANT));
   }
 
-  protected CQLWrapper getCQL(String query, int limit, int offset,
+  public static CQLWrapper getCQL(String query, int limit, int offset,
           String tableName) throws FieldException {
     CQL2PgJSON cql2pgJson = new CQL2PgJSON(tableName + ".jsonb");
     return new CQLWrapper(cql2pgJson, query).setLimit(new Limit(limit))
@@ -122,6 +124,16 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       return true;
     }
     return false;
+  }
+
+  protected static List<Reserf> reserfListFromReserveList(List<Reserve> reserveList) {
+    List<Reserf> reserfList = new ArrayList<>();
+    for(Reserve reserve : reserveList) {
+      Reserf reserf = new Reserf();
+      CRUtil.copyFields(reserf, reserve);
+      reserfList.add(reserf);
+    }
+    return reserfList;
   }
 
   @Override
@@ -430,7 +442,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
 
   @Override
   public void getCoursereservesCourselistingsReservesByListingId(String listingId,
-      String query, int offset, int limit, String lang,
+      boolean expand, String query, int offset, int limit, String lang,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     String courseListingQueryClause = String.format("courseListingId = %s", listingId);
@@ -439,10 +451,58 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     } else {
       query = String.format("(%s) AND %s", courseListingQueryClause, query);
     }
+    String tenantId = getTenant(okapiHeaders);
+    PostgresClient pgClient = getPGClient(vertxContext, tenantId);
+    try {
+      pgClient.get(RESERVES_TABLE, Reserve.class, new String[]{"*"},
+          getCQL(query,limit,offset, RESERVES_TABLE), true, true, getReply -> {
+        if(getReply.failed()) {
+          String message = logAndSaveError(getReply.cause());
+          asyncResultHandler.handle(Future.succeededFuture(
+              GetCoursereservesCourselistingsReservesByListingIdResponse.respond500WithTextPlain(
+              getErrorResponse(message))));
+        } else {
+          Future<List<Reserve>> reserveListFuture = null;
+          if(!expand) {
+            reserveListFuture = Future.succeededFuture(getReply.result().getResults());
+          } else {
+            reserveListFuture = CRUtil.expandListOfReserves(getReply.result().getResults(),
+                okapiHeaders, vertxContext);
+          }
+          reserveListFuture.setHandler(reserveListRes -> {
+            if(reserveListRes.failed()) {
+              String message = logAndSaveError(reserveListRes.cause());
+              asyncResultHandler.handle(Future.succeededFuture(
+                  GetCoursereservesCourselistingsReservesByListingIdResponse.respond500WithTextPlain(
+                  getErrorResponse(message))));
+            } else {
+              Reserves reserves = new Reserves();
+              reserves.setReserves(reserfListFromReserveList(reserveListRes.result()));
+              reserves.setTotalRecords(getReply.result().getResultInfo().getTotalRecords());
+              asyncResultHandler.handle(Future.succeededFuture(
+              GetCoursereservesCourselistingsReservesByListingIdResponse
+                  .respond200WithApplicationJson(reserves)));
+            }
+          });
+        }
+      });
+    } catch(Exception e) {
+      String message = logAndSaveError(e);
+      if(isCQLError(e)) {
+        message = String.format("CQL Error: %s", message);
+      }
+      asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsReservesByListingIdResponse
+              .respond500WithTextPlain(getErrorResponse(message))));
+    }
+
+    /*
+
     PgUtil.get(RESERVES_TABLE, Reserve.class, Reserves.class, query, offset,
         limit, okapiHeaders, vertxContext,
         GetCoursereservesCourselistingsReservesByListingIdResponse.class,
         asyncResultHandler);
+        */
   }
 
   @Override

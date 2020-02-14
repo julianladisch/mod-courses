@@ -147,6 +147,30 @@ public class CRUtil {
     return future;
   }
 
+  public static Future<List<Reserve>> expandListOfReserves(List<Reserve> listOfReserves,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<List<Reserve>> future = Future.future();
+    List<Future> expandedReserveFutureList = new ArrayList<>();
+    for(Reserve reserve : listOfReserves) {
+      expandedReserveFutureList.add(lookupExpandedReserve(reserve.getId(),
+          okapiHeaders, context, true));
+    }
+    CompositeFuture compositeFuture = CompositeFuture.all(expandedReserveFutureList);
+    compositeFuture.setHandler(expandReservesRes -> {
+      if(expandReservesRes.failed()) {
+        future.fail(expandReservesRes.cause());
+      } else {
+        List<Reserve> newListOfReserves = new ArrayList<>();
+        for( Future reserveFuture : expandedReserveFutureList ) {
+          Future<Reserve> f = (Future<Reserve>)reserveFuture;
+          newListOfReserves.add(f.result());
+        }
+        future.complete(newListOfReserves);
+      }
+    });
+    return future;
+  }
+
   public static void populateReserveCopiedItemFromJson(Reserve reserve, JsonObject json) {
     JsonObject itemJson = json.getJsonObject("item");
     JsonObject instanceJson = json.getJsonObject("instance");

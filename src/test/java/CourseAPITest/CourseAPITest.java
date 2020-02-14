@@ -18,13 +18,18 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.ws.rs.HttpMethod;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
+import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
+import static org.folio.rest.impl.CourseAPI.getCQL;
+import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.persist.PostgresClient;
+import org.folio.rest.persist.cql.CQLWrapper;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
@@ -175,6 +180,9 @@ public class CourseAPITest {
         })
         .compose(f -> {
           return deleteCourseListings();
+        })
+        .compose(f -> {
+          return deleteReserves();
         })
         .compose(f -> {
           return deleteTerms();
@@ -875,6 +883,161 @@ public class CourseAPITest {
           return;
         }
         async.complete();
+      }
+    });
+  }
+
+  @Test
+  public void postReservesToCourseListingTestRetrieval(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson1 = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    JsonObject reservePostJson2 = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item2Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    Future<WrappedResponse> postFuture = TestUtil.doRequest(vertx, baseUrl
+        + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
+        "Post Course Reserve").compose(w -> {
+          return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+              "/reserves", POST, standardHeaders, reservePostJson2.encode(), 201,
+              "Post Course Reserve");
+        });
+    postFuture.setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+        PostgresClient pgClient = PostgresClient.getInstance(vertx, "diku");
+        String courseListingQueryClause = String.format("courseListingId = %s", COURSE_LISTING_1_ID);
+        CQLWrapper filter = getCQL(courseListingQueryClause, 10, 0, RESERVES_TABLE);
+        pgClient.get(RESERVES_TABLE, Reserve.class, filter, true, getReply -> {
+          if(getReply.failed()) {
+            context.fail(getReply.cause());
+          } else {
+            List<Reserve> reserveList = getReply.result().getResults();
+            if(reserveList.size() != 2) {
+              context.fail("Expected 2 results");
+              return;
+            }
+            CRUtil.expandListOfReserves(reserveList, okapiHeaders, vertx.getOrCreateContext())
+                .setHandler(expandRes -> {
+              if(expandRes.failed()) {
+                context.fail(expandRes.cause());
+              } else {
+                for(Reserve reserve : expandRes.result()) {
+                  if(reserve.getCopiedItem() == null) {
+                    context.fail("Expected copied item field to be populated");
+                    return;
+                  }
+                  if(reserve.getCopiedItem().getBarcode() == null) {
+                    context.fail("Expected barcode in copied item field to be populated");
+                    return;
+                  }
+                  if(reserve.getProcessingStatusObject() == null) {
+                    context.fail("Expected processing status object to be populated");
+                    return;
+                  }
+                  if(reserve.getTemporaryLoanTypeObject() == null) {
+                    context.fail("Expected temporary loan type object to be populated");
+                    return;
+                  }
+                }
+                async.complete();
+              }
+            });
+          }
+        });
+        } catch(Exception e) {
+          context.fail(e);
+          return;
+        }
+      }
+    });
+  }
+
+  @Test
+  public void postReservesToCourseListingTestRetrievalAPI(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson1 = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    JsonObject reservePostJson2 = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item2Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    Future<WrappedResponse> postFuture = TestUtil.doRequest(vertx, baseUrl
+        + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
+        "Post Course Reserve").compose(w -> {
+          return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+              "/reserves", POST, standardHeaders, reservePostJson2.encode(), 201,
+              "Post Course Reserve");
+        });
+    postFuture.setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+              "/reserves?expand=true", GET, standardHeaders, null, 200, "Get Course Reserves")
+              .setHandler(getRes -> {
+            if(getRes.failed()) {
+              context.fail(getRes.cause());
+            } else {
+              try {
+                JsonObject reserveResult = getRes.result().getJson();
+                if(reserveResult.getInteger("totalRecords") != 2) {
+                  context.fail("Expected two records in result");
+                  return;
+                }
+                JsonArray reserves = reserveResult.getJsonArray("reserves");
+                for(Object ob : reserves) {
+                  if( ((JsonObject)ob).getJsonObject("copiedItem") == null ) {
+                    context.fail("No copied item found in result " + ((JsonObject)ob).encode());
+                    return;
+                  }
+                  if( ((JsonObject)ob).getJsonObject("copiedItem").getString("barcode") == null) {
+                    context.fail("No barcode found in result " + ((JsonObject)ob).encode());
+                    return;
+                  }
+                  if( ((JsonObject)ob).getJsonObject("temporaryLoanTypeObject") == null ) {
+                    context.fail("No temporary loan type object found in result " + ((JsonObject)ob).encode());
+                    return;
+                  }
+                  if( ((JsonObject)ob).getJsonObject("processingStatusObject") == null ) {
+                    context.fail("No processing status object found in result " + ((JsonObject)ob).encode());
+                    return;
+                  }
+
+                }
+              } catch(Exception e) {
+                context.fail(e);
+                return;
+              }
+              async.complete();
+            }
+          });
+        } catch(Exception e) {
+          context.fail(e);
+          return;
+        }
       }
     });
   }
@@ -1832,6 +1995,19 @@ public class CourseAPITest {
     Future<Void> future = Future.future();
     TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", DELETE, null, null, 204,
         "Delete All ProcessingStatuses").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> deleteReserves() {
+    Future<Void> future = Future.future();
+    TestUtil.doRequest(vertx, baseUrl + "/reserves", DELETE, null, null, 204,
+        "Delete All Reserves").setHandler(res -> {
           if(res.failed()) {
            future.fail(res.cause());
           } else {
