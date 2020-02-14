@@ -934,15 +934,7 @@ public class CourseAPITest {
               if(expandRes.failed()) {
                 context.fail(expandRes.cause());
               } else {
-                for(Reserve reserve : expandRes.result()) {
-                  if(reserve.getCopiedItem() == null) {
-                    context.fail("Expected copied item field to be populated");
-                    return;
-                  }
-                  if(reserve.getCopiedItem().getBarcode() == null) {
-                    context.fail("Expected barcode in copied item field to be populated");
-                    return;
-                  }
+                for(Reserve reserve : expandRes.result()) {                  
                   if(reserve.getProcessingStatusObject() == null) {
                     context.fail("Expected processing status object to be populated");
                     return;
@@ -964,6 +956,7 @@ public class CourseAPITest {
       }
     });
   }
+  
 
   @Test
   public void postReservesToCourseListingTestRetrievalAPI(TestContext context) {
@@ -996,7 +989,7 @@ public class CourseAPITest {
       } else {
         try {
           TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
-              "/reserves?expand=true", GET, standardHeaders, null, 200, "Get Course Reserves")
+              "/reserves?expand=*", GET, standardHeaders, null, 200, "Get Course Reserves")
               .setHandler(getRes -> {
             if(getRes.failed()) {
               context.fail(getRes.cause());
@@ -1023,6 +1016,75 @@ public class CourseAPITest {
                   }
                   if( ((JsonObject)ob).getJsonObject("processingStatusObject") == null ) {
                     context.fail("No processing status object found in result " + ((JsonObject)ob).encode());
+                    return;
+                  }
+
+                }
+              } catch(Exception e) {
+                context.fail(e);
+                return;
+              }
+              async.complete();
+            }
+          });
+        } catch(Exception e) {
+          context.fail(e);
+          return;
+        }
+      }
+    });
+  }
+
+  @Test
+  public void postReservesToCourseListingTestRetrievalAPINoExpand(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson1 = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    JsonObject reservePostJson2 = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item2Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    Future<WrappedResponse> postFuture = TestUtil.doRequest(vertx, baseUrl
+        + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
+        "Post Course Reserve").compose(w -> {
+          return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+              "/reserves", POST, standardHeaders, reservePostJson2.encode(), 201,
+              "Post Course Reserve");
+        });
+    postFuture.setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+              "/reserves", GET, standardHeaders, null, 200, "Get Course Reserves")
+              .setHandler(getRes -> {
+            if(getRes.failed()) {
+              context.fail(getRes.cause());
+            } else {
+              try {
+                JsonObject reserveResult = getRes.result().getJson();
+                if(reserveResult.getInteger("totalRecords") != 2) {
+                  context.fail("Expected two records in result");
+                  return;
+                }
+                JsonArray reserves = reserveResult.getJsonArray("reserves");
+                for(Object ob : reserves) {
+                  if( ((JsonObject)ob).getJsonObject("temporaryLoanTypeObject") != null ) {
+                    context.fail("Did not expect temporary loan type object in result " + ((JsonObject)ob).encode());
+                    return;
+                  }
+                  if( ((JsonObject)ob).getJsonObject("processingStatusObject") != null ) {
+                    context.fail("Did not expect processing status object in result " + ((JsonObject)ob).encode());
                     return;
                   }
 

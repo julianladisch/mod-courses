@@ -442,7 +442,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
 
   @Override
   public void getCoursereservesCourselistingsReservesByListingId(String listingId,
-      boolean expand, String query, int offset, int limit, String lang,
+      String expand, String query, int offset, int limit, String lang,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     String courseListingQueryClause = String.format("courseListingId = %s", listingId);
@@ -463,7 +463,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
               getErrorResponse(message))));
         } else {
           Future<List<Reserve>> reserveListFuture = null;
-          if(!expand) {
+          if(expand == null || !expand.equals("*")) {
             reserveListFuture = Future.succeededFuture(getReply.result().getResults());
           } else {
             reserveListFuture = CRUtil.expandListOfReserves(getReply.result().getResults(),
