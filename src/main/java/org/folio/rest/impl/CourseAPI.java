@@ -77,8 +77,14 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   
   private static boolean SUPPRESS_ERRORS = false;
   
-  PostgresClient getPGClient(Context vertxContext, String tenantId) {
+
+  public static PostgresClient getPGClient(Context vertxContext, String tenantId) {
     return PostgresClient.getInstance(vertxContext.owner(), tenantId);
+  }
+
+  public static PostgresClient getPGClientFromHeaders(Context vertxContext,
+      Map<String, String> okapiHeaders) {
+    return PgUtil.postgresClient(vertxContext, okapiHeaders);
   }
 
   protected static void setSuppressErrors(boolean suppress) {
@@ -392,8 +398,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
           String message = logAndSaveError(mutateReply.cause());
           asyncResultHandler.handle(Future.succeededFuture(
                   DeleteCoursereservesCourselistingsInstructorsByListingIdResponse
-                      .respond500WithTextPlain(
-                  getErrorResponse(message))));
+                      .respond500WithTextPlain(getErrorResponse(message))));
         } else {
           asyncResultHandler.handle(Future.succeededFuture(
                   DeleteCoursereservesCourselistingsInstructorsByListingIdResponse
@@ -403,9 +408,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     } catch(Exception e) {
       String message = logAndSaveError(e);
       asyncResultHandler.handle(Future.succeededFuture(
-              DeleteCoursereservesCourselistingsInstructorsByListingIdResponse
-                  .respond500WithTextPlain(
-              getErrorResponse(message))));
+          DeleteCoursereservesCourselistingsInstructorsByListingIdResponse
+              .respond500WithTextPlain(getErrorResponse(message))));
     }
   }
 
@@ -467,7 +471,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             reserveListFuture = Future.succeededFuture(getReply.result().getResults());
           } else {
             reserveListFuture = CRUtil.expandListOfReserves(getReply.result().getResults(),
-                okapiHeaders, vertxContext);
+                okapiHeaders, getPGClientFromHeaders(vertxContext, okapiHeaders),
+                vertxContext);
           }
           reserveListFuture.setHandler(reserveListRes -> {
             if(reserveListRes.failed()) {
@@ -495,14 +500,6 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
           GetCoursereservesCourselistingsReservesByListingIdResponse
               .respond500WithTextPlain(getErrorResponse(message))));
     }
-
-    /*
-
-    PgUtil.get(RESERVES_TABLE, Reserve.class, Reserves.class, query, offset,
-        limit, okapiHeaders, vertxContext,
-        GetCoursereservesCourselistingsReservesByListingIdResponse.class,
-        asyncResultHandler);
-        */
   }
 
   @Override
@@ -543,7 +540,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     }
   }
 
-  @Override
+
   public void deleteCoursereservesCourselistingsReservesByListingId(String listingId,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
@@ -584,7 +581,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     try {
-    CRUtil.lookupExpandedReserve(reserveId, okapiHeaders, vertxContext, true)
+      CRUtil.lookupExpandedReserve(reserveId, okapiHeaders,
+        getPGClientFromHeaders(vertxContext, okapiHeaders), vertxContext, true)
         .setHandler(res -> {
       if(res.failed()) {
         String message = logAndSaveError(res.cause());
@@ -1075,8 +1073,9 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                   getErrorResponse(message))));
         } else {
           List<Course> courseList = reply.result().getResults();
-          CRUtil.expandListOfCourses(courseList, okapiHeaders, vertxContext).setHandler(
-            res -> {
+          CRUtil.expandListOfCourses(courseList, okapiHeaders,
+              getPGClientFromHeaders(vertxContext, okapiHeaders), vertxContext)
+              .setHandler(res -> {
               if(res.failed()) {
                 String message = logAndSaveError(res.cause());
                 asyncResultHandler.handle(Future.succeededFuture(
@@ -1168,7 +1167,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                 "No Course exists with id '%s'", courseId))));
           } else {
             Course course = courseList.get(0);
-            CRUtil.getExpandedCourse(course, okapiHeaders, vertxContext)
+            CRUtil.getExpandedCourse(course, okapiHeaders,
+                getPGClientFromHeaders(vertxContext, okapiHeaders), vertxContext)
                 .setHandler(expandCourseRes -> {
               if(expandCourseRes.failed()) {
                   String message = logAndSaveError(expandCourseRes.cause());

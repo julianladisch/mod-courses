@@ -148,12 +148,12 @@ public class CRUtil {
   }
 
   public static Future<List<Reserve>> expandListOfReserves(List<Reserve> listOfReserves,
-      Map<String, String> okapiHeaders, Context context) {
+      Map<String, String> okapiHeaders, PostgresClient postgresClient, Context context) {
     Future<List<Reserve>> future = Future.future();
     List<Future> expandedReserveFutureList = new ArrayList<>();
     for(Reserve reserve : listOfReserves) {
       expandedReserveFutureList.add(lookupExpandedReserve(reserve.getId(),
-          okapiHeaders, context, true));
+          okapiHeaders, postgresClient, context, true));
     }
     CompositeFuture compositeFuture = CompositeFuture.all(expandedReserveFutureList);
     compositeFuture.setHandler(expandReservesRes -> {
@@ -376,9 +376,10 @@ public class CRUtil {
   }
 
   public static Future<Reserve> lookupExpandedReserve(String reserveId,
-      Map<String, String> okapiHeaders, Context context, Boolean expand) {
+      Map<String, String> okapiHeaders, PostgresClient postgresClient,
+      Context context, Boolean expand) {
     Future<Reserve> future = Future.future();
-    getReserveById(reserveId, okapiHeaders, context).setHandler(reserveRes -> {
+    getReserveById(reserveId, postgresClient, context).setHandler(reserveRes -> {
       if(reserveRes.failed()) {
         future.fail(reserveRes.cause());
       } else if(expand == false ||  reserveRes.result() == null ||
@@ -394,14 +395,15 @@ public class CRUtil {
           Future<Processingstatus> processingStatusFuture;
           if(reserve.getProcessingStatusId() != null) {
             processingStatusFuture = lookupProcessingStatus(
-              reserve.getProcessingStatusId(), okapiHeaders, context);
+              reserve.getProcessingStatusId(), postgresClient, context);
           } else {
             processingStatusFuture = Future.failedFuture("No processing status id");
           }
           Future<Copyrightstatus> copyrightStatusFuture;
-          if(reserve.getCopyrightTracking() != null) {
+          if(reserve.getCopyrightTracking() != null
+              && reserve.getCopyrightTracking().getCopyrightStatusId() != null) {
             copyrightStatusFuture = lookupCopyrightStatus(
-            reserve.getCopyrightTracking().getCopyrightStatusId(), okapiHeaders,
+            reserve.getCopyrightTracking().getCopyrightStatusId(), postgresClient,
                 context);
           } else {
             copyrightStatusFuture = Future.failedFuture("No copyright tracking object");
@@ -515,9 +517,10 @@ public class CRUtil {
   }
 
   public static Future<Courselisting> lookupExpandedCourseListing(String courseListingId,
-      Map<String, String> okapiHeaders, Context context, Boolean expandTerm) {
+      Map<String, String> okapiHeaders, PostgresClient postgresClient,
+      Context context, Boolean expandTerm) {
     Future<Courselisting> future = Future.future();
-    getCourseListingById(courseListingId, okapiHeaders, context).setHandler(clRes -> {
+    getCourseListingById(courseListingId, postgresClient, context).setHandler(clRes -> {
       if(clRes.failed()) {
         future.fail(clRes.cause());
       } else {
@@ -532,12 +535,12 @@ public class CRUtil {
         Future<JsonObject> servicePointFuture;
         Future<List<Instructor>> instructorFuture;
         if(expandTerm && termId != null) {
-          termFuture = lookupTerm(termId, okapiHeaders, context);
+          termFuture = lookupTerm(termId, postgresClient, context);
         } else {
           termFuture = Future.failedFuture("No lookup");
         }      
         if(expandTerm && courseTypeId != null) {
-          coursetypeFuture = lookupCourseType(courseTypeId, okapiHeaders, context);
+          coursetypeFuture = lookupCourseType(courseTypeId, postgresClient, context);
         } else {
           coursetypeFuture = Future.failedFuture("No lookup");
         }
@@ -591,9 +594,8 @@ public class CRUtil {
   
   /* Basic lookup for courselisting, wrapped in a future */
   public static Future<Courselisting> getCourseListingById(String courseListingId,
-      Map<String, String> okapiHeaders, Context context) {
+      PostgresClient postgresClient, Context context) {
     Future<Courselisting> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
     postgresClient.getById(COURSE_LISTINGS_TABLE, courseListingId, Courselisting.class,
         courseListingReply -> {
       if(courseListingReply.failed()) {
@@ -608,9 +610,8 @@ public class CRUtil {
   }
 
   public static Future<Reserve> getReserveById(String reserveId,
-      Map<String, String> okapiHeaders, Context context) {
+      PostgresClient postgresClient, Context context) {
     Future<Reserve> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
     postgresClient.getById(RESERVES_TABLE, reserveId, Reserve.class,
         reserveReply -> {
       if(reserveReply.failed()) {
@@ -761,9 +762,8 @@ public class CRUtil {
   }
 
   public static Future<Term> lookupTerm(String termId,
-      Map<String, String> okapiHeaders, Context context) {
+      PostgresClient postgresClient, Context context) {
     Future<Term> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
     postgresClient.getById(TERMS_TABLE, termId, Term.class,
         reply -> {
       if(reply.failed()) {
@@ -779,9 +779,8 @@ public class CRUtil {
   }
 
     public static Future<Department> lookupDepartment(String departmentId,
-      Map<String, String> okapiHeaders, Context context) {
+      PostgresClient postgresClient, Context context) {
     Future<Department> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
     postgresClient.getById(DEPARTMENTS_TABLE, departmentId, Department.class,
         reply -> {
       if(reply.failed()) {
@@ -797,9 +796,8 @@ public class CRUtil {
   }
 
   public static Future<Coursetype> lookupCourseType(String courseTypeId,
-      Map<String, String> okapiHeaders, Context context) {
+      PostgresClient postgresClient, Context context) {
     Future<Coursetype> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
     postgresClient.getById(COURSE_TYPES_TABLE, courseTypeId, Coursetype.class,
         reply -> {
       if(reply.failed()) {
@@ -814,9 +812,8 @@ public class CRUtil {
   }
 
   public static Future<Processingstatus> lookupProcessingStatus(String processingStatusId,
-      Map<String, String> okapiHeaders, Context context) {
+      PostgresClient postgresClient, Context context) {
     Future<Processingstatus> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
     postgresClient.getById(PROCESSING_STATUSES_TABLE, processingStatusId,
         Processingstatus.class,
         reply -> {
@@ -832,9 +829,8 @@ public class CRUtil {
   }
 
   public static Future<Copyrightstatus> lookupCopyrightStatus(String copyrightStatusId,
-      Map<String, String> okapiHeaders, Context context) {
+      PostgresClient postgresClient, Context context) {
     Future<Copyrightstatus> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
     postgresClient.getById(COPYRIGHT_STATUSES_TABLE, copyrightStatusId,
         Copyrightstatus.class,
         reply -> {
@@ -849,11 +845,12 @@ public class CRUtil {
     return future;
   }
   public static Future<List<Course>> expandListOfCourses(List<Course> listOfCourses,
-      Map<String, String> okapiHeaders, Context context) {
+      Map<String, String> okapiHeaders, PostgresClient postgresClient, Context context) {
     Future<List<Course>> future = Future.future();
     List<Future> expandedCourseFutureList = new ArrayList<>();
     for(Course course : listOfCourses) {
-      expandedCourseFutureList.add(getExpandedCourse(course, okapiHeaders, context));
+      expandedCourseFutureList.add(getExpandedCourse(course, okapiHeaders,
+          postgresClient, context));
     }
     CompositeFuture compositeFuture = CompositeFuture.all(expandedCourseFutureList);
     compositeFuture.setHandler(expandCoursesRes -> {
@@ -873,7 +870,8 @@ public class CRUtil {
 
 
   public static Future<Course> getExpandedCourse(Course course,
-      Map<String, String> okapiHeaders, Context context) {
+      Map<String, String> okapiHeaders, PostgresClient postgresClient,
+      Context context) {
     Future<Course> future = Future.future();
     Future<Courselisting> courseListingFuture;
     Course newCourse = copyCourse(course);
@@ -881,7 +879,7 @@ public class CRUtil {
       courseListingFuture = Future.succeededFuture();
     } else {
       courseListingFuture = lookupExpandedCourseListing(course.getCourseListingId(),
-          okapiHeaders, context, Boolean.TRUE);
+          okapiHeaders, postgresClient, context, Boolean.TRUE);
     }
     courseListingFuture.setHandler(courselistingReply -> {
       if(courselistingReply.failed()) {
@@ -898,7 +896,7 @@ public class CRUtil {
         if(course.getDepartmentId() == null) {
           departmentFuture = Future.succeededFuture();
         } else {
-          departmentFuture = lookupDepartment(course.getDepartmentId(), okapiHeaders,
+          departmentFuture = lookupDepartment(course.getDepartmentId(), postgresClient,
               context);
         }
         departmentFuture.setHandler(departmentReply -> {

@@ -1,6 +1,7 @@
 package CourseAPITest;
 
 import CourseAPITest.TestUtil.WrappedResponse;
+import io.vertx.core.Context;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -27,6 +28,7 @@ import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.getCQL;
+import static org.folio.rest.impl.CourseAPI.getPGClientFromHeaders;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
@@ -929,7 +931,9 @@ public class CourseAPITest {
               context.fail("Expected 2 results");
               return;
             }
-            CRUtil.expandListOfReserves(reserveList, okapiHeaders, vertx.getOrCreateContext())
+            Context vertxContext = vertx.getOrCreateContext();
+            CRUtil.expandListOfReserves(reserveList, okapiHeaders,
+                getPGClientFromHeaders(vertxContext, okapiHeaders), vertxContext)
                 .setHandler(expandRes -> {
               if(expandRes.failed()) {
                 context.fail(expandRes.cause());
@@ -1635,6 +1639,7 @@ public class CourseAPITest {
     });
   }
 
+  @Test
   public void testReservesForCourseListing(TestContext context) {
     Async async = context.async();
     String reserveId = UUID.randomUUID().toString();
@@ -1660,7 +1665,8 @@ public class CourseAPITest {
         + "/reserves";
     String getUrl = postUrl + "/" + reserveId;
     String putUrl = getUrl;
-    String deleteUrl = getUrl;
+    //String deleteUrl = getUrl;
+    String deleteUrl = baseUrl + "/reserves/" + reserveId;
     String deleteAllUrl = postUrl;
     testPostGetPutDelete(reserveJson, reserveModJson, postUrl, getUrl, putUrl, deleteUrl,
         deleteAllUrl).setHandler(res -> {
@@ -1672,6 +1678,7 @@ public class CourseAPITest {
     });
   }
 
+   @Test
    public void testReservesForCourseListingWithBogusIds(TestContext context) {
     Async async = context.async();
     String reserveId = UUID.randomUUID().toString();
@@ -1682,7 +1689,7 @@ public class CourseAPITest {
         .put("temporaryLoanTypeId", UUID.randomUUID().toString())
         .put("copyrightTracking", new JsonObject()
           .put("copyRightStatusId", UUID.randomUUID().toString()))
-        .put("courseListingId", UUID.randomUUID().toString())
+        .put("courseListingId", COURSE_LISTING_1_ID)
         .put("startDate", "2020-01-01T00:00:00Z");
     JsonObject reserveModJson = new JsonObject()
         .put("id", reserveId)
@@ -1691,7 +1698,7 @@ public class CourseAPITest {
         .put("temporaryLoanTypeId", UUID.randomUUID().toString())
         .put("copyrightTracking", new JsonObject()
           .put("copyRightStatusId", UUID.randomUUID().toString()))
-        .put("courseListingId", UUID.randomUUID().toString())
+        .put("courseListingId", COURSE_LISTING_1_ID)
         .put("startDate", "2019-01-01T00:00:00Z");
     String postUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
         + "/reserves";
@@ -1708,6 +1715,8 @@ public class CourseAPITest {
       }
     });
   }
+
+
   
   /* UTILITY CLASSES */
 
@@ -1738,22 +1747,27 @@ public class CourseAPITest {
           return TestUtil.doRequest(vertx, deleteUrl, DELETE, acceptTextHeaders, null,
               204, "Delete at " + deleteUrl);
         })
+        /*
         .compose(f -> {
           return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 404,
-              "Get from " + getUrl);
+              "Get from " + getUrl + " after delete");
         })
+        */
         .compose(f -> {
           return TestUtil.doRequest(vertx, postUrl, POST, standardHeaders,
               originalJson.encode(), 201, "Post to " + postUrl);
         })
         .compose(f -> {
-          return TestUtil.doRequest(vertx, deleteUrl, DELETE, acceptTextHeaders, null,
+          return TestUtil.doRequest(vertx, deleteAllUrl, DELETE, acceptTextHeaders, null,
               204, "Delete all at " + deleteAllUrl);
         })
+        /*
         .compose(f -> {
           return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 404,
-              "Get from " + getUrl);
-        }).setHandler(res -> {
+              "Get from " + getUrl + " after delete all");
+        })
+        */
+        .setHandler(res -> {
           if(res.failed()) {
             future.fail(res.cause());
           } else {
@@ -2078,5 +2092,6 @@ public class CourseAPITest {
         });
     return future;
   }
+
 
 }
