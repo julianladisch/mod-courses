@@ -45,6 +45,7 @@ import org.folio.rest.persist.PgUtil;
 import static org.folio.rest.persist.PgUtil.postgresClient;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
+import org.folio.rest.persist.interfaces.Results;
 import org.folio.rest.tools.utils.TenantTool;
 import org.folio.rest.tools.utils.ValidationHelper;
 
@@ -458,8 +459,12 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     String tenantId = getTenant(okapiHeaders);
     PostgresClient pgClient = getPGClient(vertxContext, tenantId);
     try {
+      /*
       pgClient.get(RESERVES_TABLE, Reserve.class, new String[]{"*"},
           getCQL(query,limit,offset, RESERVES_TABLE), true, true, getReply -> {
+      */
+      getItems(RESERVES_TABLE, Reserve.class, getCQL(query, limit, offset, RESERVES_TABLE),
+          pgClient).setHandler(getReply -> {
         if(getReply.failed()) {
           String message = logAndSaveError(getReply.cause());
           asyncResultHandler.handle(Future.succeededFuture(
@@ -471,8 +476,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             reserveListFuture = Future.succeededFuture(getReply.result().getResults());
           } else {
             reserveListFuture = CRUtil.expandListOfReserves(getReply.result().getResults(),
-                okapiHeaders, getPGClientFromHeaders(vertxContext, okapiHeaders),
-                vertxContext);
+                okapiHeaders, vertxContext);
           }
           reserveListFuture.setHandler(reserveListRes -> {
             if(reserveListRes.failed()) {
@@ -581,8 +585,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     try {
-      CRUtil.lookupExpandedReserve(reserveId, okapiHeaders,
-        getPGClientFromHeaders(vertxContext, okapiHeaders), vertxContext, true)
+      CRUtil.lookupExpandedReserve(reserveId, okapiHeaders, vertxContext, true)
         .setHandler(res -> {
       if(res.failed()) {
         String message = logAndSaveError(res.cause());
@@ -1073,8 +1076,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                   getErrorResponse(message))));
         } else {
           List<Course> courseList = reply.result().getResults();
-          CRUtil.expandListOfCourses(courseList, okapiHeaders,
-              getPGClientFromHeaders(vertxContext, okapiHeaders), vertxContext)
+          CRUtil.expandListOfCourses(courseList, okapiHeaders, vertxContext)
               .setHandler(res -> {
               if(res.failed()) {
                 String message = logAndSaveError(res.cause());
@@ -1167,8 +1169,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                 "No Course exists with id '%s'", courseId))));
           } else {
             Course course = courseList.get(0);
-            CRUtil.getExpandedCourse(course, okapiHeaders,
-                getPGClientFromHeaders(vertxContext, okapiHeaders), vertxContext)
+            CRUtil.getExpandedCourse(course, okapiHeaders, vertxContext)
                 .setHandler(expandCourseRes -> {
               if(expandCourseRes.failed()) {
                   String message = logAndSaveError(expandCourseRes.cause());
@@ -1277,6 +1278,19 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     PgUtil.deleteById(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext,
         DeleteCoursereservesReservesByReserveIdResponse.class, asyncResultHandler);
+  }
+
+  public static <T> Future<Results<T>> getItems(String tableName, Class<T> clazz,
+      CQLWrapper cql, PostgresClient pgClient) {
+    Future<Results<T>> future = Future.future();
+    pgClient.get(tableName, clazz, new String[]{"*"}, cql, true, true, getReply -> {
+      if(getReply.failed()) {
+        future.fail(getReply.cause());
+      } else {
+        future.complete(getReply.result());
+      }
+    });
+    return future;
   }
 
 }

@@ -1,9 +1,11 @@
 package CourseAPITest;
 
 import CourseAPITest.TestUtil.WrappedResponse;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import static io.vertx.core.http.HttpMethod.DELETE;
@@ -14,6 +16,9 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.asyncsql.AsyncSQLClient;
+import io.vertx.ext.sql.SQLClient;
+import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
@@ -23,15 +28,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.Response;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
+import org.folio.rest.impl.CourseAPI;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.getCQL;
 import static org.folio.rest.impl.CourseAPI.getPGClientFromHeaders;
 import org.folio.rest.jaxrs.model.Reserve;
+import org.folio.rest.persist.PgUtil;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
+import org.folio.rest.persist.interfaces.Results;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
@@ -254,7 +263,7 @@ public class CourseAPITest {
   public void getCourses(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/courses", GET, null, null, 200,
-        "Get course listing").setHandler(res -> {
+        "Get listing of courses").setHandler(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -932,8 +941,7 @@ public class CourseAPITest {
               return;
             }
             Context vertxContext = vertx.getOrCreateContext();
-            CRUtil.expandListOfReserves(reserveList, okapiHeaders,
-                getPGClientFromHeaders(vertxContext, okapiHeaders), vertxContext)
+            CRUtil.expandListOfReserves(reserveList, okapiHeaders, vertxContext)
                 .setHandler(expandRes -> {
               if(expandRes.failed()) {
                 context.fail(expandRes.cause());
@@ -1714,11 +1722,31 @@ public class CourseAPITest {
         async.complete();
       }
     });
-  }
+   }
+
+   /*
+   @Test
+   public void TestGetReservesByCourseListing(TestContext context) {
+     Async async = context.async();
+     new CourseAPIFail().getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
+         "*", null, 0, 10, null, okapiHeaders, res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         if(res.result().getStatus() != 500) {
+           context.fail("Expected 500, got status " + res.result().getStatus());
+           return;
+         }
+         async.complete();
+       }
+     }, vertx.getOrCreateContext());
+   }
+   */
+
 
 
   
-  /* UTILITY CLASSES */
+  /* UTILITY METHODS */
 
   private Future<Void> testPostGetPutDelete(JsonObject originalJson, JsonObject modifiedJson,
       String postUrl, String getUrl, String putUrl, String deleteUrl, String deleteAllUrl) {
@@ -2094,4 +2122,14 @@ public class CourseAPITest {
   }
 
 
+
+}
+
+class CourseAPIFail extends CourseAPI {
+  public static <T> Future<Results<T>> getItems(String tableName, Class<T> clazz,
+      CQLWrapper cql, PostgresClient pgClient) {
+    Future<Results<T>> future = Future.future();
+    future = Future.failedFuture("IT ALWAYS FAILS");
+    return future;
+  }
 }
