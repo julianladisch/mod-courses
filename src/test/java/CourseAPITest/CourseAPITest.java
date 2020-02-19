@@ -34,6 +34,7 @@ import org.folio.rest.impl.CourseAPI;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.getCQL;
 import org.folio.rest.jaxrs.model.Reserve;
+import org.folio.rest.jaxrs.model.Course;
 import org.folio.rest.persist.PgUtil;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
@@ -1753,6 +1754,22 @@ public class CourseAPITest {
          async.complete();
        }
      }, vertx.getOrCreateContext());
+   }
+
+
+   @Test
+   public void TestGetExpandedCourseBadValues(TestContext context) {
+     Async async = context.async();
+     Course course = new Course();
+     course.setId(UUID.randomUUID().toString());
+     CRUtil.getExpandedCourse(course, okapiHeaders, vertx.getOrCreateContext())
+         .setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+     });
    }
 
    /*
