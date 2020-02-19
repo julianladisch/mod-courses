@@ -387,30 +387,25 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     try {
-      String tenantId = getTenant(okapiHeaders);
-      PostgresClient pgClient = getPGClient(vertxContext, tenantId);
-      final String DELETE_ALL_QUERY = String.format(
-          "DELETE FROM %s_%s.%s WHERE jsonb->>'courseListingId' = '%s'",
-              tenantId, "mod_courses", INSTRUCTORS_TABLE, listingId);
-      logger.info(String.format("Deleting all instructors with query %s",
-              DELETE_ALL_QUERY));
-      pgClient.execute(DELETE_ALL_QUERY, mutateReply -> {
-        if(mutateReply.failed()) {
-          String message = logAndSaveError(mutateReply.cause());
+      final String whereClause = "jsonb ->>'courseListingId' = '" + listingId + "'";
+      deleteAllItems(INSTRUCTORS_TABLE, whereClause, okapiHeaders, vertxContext)
+          .setHandler(res -> {
+        if(res.failed()) {
+          String message = logAndSaveError(res.cause());
           asyncResultHandler.handle(Future.succeededFuture(
-                  DeleteCoursereservesCourselistingsInstructorsByListingIdResponse
-                      .respond500WithTextPlain(getErrorResponse(message))));
+              DeleteCoursereservesCourselistingsInstructorsByListingIdResponse
+              .respond500WithTextPlain(getErrorResponse(message))));
         } else {
           asyncResultHandler.handle(Future.succeededFuture(
-                  DeleteCoursereservesCourselistingsInstructorsByListingIdResponse
-                      .noContent().build()));
+              DeleteCoursereservesCourselistingsInstructorsByListingIdResponse
+              .noContent().build()));
         }
       });
     } catch(Exception e) {
       String message = logAndSaveError(e);
       asyncResultHandler.handle(Future.succeededFuture(
           DeleteCoursereservesCourselistingsInstructorsByListingIdResponse
-              .respond500WithTextPlain(getErrorResponse(message))));
+          .respond500WithTextPlain(getErrorResponse(message))));
     }
   }
 
@@ -1286,6 +1281,34 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         future.complete(getReply.result());
       }
     });
+    return future;
+  }
+  
+  public Future<Void> deleteAllItems(String tableName, String whereClause, 
+      Map<String, String> okapiHeaders, Context vertxContext) {
+    Future future = Future.future();
+    try {
+      PostgresClient pgClient = getPGClientFromHeaders(vertxContext, okapiHeaders);
+      String tenantId = getTenant(okapiHeaders);
+      String deleteAllQuery = null;
+      if(whereClause == null) {
+        deleteAllQuery = String.format("DELETE FROM %s_%s.%s", tenantId,
+            "mod_courses", tableName);
+      } else {
+        deleteAllQuery = String.format("DELETE FROM %s_%s.%s WHERE %s", tenantId,
+            "mod_courses", tableName, whereClause);
+      }
+      pgClient.execute(deleteAllQuery, mutateReply -> {
+        if(mutateReply.failed()) {
+          String message = logAndSaveError(mutateReply.cause());
+          future.fail(mutateReply.cause());
+        } else {
+          future.complete();
+        }
+      });
+    } catch(Exception e) {
+      future.fail(e);
+    }
     return future;
   }
 

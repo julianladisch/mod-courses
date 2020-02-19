@@ -1739,11 +1739,29 @@ public class CourseAPITest {
    
    
    @Test
-   public void TestGetReservesByCourseListing(TestContext context) {
+   public void TestGetReservesByCourseListingFail(TestContext context) {
      Async async = context.async();
      new CourseAPIFail()
          .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
          "*", "flarglehonker = booom", 0, 10, null, okapiHeaders, res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         if(res.result().getStatus() != 500) {
+           context.fail("Expected 500, got status " + res.result().getStatus());
+           return;
+         }
+         async.complete();
+       }
+     }, vertx.getOrCreateContext());
+   }
+
+   @Test
+   public void TestDeleteInstructorsByListingIdFail(TestContext context) {
+     Async async = context.async();
+     new CourseAPIFail().deleteCoursereservesCourselistingsInstructorsByListingId(
+         COURSE_LISTING_1_ID, okapiHeaders,
+         res -> {
        if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -2188,9 +2206,6 @@ public class CourseAPITest {
         });
     return future;
   }
-
-
-
 }
 
 class CourseAPIFail extends CourseAPI {
@@ -2200,6 +2215,12 @@ class CourseAPIFail extends CourseAPI {
     logger.info("Calling Always-Fails getItems");
     Future<Results<T>> future = Future.future();
     future = Future.failedFuture("IT ALWAYS FAILS");
+    return future;
+  }
+
+  public Future<Void> deleteAllItems(String tableName, String whereClause,
+      Map<String, String> okapiHeaders, Context vertxContext) {
+    Future future = Future.failedFuture("IT ALWAYS FAILS");
     return future;
   }
   
