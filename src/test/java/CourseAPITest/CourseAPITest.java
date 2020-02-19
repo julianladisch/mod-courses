@@ -1736,12 +1736,28 @@ public class CourseAPITest {
     });
    }
 
-   
-   
    @Test
    public void TestGetReservesByCourseListingFail(TestContext context) {
      Async async = context.async();
      new CourseAPIFail()
+         .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
+         "*", "flarglehonker = booom", 0, 10, null, okapiHeaders, res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         if(res.result().getStatus() != 500) {
+           context.fail("Expected 500, got status " + res.result().getStatus());
+           return;
+         }
+         async.complete();
+       }
+     }, vertx.getOrCreateContext());
+   }
+
+    @Test
+   public void TestGetReservesByCourseListingWTF(TestContext context) {
+     Async async = context.async();
+     new CourseAPIWTF()
          .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
          "*", "flarglehonker = booom", 0, 10, null, okapiHeaders, res -> {
        if(res.failed()) {
@@ -1761,6 +1777,23 @@ public class CourseAPITest {
      Async async = context.async();
      new CourseAPIFail().deleteCoursereservesCourselistingsInstructorsByListingId(
          COURSE_LISTING_1_ID, okapiHeaders,
+         res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         if(res.result().getStatus() != 500) {
+           context.fail("Expected 500, got status " + res.result().getStatus());
+           return;
+         }
+         async.complete();
+       }
+     }, vertx.getOrCreateContext());
+   }
+
+   @Test
+   public void TestDeleteCourselistings(TestContext context) {
+     Async async = context.async();
+     new CourseAPIFail().deleteCoursereservesCourselistings(okapiHeaders,
          res -> {
        if(res.failed()) {
          context.fail(res.cause());
@@ -2224,4 +2257,18 @@ class CourseAPIFail extends CourseAPI {
     return future;
   }
   
+}
+
+class CourseAPIWTF extends CourseAPI {
+
+  public <T> Future<Results<T>> getItems(String tableName, Class<T> clazz,
+      CQLWrapper cql, PostgresClient pgClient) {
+    throw new RuntimeException("WTF");
+  }
+
+  public Future<Void> deleteAllItems(String tableName, String whereClause,
+      Map<String, String> okapiHeaders, Context vertxContext) {
+    throw new RuntimeException("WTF");
+  }
+
 }
