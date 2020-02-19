@@ -165,6 +165,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void deleteCoursereservesCourselistings(Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     try {
+      /*
         String tenantId = getTenant(okapiHeaders);
         PostgresClient pgClient = getPGClient(vertxContext, tenantId);
         final String DELETE_ALL_QUERY = String.format("DELETE FROM %s_%s.%s",
@@ -182,11 +183,24 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                     DeleteCoursereservesCourselistingsResponse.noContent().build()));
           }
         });
+       */
+        deleteAllItems(COURSE_LISTINGS_TABLE, null, okapiHeaders, vertxContext)
+            .setHandler(res -> {
+          if(res.failed()) {
+            String message = logAndSaveError(res.cause());
+            asyncResultHandler.handle(Future.succeededFuture(
+                DeleteCoursereservesCourselistingsResponse.respond500WithTextPlain(
+                getErrorResponse(message))));
+          } else {
+            asyncResultHandler.handle(Future.succeededFuture(
+                DeleteCoursereservesCourselistingsResponse.noContent().build()));
+          }
+        });
       } catch(Exception e) {
         String message = logAndSaveError(e);
         asyncResultHandler.handle(Future.succeededFuture(
-                DeleteCoursereservesCourselistingsResponse.respond500WithTextPlain(
-                getErrorResponse(message))));
+            DeleteCoursereservesCourselistingsResponse.respond500WithTextPlain(
+            getErrorResponse(message))));
       }
   }
 
