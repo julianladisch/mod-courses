@@ -631,6 +631,20 @@ public class CourseAPITest {
   }
 
   @Test
+  public void getReservesFromCourseListingsWithBadQuery(TestContext context) {
+    Async async = context.async();
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves?query=NOT+blooh", GET, standardHeaders, null, 500,
+        "Post Course Reserve").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        async.complete();
+      }
+    });
+  }
+
+  @Test
   public void postReserveToCourseListingWithBarcode(TestContext context) {
     Async async = context.async();
     JsonObject reservePostJson = new JsonObject()
@@ -1728,7 +1742,7 @@ public class CourseAPITest {
      Async async = context.async();
      new CourseAPIFail()
          .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
-         "*", null, 0, 10, null, okapiHeaders, res -> {
+         "*", "flarglehonker = booom", 0, 10, null, okapiHeaders, res -> {
        if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -1741,17 +1755,45 @@ public class CourseAPITest {
      }, vertx.getOrCreateContext());
    }
 
+   /*
+   @Test
+   public void TestGetReservesByCourseListingBadQuery(TestContext context) {
+     Async async = context.async();
+     new CourseAPI()
+         .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
+         "*", null, 0, 10, null, okapiHeaders, res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         if(res.result().getStatus() != 500) {
+           context.fail("Expected 500, got status " + res.result().getStatus());
+           return;
+         }
+         async.complete();
+       }
+     }, vertx.getOrCreateContext());
+   }
+   */
    
    
 
    @Test
    public void TestGetPGClient(TestContext context) {
      Async async = context.async();
-     PostgresClient pgClient = CRUtil.getPgClient(okapiHeaders, vertx.getOrCreateContext());
+     PostgresClient pgClient = CRUtil.getPgClient(okapiHeaders,
+         vertx.getOrCreateContext());
      context.assertTrue(pgClient != null);
      async.complete();
    }
 
+   @Test
+   public void TestGetPGClientFromHeaders(TestContext context) {
+     Async async = context.async();
+     PostgresClient pgClient = new CourseAPI().getPGClientFromHeaders(
+         vertx.getOrCreateContext(), okapiHeaders);
+     context.assertTrue(pgClient != null);
+     async.complete();
+   }
 
 
   

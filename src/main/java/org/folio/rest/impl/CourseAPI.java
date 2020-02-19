@@ -459,10 +459,6 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     String tenantId = getTenant(okapiHeaders);
     PostgresClient pgClient = getPGClient(vertxContext, tenantId);
     try {
-      /*
-      pgClient.get(RESERVES_TABLE, Reserve.class, new String[]{"*"},
-          getCQL(query,limit,offset, RESERVES_TABLE), true, true, getReply -> {
-      */
       getItems(RESERVES_TABLE, Reserve.class, getCQL(query, limit, offset, RESERVES_TABLE),
           pgClient).setHandler(getReply -> {
         if(getReply.failed()) {
