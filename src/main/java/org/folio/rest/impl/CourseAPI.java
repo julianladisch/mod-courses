@@ -79,11 +79,11 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   private static boolean SUPPRESS_ERRORS = false;
   
 
-  public static PostgresClient getPGClient(Context vertxContext, String tenantId) {
+  public PostgresClient getPGClient(Context vertxContext, String tenantId) {
     return PostgresClient.getInstance(vertxContext.owner(), tenantId);
   }
 
-  public static PostgresClient getPGClientFromHeaders(Context vertxContext,
+  public PostgresClient getPGClientFromHeaders(Context vertxContext,
       Map<String, String> okapiHeaders) {
     return PgUtil.postgresClient(vertxContext, okapiHeaders);
   }
@@ -1280,7 +1280,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         DeleteCoursereservesReservesByReserveIdResponse.class, asyncResultHandler);
   }
 
-  public static <T> Future<Results<T>> getItems(String tableName, Class<T> clazz,
+  public <T> Future<Results<T>> getItems(String tableName, Class<T> clazz,
       CQLWrapper cql, PostgresClient pgClient) {
     Future<Results<T>> future = Future.future();
     pgClient.get(tableName, clazz, new String[]{"*"}, cql, true, true, getReply -> {

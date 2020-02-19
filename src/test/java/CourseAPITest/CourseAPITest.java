@@ -27,15 +27,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.Response;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.client.TenantClient;
 import org.folio.rest.impl.CourseAPI;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.getCQL;
-import static org.folio.rest.impl.CourseAPI.getPGClientFromHeaders;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.persist.PgUtil;
 import org.folio.rest.persist.PostgresClient;
@@ -1724,11 +1721,13 @@ public class CourseAPITest {
     });
    }
 
-   /*
+   
+   
    @Test
    public void TestGetReservesByCourseListing(TestContext context) {
      Async async = context.async();
-     new CourseAPIFail().getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
+     new CourseAPIFail()
+         .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
          "*", null, 0, 10, null, okapiHeaders, res -> {
        if(res.failed()) {
          context.fail(res.cause());
@@ -1741,7 +1740,17 @@ public class CourseAPITest {
        }
      }, vertx.getOrCreateContext());
    }
-   */
+
+   
+   
+
+   @Test
+   public void TestGetPGClient(TestContext context) {
+     Async async = context.async();
+     PostgresClient pgClient = CRUtil.getPgClient(okapiHeaders, vertx.getOrCreateContext());
+     context.assertTrue(pgClient != null);
+     async.complete();
+   }
 
 
 
@@ -2126,10 +2135,13 @@ public class CourseAPITest {
 }
 
 class CourseAPIFail extends CourseAPI {
-  public static <T> Future<Results<T>> getItems(String tableName, Class<T> clazz,
+  
+  public <T> Future<Results<T>> getItems(String tableName, Class<T> clazz,
       CQLWrapper cql, PostgresClient pgClient) {
+    logger.info("Calling Always-Fails getItems");
     Future<Results<T>> future = Future.future();
     future = Future.failedFuture("IT ALWAYS FAILS");
     return future;
   }
+  
 }
