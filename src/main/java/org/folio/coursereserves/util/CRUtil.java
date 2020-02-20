@@ -185,6 +185,8 @@ public class CRUtil {
     copiedItem.setVolume(itemJson.getString("volume"));
     copiedItem.setTitle(instanceJson.getString("title"));
     copiedItem.setEnumeration(itemJson.getString("enumeration"));
+    copiedItem.setInstanceId(instanceJson.getString("id"));
+    copiedItem.setHoldingsId(holdingsJson.getString("id"));
     try {
       if (itemJson.containsKey("copyNumber")) {
         copiedItem.setCopy(itemJson.getString("copyNumber"));

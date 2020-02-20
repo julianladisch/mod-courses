@@ -145,6 +145,14 @@
                 "url": {
                     "type": "string",
                     "description": "PENDING"
+                },
+                "instanceId": {
+                    "type": "string",
+                    "description": "The id of the associated instance record"
+                },
+                "holdingsId": {
+                    "type": "string",
+                    "description": "The id of the associated holdings record"
                 }
             }
         },
