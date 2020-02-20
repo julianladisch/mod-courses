@@ -577,9 +577,11 @@ public class CourseAPITest {
                 context.fail(getRes.cause());
               } else {
                 JsonObject getReserveJson = getRes.result().getJson();
-                JsonObject getItemJson = getReserveJson.getJsonObject("copiedItem");
-                JsonObject permanentLocationJson = getItemJson.getJsonObject("permanentLocationObject");
-                JsonObject temporaryLocationJson = getItemJson.getJsonObject("temporaryLocationObject");
+                JsonObject getCopiedItemJson = getReserveJson.getJsonObject("copiedItem");
+                context.assertEquals(getCopiedItemJson.getString("instanceId"), OkapiMock.instance1Id);
+                context.assertEquals(getCopiedItemJson.getString("holdingsId"), OkapiMock.holdings1Id);
+                JsonObject permanentLocationJson = getCopiedItemJson.getJsonObject("permanentLocationObject");
+                JsonObject temporaryLocationJson = getCopiedItemJson.getJsonObject("temporaryLocationObject");
                 JsonObject temporaryLoanTypeJson = getReserveJson.getJsonObject("temporaryLoanTypeObject");
                 JsonObject copyrightTrackingJson = getReserveJson.getJsonObject("copyrightTracking");
                 JsonObject processingStatusJson = getReserveJson.getJsonObject("processingStatusObject");
