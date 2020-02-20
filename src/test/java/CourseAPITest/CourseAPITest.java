@@ -1038,11 +1038,12 @@ public class CourseAPITest {
                     context.fail("No temporary loan type object found in result " + ((JsonObject)ob).encode());
                     return;
                   }
+                  context.assertEquals(((JsonObject)ob).getJsonObject("temporaryLoanTypeObject").getString("id"), OkapiMock.loanType1Id);
                   if( ((JsonObject)ob).getJsonObject("processingStatusObject") == null ) {
                     context.fail("No processing status object found in result " + ((JsonObject)ob).encode());
                     return;
                   }
-
+                  context.assertEquals(((JsonObject)ob).getJsonObject("processingStatusObject").getString("id"), PROCESSING_STATUS_1_ID);
                 }
               } catch(Exception e) {
                 context.fail(e);
