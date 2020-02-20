@@ -512,8 +512,7 @@
                 "course-reserves-storage.courselistings.instructors.item.get",
                 "course-reserves-storage.courselistings.reserves.collection.get",
                 "course-reserves-storage.courselistings.reserves.item.get"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.courselistings.write",
@@ -533,8 +532,7 @@
                 "course-reserves-storage.courselistings.reserves.item.post",
                 "course-reserves-storage.courselistings.reserves.item.put",
                 "course-reserves-storage.courselistings.reserves.item.delete"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.terms.collection.get",
@@ -568,8 +566,7 @@
             "subPermissions": [
                 "course-reserves-storage.terms.collection.get",
                 "course-reserves-storage.terms.item.get"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.terms.write",
@@ -581,8 +578,7 @@
                 "course-reserves-storage.terms.item.put",
                 "course-reserves-storage.terms.item.put",
                 "course-reserves-storage.terms.item.delete"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.departments.collection.get",
@@ -616,8 +612,7 @@
             "subPermissions": [
                 "course-reserves-storage.departments.collection.get",
                 "course-reserves-storage.departments.item.get"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.departments.write",
@@ -628,8 +623,7 @@
                 "course-reserves-storage.departments.item.post",
                 "course-reserves-storage.departments.item.put",
                 "course-reserves-storage.departments.item.delete"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.course-types.collection.get",
@@ -663,8 +657,7 @@
             "subPermissions": [
                 "course-reserves-storage.course-types.collection.get",
                 "course-reserves-storage.course-types.item.get"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.course-types.write",
@@ -675,8 +668,7 @@
                 "course-reserves-storage.course-types.item.post",
                 "course-reserves-storage.course-types.item.put",
                 "course-reserves-storage.course-types.item.delete"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.processing-statuses.collection.get",
@@ -710,8 +702,7 @@
             "subPermissions": [
                 "course-reserves-storage.processing-statuses.collection.get",
                 "course-reserves-storage.processing-statuses.item.get"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.processing-statuses.write",
@@ -722,8 +713,7 @@
                 "course-reserves-storage.processing-statuses.item.put",
                 "course-reserves-storage.processing-statuses.item.post",
                 "course-reserves-storage.processing-statuses.item.delete"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.copyright-statuses.collection.get",
@@ -757,8 +747,7 @@
             "subPermissions": [
                 "course-reserves-storage.copyright-statuses.collection.get",
                 "course-reserves-storage.copyright-statuses.item.get"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.copyright-statuses.write",
@@ -769,8 +758,7 @@
                 "course-reserves-storage.copyright-statuses.item.put",
                 "course-reserves-storage.copyright-statuses.item.post",
                 "course-reserves-storage.copyright-statuses.item.delete"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.roles.collection.get",
@@ -804,8 +792,7 @@
             "subPermissions": [
                 "course-reserves-storage.roles.collection.get",
                 "course-reserves-storage.roles.item.get"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.roles.write",
@@ -816,8 +803,7 @@
                 "course-reserves-storage.roles.item.post",
                 "course-reserves-storage.roles.item.put",
                 "course-reserves-storage.roles.item.delete"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.courses.collection.get",
@@ -851,8 +837,7 @@
             "subPermissions": [
                 "course-reserves-storage.courses.collection.get",
                 "course-reserves-storage.courses.item.get"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.courses.write",
@@ -863,8 +848,7 @@
                 "course-reserves-storage.courses.item.post",
                 "course-reserves-storage.courses.item.put",
                 "course-reserves-storage.courses.item.delete"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.reserves.collection.get",
@@ -898,8 +882,7 @@
             "subPermissions": [
                 "course-reserves-storage.reserves.collection.get",
                 "course-reserves-storage.reserves.item.get"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.reserves.write",
@@ -910,8 +893,7 @@
                 "course-reserves-storage.reserves.item.post",
                 "course-reserves-storage.reserves.item.put",
                 "course-reserves-storage.reserves.item.delete"
-            ],
-            "visible": true
+            ]
         },
         {
             "permissionName": "course-reserves-storage.all",
@@ -927,8 +909,7 @@
                 "course-reserves-storage.copyright-statuses.write",
                 "course-reserves-storage.courses.write",
                 "course-reserves-storage.reserves.write"
-            ],
-            "visible": true
+            ]
         }
     ],
     "launchDescriptor": {
