@@ -5,8 +5,13 @@ import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.ArrayList;
+import org.folio.rest.impl.CourseAPI;
 import org.folio.rest.jaxrs.model.LocationObject;
+import org.folio.rest.jaxrs.model.Reserf;
 import org.folio.rest.jaxrs.model.TemporaryLocationObject;
+import org.folio.rest.jaxrs.model.Reserve;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNull;
 import org.junit.Test;
@@ -57,6 +62,16 @@ public class UtilTest {
     TemporaryLocationObject tempLocationObject = new TemporaryLocationObject();
     CRUtil.copyFields(tempLocationObject, null);
     assertNull(tempLocationObject.getId());
+  }
+
+  @Test
+  public void testReserfListFromReserveList() {
+    List<Reserve> reserveList = new ArrayList<>();
+    Reserve reserve = new Reserve();
+    reserve.setId(UUID.randomUUID().toString());
+    reserveList.add(reserve);
+    List<Reserf> reserfList = CourseAPI.reserfListFromReserveList(reserveList);
+    assertEquals(reserfList.get(0).getId(), reserve.getId());
   }
 
 }

@@ -56,6 +56,7 @@ import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
 import org.folio.rest.persist.Criteria.Criteria;
 import org.folio.rest.persist.Criteria.Criterion;
+import org.folio.rest.persist.PgUtil;
 import static org.folio.rest.persist.PgUtil.postgresClient;
 import org.folio.rest.persist.PostgresClient;
 
@@ -71,6 +72,11 @@ public class CRUtil {
   public static final String ITEMS_ENDPOINT = "/item-storage/items";
 
   protected static final List<PopulateMapping> LOCATION_MAP_LIST = getLocationMapList();
+
+  public static PostgresClient getPgClient(Map<String, String> okapiHeaders,
+      Context context) {
+    return PgUtil.postgresClient(context, okapiHeaders);
+  }
 
   public static List<PopulateMapping> getLocationMapList() {
     List<PopulateMapping> mapList = new ArrayList();
@@ -88,7 +94,6 @@ public class CRUtil {
 
     return mapList;
   }
-
 
   public static Future<Void> populateReserveInventoryCache(Reserve reserve,
       Map<String, String> okapiHeaders, Context context) {
@@ -142,6 +147,30 @@ public class CRUtil {
             }
           }
         });
+      }
+    });
+    return future;
+  }
+
+  public static Future<List<Reserve>> expandListOfReserves(List<Reserve> listOfReserves,
+      Map<String, String> okapiHeaders, Context context) {
+    Future<List<Reserve>> future = Future.future();
+    List<Future> expandedReserveFutureList = new ArrayList<>();
+    for(Reserve reserve : listOfReserves) {
+      expandedReserveFutureList.add(lookupExpandedReserve(reserve.getId(),
+          okapiHeaders, context, true));
+    }
+    CompositeFuture compositeFuture = CompositeFuture.all(expandedReserveFutureList);
+    compositeFuture.setHandler(expandReservesRes -> {
+      if(expandReservesRes.failed()) {
+        future.fail(expandReservesRes.cause());
+      } else {
+        List<Reserve> newListOfReserves = new ArrayList<>();
+        for( Future reserveFuture : expandedReserveFutureList ) {
+          Future<Reserve> f = (Future<Reserve>)reserveFuture;
+          newListOfReserves.add(f.result());
+        }
+        future.complete(newListOfReserves);
       }
     });
     return future;
@@ -375,7 +404,8 @@ public class CRUtil {
             processingStatusFuture = Future.failedFuture("No processing status id");
           }
           Future<Copyrightstatus> copyrightStatusFuture;
-          if(reserve.getCopyrightTracking() != null) {
+          if(reserve.getCopyrightTracking() != null
+              && reserve.getCopyrightTracking().getCopyrightStatusId() != null) {
             copyrightStatusFuture = lookupCopyrightStatus(
             reserve.getCopyrightTracking().getCopyrightStatusId(), okapiHeaders,
                 context);
@@ -436,8 +466,9 @@ public class CRUtil {
     return future;
   }
 
-  public static Future<Void> populateReserve(Reserve reserve, Future<JsonObject> tempLocationFuture,
-      Future<JsonObject> permLocationFuture, Future<Processingstatus> processingStatusFuture,
+  public static Future<Void> populateReserve(Reserve reserve,
+      Future<JsonObject> tempLocationFuture, Future<JsonObject> permLocationFuture,
+      Future<Processingstatus> processingStatusFuture,
       Future<Copyrightstatus> copyrightStatusFuture, Future<JsonObject> loanTypeFuture) {
     Future<Void> future = Future.future();
     List<Future> futureList = new ArrayList<>();
@@ -497,69 +528,77 @@ public class CRUtil {
       if(clRes.failed()) {
         future.fail(clRes.cause());
       } else {
-        Courselisting courselisting = clRes.result();
-        String termId = courselisting.getTermId();
-        String courseTypeId = courselisting.getCourseTypeId();
-        String locationId = courselisting.getLocationId();
-        String servicepointId = courselisting.getServicepointId();
-        Future<Term> termFuture;
-        Future<Coursetype> coursetypeFuture;
-        Future<JsonObject> locationFuture;
-        Future<JsonObject> servicePointFuture;
-        Future<List<Instructor>> instructorFuture;
-        if(expandTerm && termId != null) {
-          termFuture = lookupTerm(termId, okapiHeaders, context);
-        } else {
-          termFuture = Future.failedFuture("No lookup");
-        }      
-        if(expandTerm && courseTypeId != null) {
-          coursetypeFuture = lookupCourseType(courseTypeId, okapiHeaders, context);
-        } else {
-          coursetypeFuture = Future.failedFuture("No lookup");
+        try {
+          Courselisting courselisting = clRes.result();
+          String termId = courselisting.getTermId();
+          String courseTypeId = courselisting.getCourseTypeId();
+          String locationId = courselisting.getLocationId();
+          String servicepointId = courselisting.getServicepointId();
+          Future<Term> termFuture;
+          Future<Coursetype> coursetypeFuture;
+          Future<JsonObject> locationFuture;
+          Future<JsonObject> servicePointFuture;
+          Future<List<Instructor>> instructorFuture;
+          if(expandTerm && termId != null) {
+            termFuture = lookupTerm(termId, okapiHeaders, context);
+          } else {
+            termFuture = Future.failedFuture("No lookup");
+          }
+          if(expandTerm && courseTypeId != null) {
+            coursetypeFuture = lookupCourseType(courseTypeId, okapiHeaders, context);
+          } else {
+            coursetypeFuture = Future.failedFuture("No lookup");
+          }
+          if(expandTerm && locationId != null) {
+            locationFuture = lookupLocation(locationId, okapiHeaders, context);
+          } else {
+            locationFuture = Future.failedFuture("No lookup");
+          }
+          if(expandTerm && servicepointId != null) {
+            servicePointFuture = lookupServicepoint(servicepointId, okapiHeaders, context);
+          } else {
+            servicePointFuture = Future.failedFuture("No lookup");
+          }
+          if(expandTerm) {
+            instructorFuture = lookupInstructorsForCourseListing(courseListingId,
+                okapiHeaders, context);
+          } else {
+            instructorFuture = Future.failedFuture("No lookup");
+          }
+          List<Future> futureList = new ArrayList<>();
+          futureList.add(termFuture);
+          futureList.add(coursetypeFuture);
+          futureList.add(locationFuture);
+          futureList.add(servicePointFuture);
+          futureList.add(instructorFuture);
+          CompositeFuture compositeFuture = CompositeFuture.join(futureList);
+          compositeFuture.setHandler(compRes -> {
+            try {
+              if(termFuture.succeeded()) {
+                courselisting.setTermObject(termObjectFromTerm(termFuture.result()));
+              }
+              if(coursetypeFuture.succeeded()) {
+                courselisting.setCourseTypeObject(courseTypeObjectFromCourseType(
+                    coursetypeFuture.result()));
+              }
+              if(locationFuture.succeeded()) {
+                courselisting.setLocationObject(locationObjectFromJson(locationFuture.result()));
+              }
+              if(servicePointFuture.succeeded()) {
+                courselisting.setServicepointObject(servicepointObjectFromJson(servicePointFuture.result()));
+              }
+              if(instructorFuture.succeeded()) {
+                courselisting.setInstructorObjects(instructorObjectListFromInstructorList(
+                    instructorFuture.result()));
+              }
+              future.complete(courselisting);
+            } catch(Exception e) {
+              future.fail(e);
+            }
+          });
+        } catch(Exception e) {
+          future.fail(e);
         }
-        if(expandTerm && locationId != null) {
-          locationFuture = lookupLocation(locationId, okapiHeaders, context);
-        } else {
-          locationFuture = Future.failedFuture("No lookup");
-        }
-        if(expandTerm && servicepointId != null) {
-          servicePointFuture = lookupServicepoint(servicepointId, okapiHeaders, context);
-        } else {
-          servicePointFuture = Future.failedFuture("No lookup");
-        }
-        if(expandTerm) {
-          instructorFuture = lookupInstructorsForCourseListing(courseListingId,
-              okapiHeaders.get("X-OKAPI-TENANT"), context);
-        } else {
-          instructorFuture = Future.failedFuture("No lookup");
-        }
-        List<Future> futureList = new ArrayList<>();
-        futureList.add(termFuture);
-        futureList.add(coursetypeFuture);
-        futureList.add(locationFuture);
-        futureList.add(servicePointFuture);
-        futureList.add(instructorFuture);
-        CompositeFuture compositeFuture = CompositeFuture.join(futureList);
-        compositeFuture.setHandler(compRes -> {
-          if(termFuture.succeeded()) {
-            courselisting.setTermObject(termObjectFromTerm(termFuture.result()));
-          }
-          if(coursetypeFuture.succeeded()) {
-            courselisting.setCourseTypeObject(courseTypeObjectFromCourseType(
-                coursetypeFuture.result()));
-          }
-          if(locationFuture.succeeded()) {
-            courselisting.setLocationObject(locationObjectFromJson(locationFuture.result()));
-          }
-          if(servicePointFuture.succeeded()) {
-            courselisting.setServicepointObject(servicepointObjectFromJson(servicePointFuture.result()));
-          }
-          if(instructorFuture.succeeded()) {
-            courselisting.setInstructorObjects(instructorObjectListFromInstructorList(
-                instructorFuture.result()));
-          }
-          future.complete(courselisting);
-        });       
       }
     });    
     return future;
@@ -569,7 +608,8 @@ public class CRUtil {
   public static Future<Courselisting> getCourseListingById(String courseListingId,
       Map<String, String> okapiHeaders, Context context) {
     Future<Courselisting> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    logger.info("Looking up course listing for id '" + courseListingId + "'");
+    PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(COURSE_LISTINGS_TABLE, courseListingId, Courselisting.class,
         courseListingReply -> {
       if(courseListingReply.failed()) {
@@ -586,7 +626,7 @@ public class CRUtil {
   public static Future<Reserve> getReserveById(String reserveId,
       Map<String, String> okapiHeaders, Context context) {
     Future<Reserve> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(RESERVES_TABLE, reserveId, Reserve.class,
         reserveReply -> {
       if(reserveReply.failed()) {
@@ -712,34 +752,38 @@ public class CRUtil {
   }
 
   public static Future<List<Instructor>> lookupInstructorsForCourseListing(
-      String courseListingId, String tenantId, Context context) {
+      String courseListingId, Map<String, String> okapiHeaders, Context context) {
     Future<List<Instructor>> future = Future.future();
-    PostgresClient postgresClient = PostgresClient.getInstance(context.owner(), tenantId);
-    Criteria idCrit = new Criteria();
-    idCrit.addField("'courseListingId'");
-    idCrit.setOperation("=");
-    idCrit.setVal(courseListingId);
-    Criterion criterion = new Criterion(idCrit);
-    logger.info("Requesting instructor records with criterion: " + criterion.toString());
-    postgresClient.get(INSTRUCTORS_TABLE, Instructor.class, criterion,
-        true, false, res -> {
-      if(res.failed()) {
-        future.fail(res.cause());
-      } else {
-        List<Instructor> instructorList = new ArrayList<>();      
-        for(Instructor instructor : res.result().getResults()) {
-          instructorList.add(instructor);          
+    try {
+      PostgresClient postgresClient = getPgClient(okapiHeaders, context);
+      Criteria idCrit = new Criteria();
+      idCrit.addField("'courseListingId'");
+      idCrit.setOperation("=");
+      idCrit.setVal(courseListingId);
+      Criterion criterion = new Criterion(idCrit);
+      logger.info("Requesting instructor records with criterion: " + criterion.toString());
+      postgresClient.get(INSTRUCTORS_TABLE, Instructor.class, criterion,
+          true, false, res -> {
+        if(res.failed()) {
+          future.fail(res.cause());
+        } else {
+          List<Instructor> instructorList = new ArrayList<>();
+          for(Instructor instructor : res.result().getResults()) {
+            instructorList.add(instructor);
+          }
+          future.complete(instructorList);
         }
-        future.complete(instructorList);
-      }
-    });
+      });
+    } catch(Exception e) {
+      future.fail(e);
+    }
     return future;
   }
 
   public static Future<Term> lookupTerm(String termId,
       Map<String, String> okapiHeaders, Context context) {
     Future<Term> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(TERMS_TABLE, termId, Term.class,
         reply -> {
       if(reply.failed()) {
@@ -757,7 +801,7 @@ public class CRUtil {
     public static Future<Department> lookupDepartment(String departmentId,
       Map<String, String> okapiHeaders, Context context) {
     Future<Department> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(DEPARTMENTS_TABLE, departmentId, Department.class,
         reply -> {
       if(reply.failed()) {
@@ -775,7 +819,7 @@ public class CRUtil {
   public static Future<Coursetype> lookupCourseType(String courseTypeId,
       Map<String, String> okapiHeaders, Context context) {
     Future<Coursetype> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(COURSE_TYPES_TABLE, courseTypeId, Coursetype.class,
         reply -> {
       if(reply.failed()) {
@@ -792,7 +836,7 @@ public class CRUtil {
   public static Future<Processingstatus> lookupProcessingStatus(String processingStatusId,
       Map<String, String> okapiHeaders, Context context) {
     Future<Processingstatus> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(PROCESSING_STATUSES_TABLE, processingStatusId,
         Processingstatus.class,
         reply -> {
@@ -810,7 +854,7 @@ public class CRUtil {
   public static Future<Copyrightstatus> lookupCopyrightStatus(String copyrightStatusId,
       Map<String, String> okapiHeaders, Context context) {
     Future<Copyrightstatus> future = Future.future();
-    PostgresClient postgresClient = postgresClient(context, okapiHeaders);
+    PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(COPYRIGHT_STATUSES_TABLE, copyrightStatusId,
         Copyrightstatus.class,
         reply -> {
@@ -852,47 +896,61 @@ public class CRUtil {
       Map<String, String> okapiHeaders, Context context) {
     Future<Course> future = Future.future();
     Future<Courselisting> courseListingFuture;
-    Course newCourse = copyCourse(course);
-    if(course.getCourseListingId() == null) {
-      courseListingFuture = Future.succeededFuture();
-    } else {
-      courseListingFuture = lookupExpandedCourseListing(course.getCourseListingId(),
-          okapiHeaders, context, Boolean.TRUE);
-    }
-    courseListingFuture.setHandler(courselistingReply -> {
-      if(courselistingReply.failed()) {
-        future.fail(courselistingReply.cause());
+    Course newCourse;
+    try {
+      PostgresClient postgresClient = getPgClient(okapiHeaders, context);
+      newCourse = copyCourse(course);
+      if(course.getCourseListingId() == null) {
+        courseListingFuture = Future.succeededFuture();
       } else {
-        CourseListingObject expandedCourseListing = new CourseListingObject();
-        Courselisting courseListing = courselistingReply.result();
-        if(courseListing != null) {
-          copyFields(expandedCourseListing, courseListing);
-        }
-        newCourse.setCourseListingObject(expandedCourseListing);
-
-        Future<Department> departmentFuture;
-        if(course.getDepartmentId() == null) {
-          departmentFuture = Future.succeededFuture();
-        } else {
-          departmentFuture = lookupDepartment(course.getDepartmentId(), okapiHeaders,
-              context);
-        }
-        departmentFuture.setHandler(departmentReply -> {
-          if(departmentReply.failed()) {
-            future.fail(departmentReply.cause());
-          } else {
-            Department department = departmentReply.result();
-            if(department != null) {
-              DepartmentObject departmentObject = new DepartmentObject();
-              copyFields(departmentObject, department);
-              newCourse.setDepartmentObject(departmentObject);
-            }
-            future.complete(newCourse);
-          }
-        });
-
+        courseListingFuture = lookupExpandedCourseListing(course.getCourseListingId(),
+            okapiHeaders, context, Boolean.TRUE);
       }
-    });
+      courseListingFuture.setHandler(courselistingReply -> {
+        if(courselistingReply.failed()) {
+          future.fail(courselistingReply.cause());
+        } else {
+          try {
+          CourseListingObject expandedCourseListing = new CourseListingObject();
+          Courselisting courseListing = courselistingReply.result();
+          if(courseListing != null) {
+            copyFields(expandedCourseListing, courseListing);
+          }
+          newCourse.setCourseListingObject(expandedCourseListing);
+
+          Future<Department> departmentFuture;
+          if(course.getDepartmentId() == null) {
+            departmentFuture = Future.succeededFuture();
+          } else {
+            departmentFuture = lookupDepartment(course.getDepartmentId(), okapiHeaders,
+                context);
+          }
+          departmentFuture.setHandler(departmentReply -> {
+            if(departmentReply.failed()) {
+              future.fail(departmentReply.cause());
+            } else {
+              Department department = departmentReply.result();
+              try {
+                if(department != null) {
+                  DepartmentObject departmentObject = new DepartmentObject();
+                  copyFields(departmentObject, department);
+                  newCourse.setDepartmentObject(departmentObject);
+                }
+              future.complete(newCourse);
+              } catch(Exception e) {
+                future.fail(e);
+              }
+            }
+          });
+          } catch(Exception e) {
+            future.fail(e);
+          }
+        }
+      });
+    }
+      catch(Exception e) {
+        future.fail(e);
+    }
     return future;
   }
 
