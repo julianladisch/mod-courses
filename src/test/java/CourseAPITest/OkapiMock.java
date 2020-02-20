@@ -177,6 +177,36 @@ public class OkapiMock extends AbstractVerticle {
       } else {
         context.response().setStatusCode(404).end("id '" + id + "' not found");
       }
+    } else if (context.request().method() == HttpMethod.PUT) {
+      if(id == null) {
+        String message = String.format("PUT requires id in path");
+        context.response().setStatusCode(400)
+            .end(message);
+        return;
+      } else {
+        String putContent = context.getBodyAsString();
+        JsonObject putJson = null;
+        try {
+          if(!itemMap.containsKey(id)) {
+            context.response().setStatusCode(404)
+                .end("Item with id '" + id + "' does not exist");
+            return;
+          }
+          putJson = new JsonObject(putContent);
+          if(!putJson.getString("id").equals(id)) {
+            throw new UnsupportedOperationException("id field in json must match id '" + id + "'");
+          }
+
+        } catch(UnsupportedOperationException uoe) {
+          context.response().setStatusCode(400)
+              .end(uoe.getLocalizedMessage());
+          return;
+        } catch(Exception e) {
+          context.response().setStatusCode(500)
+              .end(e.getLocalizedMessage());
+          return;
+        }
+      }
     } else {
       String message = String.format("Unsupported method %s", context.request()
           .method().toString());
