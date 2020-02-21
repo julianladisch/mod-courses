@@ -504,7 +504,13 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                       String.format("listingId should be %s", listingId)))));
     } else {
       try {
-        Future<Void> getCopiedItemsFuture;
+        String originalTemporaryLocationId;
+        if(entity.getCopiedItem() != null) {
+          originalTemporaryLocationId = entity.getCopiedItem().getTemporaryLocationId();
+        } else {
+          originalTemporaryLocationId = null;
+        }
+        Future<JsonObject> getCopiedItemsFuture;
         if(entity.getItemId() != null || (
             entity.getCopiedItem() != null && entity.getCopiedItem().getBarcode() != null)) {
           getCopiedItemsFuture = CRUtil.populateReserveInventoryCache(entity,
@@ -515,11 +521,31 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         }
         getCopiedItemsFuture.setHandler(copyItemsRes-> {
           if(copyItemsRes.failed()) {
-            String message = logAndSaveError(copyItemsRes.cause());      
+            String message = logAndSaveError(copyItemsRes.cause());
+            //We don't fail the request, we just log it
           }
-          PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
-            PostCoursereservesCourselistingsReservesByListingIdResponse.class,
-            asyncResultHandler);
+          try {
+            Future<Void> putFuture;
+            if(originalTemporaryLocationId != null && getCopiedItemsFuture.succeeded()) {
+              JsonObject itemJson = getCopiedItemsFuture.result().getJsonObject("item");
+              itemJson.put("temporaryLocationId", originalTemporaryLocationId);
+              putFuture = CRUtil.putItemUpdate(itemJson, okapiHeaders, vertxContext);
+            } else {
+              putFuture = Future.succeededFuture();
+            }
+            //TODO: Modify item record and PUT back to inventory
+            putFuture.setHandler(putRes -> {
+              //should we kill the POST if the PUT to inventory fails?
+              PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
+              PostCoursereservesCourselistingsReservesByListingIdResponse.class,
+              asyncResultHandler); 
+            });
+          } catch(Exception e) {
+            String message = logAndSaveError(e);
+            asyncResultHandler.handle(Future.succeededFuture(
+                PostCoursereservesCourselistingsReservesByListingIdResponse
+                .respond500WithTextPlain(getErrorResponse(message))));
+          }
         }); 
       } catch(Exception e) {
         String message = logAndSaveError(e);
@@ -578,6 +604,10 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         asyncResultHandler.handle(Future.succeededFuture(
             GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse
             .respond500WithTextPlain(getErrorResponse(message))));
+      } else if(res.result() == null || res.result().getId() == null) {
+        asyncResultHandler.handle(Future.succeededFuture(
+            GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse
+            .respond404WithTextPlain("Reserve with id '" + reserveId + "' not found")));
       } else {
         asyncResultHandler.handle(Future.succeededFuture(
             GetCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse

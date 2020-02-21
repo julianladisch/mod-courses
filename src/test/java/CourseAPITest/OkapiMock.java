@@ -59,14 +59,16 @@ public class OkapiMock extends AbstractVerticle {
   public static String staffSlip1Id = UUID.randomUUID().toString();
   public static String loanType1Id = UUID.randomUUID().toString();
 
-  private static Map<String, JsonObject> userMap = new HashMap<>();
-  private static Map<String, JsonObject> groupMap = new HashMap<>();
-  private static Map<String, JsonObject> itemMap = new HashMap<>();
-  private static Map<String, JsonObject> holdingsMap = new HashMap<>();
-  private static Map<String, JsonObject> instanceMap = new HashMap<>();
-  private static Map<String, JsonObject> locationMap = new HashMap<>();
-  private static Map<String, JsonObject> servicePointMap = new HashMap<>();
-  private static Map<String, JsonObject> loanTypeMap = new HashMap<>();
+
+  private static Map<String, JsonObject> userMap;
+  private static Map<String, JsonObject> groupMap;
+  private static Map<String, JsonObject> itemMap;
+  private static Map<String, JsonObject> holdingsMap;
+  private static Map<String, JsonObject> instanceMap;
+  private static Map<String, JsonObject> locationMap;
+  private static Map<String, JsonObject> servicePointMap;
+  private static Map<String, JsonObject> loanTypeMap;
+
 
   public void start(Future<Void> future) {
     final String defaultPort = context.config().getInteger("port", 9130).toString();
@@ -88,6 +90,7 @@ public class OkapiMock extends AbstractVerticle {
     router.route("/locations/:id").handler(this::handleLocations);
     router.route("/service-points/:id").handler(this::handleServicePoints);
     router.route("/loan-types/:id").handler(this::handleLoanTypes);
+    router.route("/reset").handler(this::handleReset);
 
     logger.info("Running OkapiMock on port " + port);
     server.requestHandler(router::accept).listen(port, result -> {
@@ -184,9 +187,13 @@ public class OkapiMock extends AbstractVerticle {
             .end(message);
         return;
       } else {
-        String putContent = context.getBodyAsString();
-        JsonObject putJson = null;
         try {
+          String putContent = context.getBodyAsString();
+          if(putContent == null || putContent.length() == 0) {
+            throw new UnsupportedOperationException("No content in PUT body read");
+          }
+          logger.info("Got body of PUT request " + putContent);
+          JsonObject putJson = null;
           if(!itemMap.containsKey(id)) {
             context.response().setStatusCode(404)
                 .end("Item with id '" + id + "' does not exist");
@@ -196,7 +203,10 @@ public class OkapiMock extends AbstractVerticle {
           if(!putJson.getString("id").equals(id)) {
             throw new UnsupportedOperationException("id field in json must match id '" + id + "'");
           }
-
+          logger.info("Writing JSON back to mapping");
+          itemMap.put(id, putJson);
+          logger.info("Return response");
+          context.response().setStatusCode(204).end();
         } catch(UnsupportedOperationException uoe) {
           context.response().setStatusCode(400)
               .end(uoe.getLocalizedMessage());
@@ -354,7 +364,34 @@ public class OkapiMock extends AbstractVerticle {
       }
    }
 
-   private void initData() {
+   private void handleReset(RoutingContext context) {
+     logger.info("Got reset request");
+     if(context.request().method() == HttpMethod.POST) {
+       String postContent = context.getBodyAsString();
+       JsonObject json = new JsonObject(postContent);
+       try {
+        if(json != null && json.containsKey("reset")) {
+          if(json.getBoolean("reset")) {
+            initData();
+            context.response().setStatusCode(201).end(json.encode());
+          } else {
+            throw new Exception("Bad input");
+          }
+        }
+       } catch(Exception e) {
+         context.response().setStatusCode(400).end(e.getLocalizedMessage());
+       }
+     } else {
+       String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
+        context.response().setStatusCode(400)
+          .end(message);
+        return;
+     }
+   }
+
+   private static void initData() {
+    userMap = new HashMap<>();
     userMap.put(user1Id, new JsonObject()
       .put("id", user1Id)
       .put("username", "elsanto")
@@ -376,6 +413,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("barcode", barcode3)
       .put("active", Boolean.TRUE));
 
+    groupMap = new HashMap<>();
     groupMap.put(group1Id, new JsonObject()
       .put("id", group1Id)
       .put("name", "wrasslers")
@@ -394,29 +432,33 @@ public class OkapiMock extends AbstractVerticle {
       .put("desc", "People Who manage")
     );
 
+    itemMap = new HashMap<>();
     itemMap.put(item1Id, new JsonObject()
         .put("id", item1Id)
-        .put("status", "Available")
+        .put("status", new JsonObject().put("name", "Available"))
         .put("holdingsRecordId", holdings1Id)
         .put("barcode", barcode1)
         .put("volume", volume1)
         .put("enumeration", enumeration1)
         .put("copyNumber", copy1)
+        .put("permanentLocationId", location1Id)
+        .put("temporaryLocationId", location2Id)
         .put("electronicAccess", new JsonArray()
           .add(new JsonObject()
             .put("uri", uri1)
             .put("publicNote", uri1))
           )
-
     );
 
     itemMap.put(item2Id, new JsonObject()
       .put("id", item2Id)
-      .put("status", "Available")
+      .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings1Id)
       .put("barcode", barcode2)
       .put("volume", volume1)
       .put("enumeration", enumeration1)
+      .put("permanentLocationId", location2Id)
+      .put("temporaryLocationId", location1Id)
       .put("copyNumbers", new JsonArray()
           .add(copy1))
       .put("electronicAccess", new JsonArray()
@@ -426,6 +468,7 @@ public class OkapiMock extends AbstractVerticle {
           )
     );
 
+    holdingsMap = new HashMap<>();
     holdingsMap.put(holdings1Id, new JsonObject()
       .put("id", holdings1Id)
       .put("instanceId", instance1Id)
@@ -435,6 +478,7 @@ public class OkapiMock extends AbstractVerticle {
       
     );
 
+    instanceMap = new HashMap<>();
     instanceMap.put(instance1Id, new JsonObject()
       .put("id", instance1Id)
       .put("title", title1)
@@ -456,7 +500,8 @@ public class OkapiMock extends AbstractVerticle {
         )
       )
     );
-    
+
+    locationMap = new HashMap<>();
     locationMap.put(location1Id, new JsonObject()
         .put("id", location1Id)
         .put("name", "Location 1")
@@ -490,7 +535,7 @@ public class OkapiMock extends AbstractVerticle {
         )
     );
     
-    //TODO: Populate Service Points
+    servicePointMap = new HashMap<>();
     servicePointMap
       .put(servicePoint1Id, new JsonObject()
         .put("id", servicePoint1Id)
@@ -565,6 +610,7 @@ public class OkapiMock extends AbstractVerticle {
       )
     );
 
+    loanTypeMap = new HashMap<>();
     loanTypeMap.put(loanType1Id, new JsonObject()
       .put("id", loanType1Id)
       .put("name", "Reserved Loan")

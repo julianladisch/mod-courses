@@ -70,6 +70,8 @@ public class CRUtil {
   public static final String LOCATIONS_ENDPOINT = "/locations";
   public static final String LOAN_TYPES_ENDPOINT = "/loan-types";
   public static final String ITEMS_ENDPOINT = "/item-storage/items";
+  public static final String HOLDINGS_ENDPOINT = "/holdings-storage/holdings";
+  public static final String INSTANCES_ENDPOINT = "/instance-storage/instances";
 
   protected static final List<PopulateMapping> LOCATION_MAP_LIST = getLocationMapList();
 
@@ -95,9 +97,9 @@ public class CRUtil {
     return mapList;
   }
 
-  public static Future<Void> populateReserveInventoryCache(Reserve reserve,
+  public static Future<JsonObject> populateReserveInventoryCache(Reserve reserve,
       Map<String, String> okapiHeaders, Context context) {
-    Future<Void> future = Future.future();
+    Future<JsonObject> future = Future.future();
     Future<String> itemIdFuture;
     String itemId = reserve.getItemId();
     if(itemId != null) {
@@ -141,7 +143,7 @@ public class CRUtil {
               logger.info("Attempting to populate copied items with inventory lookup for item id "
                   + retrievedItemId);
               populateReserveCopiedItemFromJson(reserve, inventoryRes.result());
-              future.complete();
+              future.complete(inventoryRes.result());
             } catch(Exception e) {
               future.fail(e);
             }
@@ -203,8 +205,8 @@ public class CRUtil {
     } catch(Exception e) {
       logger.info("Unable to copy electronic access field from item: " + e.getLocalizedMessage());
     }
-    copiedItem.setPermanentLocationId(holdingsJson.getString("permanentLocationId"));
-    copiedItem.setTemporaryLocationId(holdingsJson.getString("temporaryLocationId"));
+    copiedItem.setPermanentLocationId(itemJson.getString("permanentLocationId"));
+    copiedItem.setTemporaryLocationId(itemJson.getString("temporaryLocationId"));
     copiedItem.setCallNumber(holdingsJson.getString("callNumber"));
     JsonArray contributors = instanceJson.getJsonArray("contributors");
     if(contributors != null && contributors.size() > 0) {
@@ -236,7 +238,6 @@ public class CRUtil {
       }
       copiedItem.setPublication(publisherList);
     }
-
     reserve.setCopiedItem(copiedItem);
   }
 
@@ -244,12 +245,9 @@ public class CRUtil {
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
     JsonObject result = new JsonObject();
-    String itemPath = "/item-storage/items/";
-    String holdingsPath = "/holdings-storage/holdings/";
-    String instancePath = "/instance-storage/instances/";
-    logger.info("Making request for item at " + itemPath + itemId);
-    makeOkapiRequest(context.owner(), okapiHeaders, itemPath + itemId, HttpMethod.GET,
-        null, null, 200).setHandler(itemRes -> {
+    logger.info("Making request for item at " + ITEMS_ENDPOINT + "/" + itemId);
+    makeOkapiRequest(context.owner(), okapiHeaders, ITEMS_ENDPOINT + "/" + itemId,
+        HttpMethod.GET, null, null, 200).setHandler(itemRes -> {
       if(itemRes.failed()) {
         logger.error("Unable to lookup item by id " + itemId);
         future.fail(itemRes.cause());
@@ -257,8 +255,8 @@ public class CRUtil {
         JsonObject itemJson = itemRes.result();
         String holdingsId = itemJson.getString("holdingsRecordId");
         result.put("item", itemJson);
-        logger.info("Making request for holdings at " +holdingsPath + holdingsId);
-        makeOkapiRequest(context.owner(), okapiHeaders, holdingsPath + holdingsId,
+        logger.info("Making request for holdings at " + HOLDINGS_ENDPOINT + "/" + holdingsId);
+        makeOkapiRequest(context.owner(), okapiHeaders, HOLDINGS_ENDPOINT + "/" + holdingsId,
             HttpMethod.GET, null, null, 200).setHandler(holdingsRes -> {
           if(holdingsRes.failed()) {
             future.fail(holdingsRes.cause());
@@ -266,9 +264,10 @@ public class CRUtil {
             JsonObject holdingsJson = holdingsRes.result();
             String instanceId = holdingsJson.getString("instanceId");
             result.put("holdings", holdingsJson);
-            logger.info("Making request for instance at " + instancePath + instanceId);
-            makeOkapiRequest(context.owner(), okapiHeaders, instancePath + instanceId,
-                HttpMethod.GET, null, null, 200).setHandler(instanceRes -> {
+            logger.info("Making request for instance at " + INSTANCES_ENDPOINT + "/" + instanceId);
+            makeOkapiRequest(context.owner(), okapiHeaders, INSTANCES_ENDPOINT 
+                + "/" + instanceId, HttpMethod.GET, null, null, 200).setHandler(
+                instanceRes -> {
               if(instanceRes.failed()) {
                 future.fail(instanceRes.cause());
               } else {
@@ -284,6 +283,7 @@ public class CRUtil {
     });
     return future;
   }
+
   public static Future<JsonObject> lookupUserAndGroupByUserId(String userId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
@@ -364,8 +364,11 @@ public class CRUtil {
             logger.error(message);
             future.fail(message);
           } else {
-            JsonObject responseJson = new JsonObject(response);
-            future.complete(responseJson);
+            if(response != null && response.length() > 0) {
+              future.complete(new JsonObject(response));
+            } else {
+              future.complete(null);
+            }
           }
         } catch(Exception e) {
           future.fail(e);
@@ -893,7 +896,6 @@ public class CRUtil {
     return future;
   }
 
-
   public static Future<Course> getExpandedCourse(Course course,
       Map<String, String> okapiHeaders, Context context) {
     Future<Course> future = Future.future();
@@ -956,6 +958,27 @@ public class CRUtil {
     return future;
   }
 
+  public static Future<Void> putItemUpdate(JsonObject itemJson,
+      Map<String, String> okapiHeaders, Context context) {
+    Future future = Future.future();
+    try {
+       String id = itemJson.getString("id");
+       String putPath = ITEMS_ENDPOINT + "/" + id;
+       makeOkapiRequest(context.owner(), okapiHeaders, putPath, HttpMethod.PUT,
+           null, itemJson.encode(), 204).setHandler(res -> {
+         if(res.failed()) {
+           logger.error("Put failed: " + res.cause().getLocalizedMessage());
+           future.fail(res.cause());
+         } else {
+           future.complete();
+         }
+       });
+    } catch(Exception e) {
+      future.fail(e);
+    }
+    return future;
+  }
+
   private static Course copyCourse(Course originalCourse) {
     Course newCourse = new Course();
     copyFields(newCourse, originalCourse);
@@ -992,6 +1015,7 @@ public class CRUtil {
     }
     return locationObject;
   }
+
 
   /*
      Highly annoying to have to pretty much clone this function because of the odd
