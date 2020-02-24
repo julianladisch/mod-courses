@@ -933,6 +933,10 @@ public class CourseAPITest {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
+        JsonObject postResponseJson = res.result().getJson();
+        JsonObject copiedItemJson = postResponseJson.getJsonObject("copiedItem");
+        context.assertNotNull(copiedItemJson);
+        context.assertEquals(OkapiMock.location1Id, copiedItemJson.getString("temporaryLocationId"));
         CRUtil.lookupItemHoldingsInstanceByItemId(OkapiMock.item1Id,
             okapiHeaders, vertx.getOrCreateContext()).setHandler(lookupRes -> {
           if(lookupRes.failed()) {
@@ -1930,25 +1934,6 @@ public class CourseAPITest {
              context.fail(getRes.cause());
            } else {
              async.complete();
-             /*
-             try {
-               JsonObject itemJson = getRes.result().getJsonObject("item");
-               context.assertEquals(itemJson.getString("barcode"), newBarcode);
-               //now put it back
-               newItem.put("barcode", OkapiMock.barcode1);
-               CRUtil.putItemUpdate(newItem, okapiHeaders, vertx.getOrCreateContext())
-                   .setHandler(putBackRes -> {
-                 if(putBackRes.failed()) {
-                   context.fail(putBackRes.cause());
-                 } else {
-                   async.complete();
-                 }
-               });
-
-             } catch(Exception e) {
-               context.fail(e);
-             }
-             */
            }
          });
        }

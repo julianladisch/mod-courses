@@ -535,6 +535,10 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             }
             //TODO: Modify item record and PUT back to inventory
             putFuture.setHandler(putRes -> {
+              //We need to set the temporary location if it exists
+              if(originalTemporaryLocationId != null && entity.getCopiedItem() != null) {
+                entity.getCopiedItem().setTemporaryLocationId(originalTemporaryLocationId);
+              }
               //should we kill the POST if the PUT to inventory fails?
               PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
               PostCoursereservesCourselistingsReservesByListingIdResponse.class,
