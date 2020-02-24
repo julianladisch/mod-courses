@@ -17,6 +17,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.folio.coursereserves.util.PopulateMapping.ImportType;
@@ -75,6 +76,8 @@ public class CRUtil {
 
   protected static final List<PopulateMapping> LOCATION_MAP_LIST = getLocationMapList();
 
+  protected static final Map<String, String> textAcceptHeaders = getTextAcceptHeaders();
+
   public static PostgresClient getPgClient(Map<String, String> okapiHeaders,
       Context context) {
     return PgUtil.postgresClient(context, okapiHeaders);
@@ -95,6 +98,12 @@ public class CRUtil {
     mapList.add(new PopulateMapping("servicePointIds", ImportType.STRINGLIST));
 
     return mapList;
+  }
+
+  public static Map<String, String> getTextAcceptHeaders() {
+    Map<String, String> acceptMap = new HashMap<>();
+    acceptMap.put("Accept", "text/plain");
+    return acceptMap;
   }
 
   public static Future<JsonObject> populateReserveInventoryCache(Reserve reserve,
@@ -965,7 +974,7 @@ public class CRUtil {
        String id = itemJson.getString("id");
        String putPath = ITEMS_ENDPOINT + "/" + id;
        makeOkapiRequest(context.owner(), okapiHeaders, putPath, HttpMethod.PUT,
-           null, itemJson.encode(), 204).setHandler(res -> {
+           textAcceptHeaders, itemJson.encode(), 204).setHandler(res -> {
          if(res.failed()) {
            logger.error("Put failed: " + res.cause().getLocalizedMessage());
            future.fail(res.cause());
