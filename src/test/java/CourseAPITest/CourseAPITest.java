@@ -203,6 +203,8 @@ public class CourseAPITest {
           return deleteCopyrightStatuses();
         }).compose(f -> {
           return deleteProcessingStatuses();
+        }).compose(f -> {
+          return resetMockOkapi();
         }).setHandler(res -> {
         if(res.failed()) {
           context.fail(res.cause());
@@ -913,6 +915,43 @@ public class CourseAPITest {
   }
 
   @Test
+  public void postReserveToCourseListingWithTemporaryLocationId(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("copiedItem", new JsonObject()
+          .put("temporaryLocationId", OkapiMock.location1Id));
+
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        JsonObject postResponseJson = res.result().getJson();
+        JsonObject copiedItemJson = postResponseJson.getJsonObject("copiedItem");
+        context.assertNotNull(copiedItemJson);
+        context.assertEquals(OkapiMock.location1Id, copiedItemJson.getString("temporaryLocationId"));
+        CRUtil.lookupItemHoldingsInstanceByItemId(OkapiMock.item1Id,
+            okapiHeaders, vertx.getOrCreateContext()).setHandler(lookupRes -> {
+          if(lookupRes.failed()) {
+            context.fail(lookupRes.cause());
+          } else {
+            JsonObject itemJson = lookupRes.result().getJsonObject("item");
+            context.assertEquals(OkapiMock.location1Id, itemJson.getString("temporaryLocationId"));
+            async.complete();
+          }
+        });
+      }
+    });
+  }
+
+  @Test
   public void postReservesToCourseListingTestRetrieval(TestContext context) {
     Async async = context.async();
     JsonObject reservePostJson1 = new JsonObject()
@@ -1240,13 +1279,13 @@ public class CourseAPITest {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
-        JsonObject result = res.result();
-        if(!result.getString("id").equals(OkapiMock.item1Id)) {
-          context.fail("Retrieved item does not match expect " + OkapiMock.item1Id);
-          return;
-        }
-        async.complete();
         try {
+          JsonObject result = res.result();
+          if(!result.getString("id").equals(OkapiMock.item1Id)) {
+            context.fail("Retrieved item does not match expect " + OkapiMock.item1Id);
+            return;
+          }
+        async.complete();
         } catch(Exception e) {
           context.fail(e);
         }
@@ -1459,7 +1498,7 @@ public class CourseAPITest {
         }
         JsonObject itemJson = reserveJson.getJsonObject("copiedItem");
         if(! itemJson.getString("barcode").equals(OkapiMock.barcode2)) {
-          context.fail("Expected bardcode " + OkapiMock.barcode1 + " got " +
+          context.fail("Expected bardcode " + OkapiMock.barcode2 + " got " +
               itemJson.getString("barcode"));
           return;
         }
@@ -1468,8 +1507,8 @@ public class CourseAPITest {
               itemJson.getString("title"));
           return;
         }
-        if(! itemJson.getString("temporaryLocationId").equals(OkapiMock.location2Id)) {
-          context.fail("Expected temporaryLocationId" + OkapiMock.location2Id + " got " +
+        if(! itemJson.getString("temporaryLocationId").equals(OkapiMock.location1Id)) {
+          context.fail("Expected temporaryLocationId " + OkapiMock.location1Id + " got " +
               itemJson.getString("temporaryLocationId"));
           return;
         }
@@ -1512,7 +1551,7 @@ public class CourseAPITest {
                 context.fail(deleteRes.cause());
               } else {
                 TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
-                 "/reserves/" + reserveId, GET, standardHeaders, null, 200, "Get reserve again")
+                 "/reserves/" + reserveId, GET, standardHeaders, null, 404, "Get reserve again")
                    .setHandler(getAgainRes-> {
                    if(getAgainRes.failed()) {
                      context.fail(getAgainRes.cause());
@@ -1866,6 +1905,41 @@ public class CourseAPITest {
      async.complete();
    }
 
+   @Test
+   public void TestPutToItem(TestContext context) {
+     Async async = context.async();
+     String itemId = OkapiMock.item1Id;
+     String newBarcode = "1112223334";
+     JsonObject newItem = new JsonObject()
+         .put("id", itemId)
+         .put("status", new JsonObject().put("name", "Available"))
+        .put("holdingsRecordId", OkapiMock.holdings1Id)
+        .put("barcode",newBarcode)
+        .put("volume", OkapiMock.volume1)
+        .put("enumeration", OkapiMock.enumeration1)
+        .put("copyNumber", OkapiMock.copy1)
+        .put("electronicAccess", new JsonArray()
+          .add(new JsonObject()
+            .put("uri", OkapiMock.uri1)
+            .put("publicNote", OkapiMock.uri1))
+          );
+     CRUtil.putItemUpdate(newItem, okapiHeaders, vertx.getOrCreateContext())
+         .setHandler(putRes -> {
+       if(putRes.failed()) {
+         context.fail(putRes.cause());
+       } else {
+         CRUtil.lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders,
+             vertx.getOrCreateContext()).setHandler(getRes -> {
+           if(getRes.failed()) {
+             context.fail(getRes.cause());
+           } else {
+             async.complete();
+           }
+         });
+       }
+     });
+   }
+
 
   
   /* UTILITY METHODS */
@@ -1897,12 +1971,12 @@ public class CourseAPITest {
           return TestUtil.doRequest(vertx, deleteUrl, DELETE, acceptTextHeaders, null,
               204, "Delete at " + deleteUrl);
         })
-        /*
+
         .compose(f -> {
           return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 404,
               "Get from " + getUrl + " after delete");
         })
-        */
+
         .compose(f -> {
           return TestUtil.doRequest(vertx, postUrl, POST, standardHeaders,
               originalJson.encode(), 201, "Post to " + postUrl);
@@ -1911,12 +1985,12 @@ public class CourseAPITest {
           return TestUtil.doRequest(vertx, deleteAllUrl, DELETE, acceptTextHeaders, null,
               204, "Delete all at " + deleteAllUrl);
         })
-        /*
+ 
         .compose(f -> {
           return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 404,
               "Get from " + getUrl + " after delete all");
         })
-        */
+       
         .setHandler(res -> {
           if(res.failed()) {
             future.fail(res.cause());
@@ -2242,7 +2316,23 @@ public class CourseAPITest {
         });
     return future;
   }
+
+  private Future<Void> resetMockOkapi() {
+    Future<Void> future = Future.future();
+    JsonObject payload = new JsonObject().put("reset", true);
+    CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/reset", POST, null,
+        payload.encode(), 201).setHandler(res -> {
+      if(res.failed()) {
+        future.fail(res.cause());
+      } else {
+        future.complete();
+      }
+    });
+    return future;
+  }
 }
+
+
 
 class CourseAPIFail extends CourseAPI {
   
