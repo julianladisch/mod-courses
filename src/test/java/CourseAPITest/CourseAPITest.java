@@ -59,6 +59,8 @@ public class CourseAPITest {
   public static String baseUrl;
   public static String okapiUrl;
   public final static String COURSE_LISTING_1_ID = UUID.randomUUID().toString();
+  public final static String COURSE_LISTING_2_ID = UUID.randomUUID().toString();
+  public final static String COURSE_LISTING_3_ID = UUID.randomUUID().toString();
   public final static String TERM_1_ID = UUID.randomUUID().toString();
   public final static String TERM_2_ID = UUID.randomUUID().toString();
   public final static String COURSE_1_ID = UUID.randomUUID().toString();
@@ -146,6 +148,12 @@ public class CourseAPITest {
       })
       .compose(f -> {
         return loadCourseListing1();
+      })
+      .compose(f -> {
+        return loadCourseListing2();
+      })
+      .compose(f -> {
+        return loadCourseListing3();
       })
       .compose(f -> {
         return loadDepartment1();
@@ -1940,6 +1948,46 @@ public class CourseAPITest {
      });
    }
 
+   @Test
+   public void testGetTermsByDate(TestContext context) {
+     Async async = context.async();
+     String url = baseUrl + "/terms?query=endDate+>+2020-01-01T00:00:00Z";
+     TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
+         "Get terms by term date").setHandler(res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         try {
+           JsonArray termArray = res.result().getJson().getJsonArray("terms");
+           context.assertEquals(termArray.size(), 1);
+           async.complete();
+         } catch(Exception e) {
+           context.fail(e);
+         }
+       }
+     });
+   }
+
+   @Test
+   public void testGetCourselistingsByTermDate(TestContext context) {
+     Async async = context.async();
+     String url = baseUrl + "/courselistings?query=term.endDate+>+2020-01-01T00:00:00Z";
+     TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
+         "Get courselistings by term date").setHandler(res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         try {
+           JsonArray courselistingArray = res.result().getJson().getJsonArray("courseListings");
+           context.assertEquals(courselistingArray.size(), 1);
+           async.complete();
+         } catch(Exception e) {
+           context.fail(e);
+         }
+       }
+     });
+   }
+
 
   
   /* UTILITY METHODS */
@@ -2116,6 +2164,42 @@ public class CourseAPITest {
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_1_ID)
         .put("termId", TERM_1_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("externalId", UUID.randomUUID().toString());
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
+        courseListingJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourseListing2() {
+    Future<Void> future = Future.future();
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", COURSE_LISTING_2_ID)
+        .put("termId", TERM_1_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("externalId", UUID.randomUUID().toString());
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
+        courseListingJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourseListing3() {
+    Future<Void> future = Future.future();
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", COURSE_LISTING_3_ID)
+        .put("termId", TERM_2_ID)
         .put("courseTypeId", COURSE_TYPE_1_ID)
         .put("externalId", UUID.randomUUID().toString());
     TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
