@@ -10,7 +10,22 @@
                     "tOps": "ADD"
                 }
             ]
-        },    
+        },
+        {
+            "tableName": "coursereserves_terms",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "startDate",
+                    "tOps": "ADD"
+                },
+                {
+                    "fieldName": "endDate",
+                    "tOps": "ADD"
+                }
+            ]
+        },
         {
             "tableName": "coursereserves_courselistings",
             "withMetadata": true,
@@ -18,6 +33,15 @@
             "index": [
                 {
                     "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ],
+            "foreignKeys": [
+                {
+                    "fieldName": "termId",
+                    "tableAlias": "term",
+                    "targetTable": "coursereserves_terms",
+                    "targetTableAlias": "term",
                     "tOps": "ADD"
                 }
             ]
@@ -68,17 +92,6 @@
         },
         {
             "tableName": "coursereserves_copyrightstates",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
-                    "tOps": "ADD"
-                }
-            ]
-        },
-        {
-            "tableName": "coursereserves_terms",
             "withMetadata": true,
             "withAuditing": false,
             "index": [

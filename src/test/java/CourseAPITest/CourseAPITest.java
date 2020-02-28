@@ -8,6 +8,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
 import static io.vertx.core.http.HttpMethod.DELETE;
 import static io.vertx.core.http.HttpMethod.GET;
 import static io.vertx.core.http.HttpMethod.POST;
@@ -59,6 +61,8 @@ public class CourseAPITest {
   public static String baseUrl;
   public static String okapiUrl;
   public final static String COURSE_LISTING_1_ID = UUID.randomUUID().toString();
+  public final static String COURSE_LISTING_2_ID = UUID.randomUUID().toString();
+  public final static String COURSE_LISTING_3_ID = UUID.randomUUID().toString();
   public final static String TERM_1_ID = UUID.randomUUID().toString();
   public final static String TERM_2_ID = UUID.randomUUID().toString();
   public final static String COURSE_1_ID = UUID.randomUUID().toString();
@@ -72,6 +76,8 @@ public class CourseAPITest {
   public static Map<String, String> okapiHeaders = new HashMap<>();
   public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
   public static CaseInsensitiveHeaders acceptTextHeaders = new CaseInsensitiveHeaders();
+  public static String MODULE_TO = "0.0.23";
+  public static String MODULE_FROM = "0.0.22";
 
 
 
@@ -86,7 +92,7 @@ public class CourseAPITest {
     okapiPort = NetworkUtils.nextFreePort();
     baseUrl = "http://localhost:"+port+"/coursereserves";
     okapiUrl = "http://localhost:"+okapiPort;
-    TenantClient tenantClient = new TenantClient("localhost", port, "diku", "diku");
+    //TenantClient tenantClient = new TenantClient("localhost", port, "diku", "diku");
     okapiHeaders.put("x-okapi-tenant", "diku");
     okapiHeaders.put("x-okapi-url", okapiUrl);
     standardHeaders.add("x-okapi-url", okapiUrl);
@@ -110,15 +116,19 @@ public class CourseAPITest {
         context.fail(deployCourseRes.cause());
       } else {
         try {
-          tenantClient.postTenant(null, postTenantRes -> {
-            vertx.deployVerticle(OkapiMock.class.getName(), okapiOptions,
+          initTenant("diku", port).setHandler(initRes -> {
+            if(initRes.failed()) {
+              context.fail(initRes.cause());
+            } else {
+              vertx.deployVerticle(OkapiMock.class.getName(), okapiOptions,
                 deployOkapiRes -> {
-              if(deployOkapiRes.failed()) {
-                context.fail(deployOkapiRes.cause());
-              } else {
-                async.complete();
-              }
-            });
+                if(deployOkapiRes.failed()) {
+                  context.fail(deployOkapiRes.cause());
+                } else {
+                  async.complete();
+                }
+              });
+            }
           });
         } catch(Exception e) {
           e.printStackTrace();
@@ -146,6 +156,12 @@ public class CourseAPITest {
       })
       .compose(f -> {
         return loadCourseListing1();
+      })
+      .compose(f -> {
+        return loadCourseListing2();
+      })
+      .compose(f -> {
+        return loadCourseListing3();
       })
       .compose(f -> {
         return loadDepartment1();
@@ -1940,6 +1956,46 @@ public class CourseAPITest {
      });
    }
 
+   @Test
+   public void testGetTermsByDate(TestContext context) {
+     Async async = context.async();
+     String url = baseUrl + "/terms?query=endDate+>+2020-01-01T00:00:00Z";
+     TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
+         "Get terms by term date").setHandler(res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         try {
+           JsonArray termArray = res.result().getJson().getJsonArray("terms");
+           context.assertEquals(termArray.size(), 1);
+           async.complete();
+         } catch(Exception e) {
+           context.fail(e);
+         }
+       }
+     });
+   }
+
+   @Test
+   public void testGetCourselistingsByTermDate(TestContext context) {
+     Async async = context.async();
+     String url = baseUrl + "/courselistings?query=term.endDate+>+2020-01-01T00:00:00Z";
+     TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
+         "Get courselistings by term date").setHandler(res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         try {
+           JsonArray courselistingArray = res.result().getJson().getJsonArray("courseListings");
+           context.assertEquals(courselistingArray.size(), 1);
+           async.complete();
+         } catch(Exception e) {
+           context.fail(e);
+         }
+       }
+     });
+   }
+
 
   
   /* UTILITY METHODS */
@@ -2116,6 +2172,42 @@ public class CourseAPITest {
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_1_ID)
         .put("termId", TERM_1_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("externalId", UUID.randomUUID().toString());
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
+        courseListingJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourseListing2() {
+    Future<Void> future = Future.future();
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", COURSE_LISTING_2_ID)
+        .put("termId", TERM_1_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("externalId", UUID.randomUUID().toString());
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
+        courseListingJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourseListing3() {
+    Future<Void> future = Future.future();
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", COURSE_LISTING_3_ID)
+        .put("termId", TERM_2_ID)
         .put("courseTypeId", COURSE_TYPE_1_ID)
         .put("externalId", UUID.randomUUID().toString());
     TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
@@ -2330,8 +2422,30 @@ public class CourseAPITest {
     });
     return future;
   }
-}
 
+  private static Future<Void> initTenant(String tenantId, int port) {
+    Future<Void> future = Future.future();
+    HttpClient client = vertx.createHttpClient();
+    String url = "http://localhost:" + port + "/_/tenant";
+    JsonObject payload = new JsonObject()
+        .put("module_to", MODULE_TO)
+        .put("module_from", MODULE_FROM);
+    HttpClientRequest request = client.postAbs(url);
+    request.handler(req -> {
+      if(req.statusCode() != 201) {
+        future.fail("Expected 201, got " + req.statusCode());
+      } else {
+        future.complete();
+      }
+    });
+    request.putHeader("X-Okapi-Tenant", tenantId);
+    request.putHeader("Content-Type", "application/json");
+    request.putHeader("Accept", "application/json, text/plain");
+    request.end(payload.encode());
+    return future;
+  }
+
+}
 
 
 class CourseAPIFail extends CourseAPI {
