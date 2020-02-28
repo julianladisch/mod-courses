@@ -8,6 +8,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
 import static io.vertx.core.http.HttpMethod.DELETE;
 import static io.vertx.core.http.HttpMethod.GET;
 import static io.vertx.core.http.HttpMethod.POST;
@@ -74,6 +76,8 @@ public class CourseAPITest {
   public static Map<String, String> okapiHeaders = new HashMap<>();
   public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
   public static CaseInsensitiveHeaders acceptTextHeaders = new CaseInsensitiveHeaders();
+  public static String MODULE_TO = "0.0.23";
+  public static String MODULE_FROM = "0.0.22";
 
 
 
@@ -88,7 +92,7 @@ public class CourseAPITest {
     okapiPort = NetworkUtils.nextFreePort();
     baseUrl = "http://localhost:"+port+"/coursereserves";
     okapiUrl = "http://localhost:"+okapiPort;
-    TenantClient tenantClient = new TenantClient("localhost", port, "diku", "diku");
+    //TenantClient tenantClient = new TenantClient("localhost", port, "diku", "diku");
     okapiHeaders.put("x-okapi-tenant", "diku");
     okapiHeaders.put("x-okapi-url", okapiUrl);
     standardHeaders.add("x-okapi-url", okapiUrl);
@@ -112,15 +116,19 @@ public class CourseAPITest {
         context.fail(deployCourseRes.cause());
       } else {
         try {
-          tenantClient.postTenant(null, postTenantRes -> {
-            vertx.deployVerticle(OkapiMock.class.getName(), okapiOptions,
+          initTenant("diku", port).setHandler(initRes -> {
+            if(initRes.failed()) {
+              context.fail(initRes.cause());
+            } else {
+              vertx.deployVerticle(OkapiMock.class.getName(), okapiOptions,
                 deployOkapiRes -> {
-              if(deployOkapiRes.failed()) {
-                context.fail(deployOkapiRes.cause());
-              } else {
-                async.complete();
-              }
-            });
+                if(deployOkapiRes.failed()) {
+                  context.fail(deployOkapiRes.cause());
+                } else {
+                  async.complete();
+                }
+              });
+            }
           });
         } catch(Exception e) {
           e.printStackTrace();
@@ -2414,8 +2422,30 @@ public class CourseAPITest {
     });
     return future;
   }
-}
 
+  private static Future<Void> initTenant(String tenantId, int port) {
+    Future<Void> future = Future.future();
+    HttpClient client = vertx.createHttpClient();
+    String url = "http://localhost:" + port + "/_/tenant";
+    JsonObject payload = new JsonObject()
+        .put("module_to", MODULE_TO)
+        .put("module_from", MODULE_FROM);
+    HttpClientRequest request = client.postAbs(url);
+    request.handler(req -> {
+      if(req.statusCode() != 201) {
+        future.fail("Expected 201, got " + req.statusCode());
+      } else {
+        future.complete();
+      }
+    });
+    request.putHeader("X-Okapi-Tenant", tenantId);
+    request.putHeader("Content-Type", "application/json");
+    request.putHeader("Accept", "application/json, text/plain");
+    request.end(payload.encode());
+    return future;
+  }
+
+}
 
 
 class CourseAPIFail extends CourseAPI {
