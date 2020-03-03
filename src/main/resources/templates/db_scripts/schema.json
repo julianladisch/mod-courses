@@ -1,17 +1,6 @@
 {
     "tables": [
         {
-            "tableName": "coursereserves_courses",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
-                    "tOps": "ADD"
-                }
-            ]
-        },
-        {
             "tableName": "coursereserves_terms",
             "withMetadata": true,
             "withAuditing": false,
@@ -47,6 +36,53 @@
             ]
         },
         {
+            "tableName": "coursereserves_instructors",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ],
+            "foreignKeys": [
+                {
+                    "fieldName": "courseListingId",
+                    "tableAlias": "instructor",
+                    "targetTable": "coursereserves_courselistings",
+                    "targetTableAlias": "courseListing",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+        {
+            "tableName": "coursereserves_courses",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ],
+            "foreignKeys": [
+                {
+                    "fieldName": "courseListingId",
+                    "tableAlias": "courseListing",
+                    "targetTable": "coursereserves_courselistings",
+                    "targetTableAlias": "courseListing",
+                    "tOps": "ADD"
+                },
+                {
+                    "targetPath": [ "courseListingId", "instructor" ],
+                    "targetTable": "coursereserves_instructors",
+                    "targetTableAlias": "instructor",
+                    "tableAlias": "course"
+                }
+
+            ]
+        },
+        {
             "tableName": "coursereserves_departments",
             "withMetadata": true,
             "withAuditing": false,
@@ -68,17 +104,7 @@
                 }
             ]
         },
-        {
-            "tableName": "coursereserves_instructors",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
-                    "tOps": "ADD"
-                }
-            ]
-        },
+        
         {
             "tableName": "coursereserves_processingstates",
             "withMetadata": true,
