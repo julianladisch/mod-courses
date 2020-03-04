@@ -541,6 +541,8 @@ public class CRUtil {
     getCourseListingById(courseListingId, okapiHeaders, context).setHandler(clRes -> {
       if(clRes.failed()) {
         future.fail(clRes.cause());
+      } else if(clRes.result() == null) {
+        future.complete(null);
       } else {
         try {
           Courselisting courselisting = clRes.result();

@@ -189,9 +189,31 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void getCoursereservesCourselistingsByListingId(String listingId,
       String lang, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    CRUtil.lookupExpandedCourseListing(listingId, okapiHeaders, vertxContext, true)
+        .setHandler(res -> {
+      if(res.failed()) {
+        String message = logAndSaveError(res.cause());
+        asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsByListingIdResponse.respond500WithTextPlain(
+          getErrorResponse(message))));
+      } else {
+        if(res.result() == null) {
+          //404'd!
+          asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsByListingIdResponse
+              .respond404WithTextPlain("No courselisting exists with id '" + listingId + '"')));
+        } else {
+          asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsByListingIdResponse
+              .respond200WithApplicationJson(res.result())));
+        }
+      }
+    });
+    /*
     PgUtil.getById(COURSE_LISTINGS_TABLE, Courselisting.class, listingId,
         okapiHeaders, vertxContext,
         GetCoursereservesCourselistingsByListingIdResponse.class, asyncResultHandler);
+    */
   }
 
   @Override
