@@ -2047,6 +2047,9 @@ public class CourseAPITest {
      });
   }
 
+
+  //Test won't work, not supported by RMB
+  /*
   @Test
    public void testSearchCoursesByCourseListingInstructorName(TestContext context) {
      Async async = context.async();
@@ -2066,7 +2069,7 @@ public class CourseAPITest {
       }
     });
   }
-
+  */
 
   
   /* UTILITY METHODS */

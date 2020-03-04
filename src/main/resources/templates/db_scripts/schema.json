@@ -72,14 +72,7 @@
                     "targetTable": "coursereserves_courselistings",
                     "targetTableAlias": "courseListing",
                     "tOps": "ADD"
-                },
-                {
-                    "targetPath": [ "courseListingId", "instructor" ],
-                    "targetTable": "coursereserves_instructors",
-                    "targetTableAlias": "instructor",
-                    "tableAlias": "course"
                 }
-
             ]
         },
         {
