@@ -1996,6 +1996,90 @@ public class CourseAPITest {
      });
    }
 
+   @Test
+   public void testPutEmptyLocationIdToCourseListing(TestContext context) {
+     Async async = context.async();
+     String courseListingId = UUID.randomUUID().toString();
+     String courseId = UUID.randomUUID().toString();
+     JsonObject courseListingJson = new JsonObject()
+        .put("id", courseListingId)
+        .put("termId", TERM_1_ID)
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("externalId", UUID.randomUUID().toString())
+        .put("locationId", OkapiMock.location1Id);
+     JsonObject courseJson = new JsonObject()
+        .put("id", courseId)
+        .put("departmentId", DEPARTMENT_1_ID)
+        .put("courseListingId", courseListingId)
+        .put("name", "Woodworking 101");
+     TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, standardHeaders,
+        courseListingJson.encode(), 201, "Post Course Listing").setHandler(postRes -> {
+       if(postRes.failed()) {
+         context.fail(postRes.cause());
+       } else {
+         TestUtil.doRequest(vertx, baseUrl + "/courses", POST, standardHeaders,
+             courseJson.encode(), 201, "Post Course").setHandler(postCourseRes -> {
+          TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + courseListingId,
+              GET, standardHeaders, null, 200, "Get new course listing").setHandler(getRes -> {
+            if(getRes.failed()) {
+              context.fail(getRes.cause());
+            } else {
+              try {
+                JsonObject json = getRes.result().getJson();
+                context.assertTrue(json.containsKey("locationObject"));
+                context.assertEquals(OkapiMock.location1Id,
+                    json.getJsonObject("locationObject").getString("id"));
+                courseListingJson.putNull("locationId");
+                TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + courseListingId,
+                    PUT, acceptTextHeaders, courseListingJson.encode(), 204,
+                    "Get new course listing").setHandler(putRes -> {
+                 if(putRes.failed()) {
+                   context.fail(putRes.cause());
+                 } else {
+                   TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + courseListingId,
+                       GET, standardHeaders, null, 200, "Get new course listing")
+                       .setHandler(getRes2 -> {
+                     if(getRes2.failed()) {
+                       context.fail(getRes2.cause());
+                     } else {
+                       try {
+                         context.assertNull(getRes2.result().getJson()
+                             .getJsonObject("locationObject"));
+                         TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId,
+                             GET, standardHeaders, null, 200, "get course")
+                             .setHandler(getCourseRes -> {
+                           if(getCourseRes.failed()) {
+                             context.fail(getCourseRes.cause());
+                           } else {
+                             try {
+                               JsonObject courseResultJson = getCourseRes.result().getJson();
+                               JsonObject courseListingResultJson = courseResultJson.getJsonObject("courseListingObject");
+                               context.assertTrue(courseListingResultJson.getJsonObject("locationObject") == null ||
+                                   courseListingResultJson.getJsonObject("locationObject").isEmpty());
+                               async.complete();
+                             } catch(Exception e) {
+                               context.fail(e);
+                             }
+                           }
+                         });
+                       } catch(Exception e) {
+                         context.fail(e);
+                       }
+                     }
+                   });
+                 }
+                });
+              } catch(Exception e) {
+                context.fail(e);
+              }
+            }
+          });
+        });
+       }
+     });
+
+   }
+
 
   
   /* UTILITY METHODS */
