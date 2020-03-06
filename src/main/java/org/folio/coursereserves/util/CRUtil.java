@@ -214,7 +214,7 @@ public class CRUtil {
     } catch(Exception e) {
       logger.info("Unable to copy electronic access field from item: " + e.getLocalizedMessage());
     }
-    copiedItem.setPermanentLocationId(itemJson.getString("permanentLocationId"));
+    copiedItem.setPermanentLocationId(itemJson.getString("permanentLocationId") || holdingsJson.getString("permanentLocationId"));
     copiedItem.setTemporaryLocationId(itemJson.getString("temporaryLocationId"));
     copiedItem.setCallNumber(holdingsJson.getString("callNumber"));
     JsonArray contributors = instanceJson.getJsonArray("contributors");
