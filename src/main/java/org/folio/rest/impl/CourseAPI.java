@@ -189,9 +189,26 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void getCoursereservesCourselistingsByListingId(String listingId,
       String lang, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    PgUtil.getById(COURSE_LISTINGS_TABLE, Courselisting.class, listingId,
-        okapiHeaders, vertxContext,
-        GetCoursereservesCourselistingsByListingIdResponse.class, asyncResultHandler);
+    CRUtil.lookupExpandedCourseListing(listingId, okapiHeaders, vertxContext, true)
+        .setHandler(res -> {
+      if(res.failed()) {
+        String message = logAndSaveError(res.cause());
+        asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsByListingIdResponse.respond500WithTextPlain(
+          getErrorResponse(message))));
+      } else {
+        if(res.result() == null) {
+          //404'd!
+          asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsByListingIdResponse
+              .respond404WithTextPlain("No courselisting exists with id '" + listingId + '"')));
+        } else {
+          asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsByListingIdResponse
+              .respond200WithApplicationJson(res.result())));
+        }
+      }
+    });
   }
 
   @Override
@@ -370,9 +387,32 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
           JsonObject userJson = getUserAndGroupRes.result().getJsonObject("user");
           entity.setBarcode(userJson.getString("barcode"));
         }
-        PgUtil.post(INSTRUCTORS_TABLE, entity, okapiHeaders, vertxContext,
-            PostCoursereservesCourselistingsInstructorsByListingIdResponse.class,
-            asyncResultHandler);        
+        PostgresClient postgresClient = getPGClientFromHeaders(vertxContext, okapiHeaders);
+        postgresClient.save(INSTRUCTORS_TABLE, entity.getId(), entity, postReply -> {
+          if(postReply.failed()) {
+            String message = logAndSaveError(postReply.cause());
+            asyncResultHandler.handle(Future.succeededFuture(
+                PostCoursereservesCourselistingsInstructorsByListingIdResponse.respond500WithTextPlain(
+                getErrorResponse(message))));
+          } else {
+            CRUtil.updateCourseListingInstructorCache(listingId, okapiHeaders,
+                vertxContext).setHandler(updateRes -> {
+              if(updateRes.failed()) {
+                String message = logAndSaveError(updateRes.cause());
+                asyncResultHandler.handle(Future.succeededFuture(
+                    PostCoursereservesCourselistingsInstructorsByListingIdResponse.respond500WithTextPlain(
+                    getErrorResponse(message))));
+              } else {
+                asyncResultHandler.handle(Future.succeededFuture(
+                    PostCoursereservesCourselistingsInstructorsByListingIdResponse
+                        .respond201WithApplicationJson(entity,
+                        PostCoursereservesCourselistingsInstructorsByListingIdResponse
+                            .headersFor201())));
+              }
+            });
+          }
+        });
+      
       });
     }
   }
@@ -420,9 +460,30 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String instructorId, String lang, Instructor entity,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    PgUtil.put(INSTRUCTORS_TABLE, entity, instructorId, okapiHeaders, vertxContext,
-        PutCoursereservesCourselistingsInstructorsByListingIdAndInstructorIdResponse.class,
-        asyncResultHandler);
+    PostgresClient postgresClient = getPGClientFromHeaders(vertxContext, okapiHeaders);
+    postgresClient.update(INSTRUCTORS_TABLE, entity, instructorId, putReply -> {
+      if(putReply.failed()) {
+        String message = logAndSaveError(putReply.cause());
+        asyncResultHandler.handle(Future.succeededFuture(
+            PutCoursereservesCourselistingsInstructorsByListingIdAndInstructorIdResponse
+                .respond500WithTextPlain(getErrorResponse(message))));
+      } else {
+        CRUtil.updateCourseListingInstructorCache(listingId, okapiHeaders,
+            vertxContext).setHandler(res -> {
+          if (res.failed()) {
+            String message = logAndSaveError(res.cause());
+            asyncResultHandler.handle(Future.succeededFuture(
+                PutCoursereservesCourselistingsInstructorsByListingIdAndInstructorIdResponse
+                    .respond500WithTextPlain(getErrorResponse(message))));
+          } else {
+            asyncResultHandler.handle(Future.succeededFuture(
+                PutCoursereservesCourselistingsInstructorsByListingIdAndInstructorIdResponse
+                    .respond204()));
+          }
+        });
+      }
+    });
+      
   }
 
   @Override
@@ -430,9 +491,29 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String instructorId, String lang,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    PgUtil.deleteById(INSTRUCTORS_TABLE, instructorId, okapiHeaders, vertxContext,
-        DeleteCoursereservesCourselistingsInstructorsByListingIdAndInstructorIdResponse.class,
-        asyncResultHandler);
+      PostgresClient postgresClient = getPGClientFromHeaders(vertxContext, okapiHeaders);
+      postgresClient.delete(INSTRUCTORS_TABLE, instructorId, deleteReply-> {
+        if(deleteReply.failed()) {
+          String message = logAndSaveError(deleteReply.cause());
+          asyncResultHandler.handle(Future.succeededFuture(
+              DeleteCoursereservesCourselistingsInstructorsByListingIdAndInstructorIdResponse
+              .respond500WithTextPlain(getErrorResponse(message))));
+        } else {
+          CRUtil.updateCourseListingInstructorCache(listingId, okapiHeaders,
+          vertxContext).setHandler(updateRes -> {
+          if(updateRes.failed()) {
+            String message = logAndSaveError(updateRes.cause());
+            asyncResultHandler.handle(Future.succeededFuture(
+                DeleteCoursereservesCourselistingsInstructorsByListingIdAndInstructorIdResponse.respond500WithTextPlain(
+                getErrorResponse(message))));
+          } else {
+             asyncResultHandler.handle(Future.succeededFuture(
+                DeleteCoursereservesCourselistingsInstructorsByListingIdAndInstructorIdResponse
+                    .respond204()));
+          }
+        });
+      }
+    });
   }
 
   @Override
@@ -522,33 +603,37 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         getCopiedItemsFuture.setHandler(copyItemsRes-> {
           if(copyItemsRes.failed()) {
             String message = logAndSaveError(copyItemsRes.cause());
-            //We don't fail the request, we just log it
-          }
-          try {
-            Future<Void> putFuture;
-            if(originalTemporaryLocationId != null && getCopiedItemsFuture.succeeded()) {
-              JsonObject itemJson = getCopiedItemsFuture.result().getJsonObject("item");
-              itemJson.put("temporaryLocationId", originalTemporaryLocationId);
-              putFuture = CRUtil.putItemUpdate(itemJson, okapiHeaders, vertxContext);
-            } else {
-              putFuture = Future.succeededFuture();
-            }
-            //TODO: Modify item record and PUT back to inventory
-            putFuture.setHandler(putRes -> {
-              //We need to set the temporary location if it exists
-              if(originalTemporaryLocationId != null && entity.getCopiedItem() != null) {
-                entity.getCopiedItem().setTemporaryLocationId(originalTemporaryLocationId);
-              }
-              //should we kill the POST if the PUT to inventory fails?
-              PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
-              PostCoursereservesCourselistingsReservesByListingIdResponse.class,
-              asyncResultHandler); 
-            });
-          } catch(Exception e) {
-            String message = logAndSaveError(e);
+            //Fail it
             asyncResultHandler.handle(Future.succeededFuture(
                 PostCoursereservesCourselistingsReservesByListingIdResponse
-                .respond500WithTextPlain(getErrorResponse(message))));
+                    .respond400WithTextPlain(getErrorResponse(message))));
+          } else {
+            try {
+             Future<Void> putFuture;
+             if(originalTemporaryLocationId != null && getCopiedItemsFuture.succeeded()) {
+               JsonObject itemJson = getCopiedItemsFuture.result().getJsonObject("item");
+               itemJson.put("temporaryLocationId", originalTemporaryLocationId);
+               putFuture = CRUtil.putItemUpdate(itemJson, okapiHeaders, vertxContext);
+             } else {
+               putFuture = Future.succeededFuture();
+             }
+             //TODO: Modify item record and PUT back to inventory
+             putFuture.setHandler(putRes -> {
+               //We need to set the temporary location if it exists
+               if(originalTemporaryLocationId != null && entity.getCopiedItem() != null) {
+                 entity.getCopiedItem().setTemporaryLocationId(originalTemporaryLocationId);
+               }
+               //should we kill the POST if the PUT to inventory fails?
+               PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
+               PostCoursereservesCourselistingsReservesByListingIdResponse.class,
+               asyncResultHandler);
+             });
+           } catch(Exception e) {
+             String message = logAndSaveError(e);
+             asyncResultHandler.handle(Future.succeededFuture(
+                 PostCoursereservesCourselistingsReservesByListingIdResponse
+                 .respond500WithTextPlain(getErrorResponse(message))));
+           }
           }
         }); 
       } catch(Exception e) {

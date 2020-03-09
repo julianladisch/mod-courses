@@ -3,6 +3,7 @@ package org.folio.coursereserves.util;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
@@ -110,19 +111,25 @@ public class CRUtil {
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
     Future<String> itemIdFuture;
+    String barcode;
+    if(reserve.getCopiedItem() != null) {
+      barcode = reserve.getCopiedItem().getBarcode();
+    } else {
+      barcode = null;
+    }
     String itemId = reserve.getItemId();
-    if(itemId != null) {
+    if(itemId != null && barcode == null) {
       itemIdFuture = Future.succeededFuture(itemId);
-    } else if(reserve.getCopiedItem() != null && reserve.getCopiedItem().getBarcode() != null) {
+    } else if(barcode != null) {
       itemIdFuture = Future.future();
-      String barcode = reserve.getCopiedItem().getBarcode();
+      //String barcode = reserve.getCopiedItem().getBarcode();
       lookupItemByBarcode(barcode, okapiHeaders, context)
-          .setHandler(itemLookupRes -> {
-        if(itemLookupRes.failed()) {
-          itemIdFuture.fail(itemLookupRes.cause());
+          .setHandler(barcodeItemLookupRes -> {
+        if(barcodeItemLookupRes.failed()) {
+          itemIdFuture.fail(barcodeItemLookupRes.cause());
         } else {
-          if(itemLookupRes.result() != null) {
-            itemIdFuture.complete(itemLookupRes.result().getString("id"));
+          if(barcodeItemLookupRes.result() != null) {
+            itemIdFuture.complete(barcodeItemLookupRes.result().getString("id"));
           } else {
             itemIdFuture.fail("No item found for barcode " + barcode);
           }
@@ -464,7 +471,7 @@ public class CRUtil {
         try {
           JsonObject itemsResultJson = itemQueryRes.result();
           if(itemsResultJson.getInteger("totalRecords") > 1) {
-            future.fail(String.format("Expected 0 results for barcode %s, got multiple",
+            future.fail(String.format("Expected 1 result for barcode %s, got multiple",
                 barcode));
           } else if(itemsResultJson.getInteger("totalRecords") < 1) {
             future.complete(null);
@@ -541,6 +548,8 @@ public class CRUtil {
     getCourseListingById(courseListingId, okapiHeaders, context).setHandler(clRes -> {
       if(clRes.failed()) {
         future.fail(clRes.cause());
+      } else if(clRes.result() == null) {
+        future.complete(null);
       } else {
         try {
           Courselisting courselisting = clRes.result();
@@ -551,8 +560,7 @@ public class CRUtil {
           Future<Term> termFuture;
           Future<Coursetype> coursetypeFuture;
           Future<JsonObject> locationFuture;
-          Future<JsonObject> servicePointFuture;
-          Future<List<Instructor>> instructorFuture;
+          Future<JsonObject> servicePointFuture;          
           if(expandTerm && termId != null) {
             termFuture = lookupTerm(termId, okapiHeaders, context);
           } else {
@@ -573,18 +581,12 @@ public class CRUtil {
           } else {
             servicePointFuture = Future.failedFuture("No lookup");
           }
-          if(expandTerm) {
-            instructorFuture = lookupInstructorsForCourseListing(courseListingId,
-                okapiHeaders, context);
-          } else {
-            instructorFuture = Future.failedFuture("No lookup");
-          }
+          
           List<Future> futureList = new ArrayList<>();
           futureList.add(termFuture);
           futureList.add(coursetypeFuture);
           futureList.add(locationFuture);
           futureList.add(servicePointFuture);
-          futureList.add(instructorFuture);
           CompositeFuture compositeFuture = CompositeFuture.join(futureList);
           compositeFuture.setHandler(compRes -> {
             try {
@@ -600,10 +602,6 @@ public class CRUtil {
               }
               if(servicePointFuture.succeeded()) {
                 courselisting.setServicepointObject(servicepointObjectFromJson(servicePointFuture.result()));
-              }
-              if(instructorFuture.succeeded()) {
-                courselisting.setInstructorObjects(instructorObjectListFromInstructorList(
-                    instructorFuture.result()));
               }
               future.complete(courselisting);
             } catch(Exception e) {
@@ -792,6 +790,44 @@ public class CRUtil {
       future.fail(e);
     }
     return future;
+  }
+
+  public static Future<Void> updateCourseListingInstructorCache(String courseListingId,
+      Map<String, String> okapiHeaders, Context context) {
+    Promise<Void> promise = Promise.promise();
+    lookupInstructorsForCourseListing(courseListingId,
+        okapiHeaders, context).setHandler(instructorRes -> {
+      if(instructorRes.failed()) {
+        promise.fail(instructorRes.cause());
+      } else {
+        getCourseListingById(courseListingId, okapiHeaders, context)
+            .setHandler(getRes -> {
+          if(getRes.failed()) {
+            promise.fail(getRes.cause());
+          } else {
+            try {
+              Courselisting courseListing = getRes.result();
+              List<Instructor> instructorList = instructorRes.result();
+              logger.info("Found " + instructorList.size() + " instructors for listing " + courseListingId);
+              courseListing.setInstructorObjects(instructorObjectListFromInstructorList(
+                  instructorList));
+              PostgresClient postgresClient = getPgClient(okapiHeaders, context);
+              postgresClient.update(COURSE_LISTINGS_TABLE, courseListing, courseListingId,
+                  putReply -> {
+                if(putReply.failed()) {
+                  promise.fail(putReply.cause());
+                } else {
+                  promise.complete();
+                }
+              });
+            } catch(Exception e) {
+              promise.fail(e);
+            }
+          }
+        });
+      }
+    });
+    return promise.future();
   }
 
   public static Future<Term> lookupTerm(String termId,
@@ -1112,7 +1148,7 @@ public class CRUtil {
     return servicepointObject;    
   }
   
-  private static List<InstructorObject> instructorObjectListFromInstructorList(
+  public static List<InstructorObject> instructorObjectListFromInstructorList(
       List<Instructor> instructorList) {
     List<InstructorObject> instructorObjectList = new ArrayList<>();
     for(Instructor instructor : instructorList) {
