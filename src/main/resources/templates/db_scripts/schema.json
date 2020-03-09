@@ -23,6 +23,10 @@
                 {
                     "fieldName": "id",
                     "tOps": "ADD"
+                },
+                {
+                    "fieldName": "instructorObjects",
+                    "tOps": "ADD"
                 }
             ],
             "foreignKeys": [
@@ -56,6 +60,17 @@
             ]
         },
         {
+            "tableName": "coursereserves_departments",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+        {
             "tableName": "coursereserves_courses",
             "withMetadata": true,
             "withAuditing": false,
@@ -72,20 +87,17 @@
                     "targetTable": "coursereserves_courselistings",
                     "targetTableAlias": "courseListing",
                     "tOps": "ADD"
-                }
-            ]
-        },
-        {
-            "tableName": "coursereserves_departments",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
+                },
                 {
-                    "fieldName": "id",
+                    "fieldName": "departmentId",
+                    "tableAlias": "department",
+                    "targetTable": "coursereserves_departments",
+                    "targetTableAlias": "department",
                     "tOps": "ADD"
                 }
             ]
         },
+        
         {
             "tableName": "coursereserves_reserves",
             "withMetadata": true,
