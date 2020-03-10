@@ -12,6 +12,10 @@
                 {
                     "fieldName": "endDate",
                     "tOps": "ADD"
+                },
+                {
+                    "fieldName": "termId",
+                    "tOps": "ADD"
                 }
             ]
         },
@@ -70,6 +74,28 @@
                 }
             ]
         },
+
+        {
+            "tableName": "coursereserves_reserves",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ],
+            "foreignKeys": [
+                {
+                    "fieldName": "courseListingId",
+                    "tableAlias": "courseListing",
+                    "targetTable": "coursereserves_courselistings",
+                    "targetTableAlias": "courseListing",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+
         {
             "tableName": "coursereserves_courses",
             "withMetadata": true,
@@ -98,18 +124,7 @@
             ]
         },
         
-        {
-            "tableName": "coursereserves_reserves",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
-                    "tOps": "ADD"
-                }
-            ]
-        },
-        
+          
         {
             "tableName": "coursereserves_processingstates",
             "withMetadata": true,

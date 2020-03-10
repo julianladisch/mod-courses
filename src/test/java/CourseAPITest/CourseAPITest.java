@@ -49,6 +49,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.junit.After;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -72,6 +73,7 @@ public class CourseAPITest {
   public final static String COURSE_2_ID = UUID.randomUUID().toString();
   public final static String COURSE_3_ID = UUID.randomUUID().toString();
   public final static String COURSE_4_ID = UUID.randomUUID().toString();
+  public final static String COURSE_5_ID = UUID.randomUUID().toString();
   public final static String DEPARTMENT_1_ID = UUID.randomUUID().toString();
   public final static String DEPARTMENT_2_ID = UUID.randomUUID().toString();
   public final static String COURSE_TYPE_1_ID = UUID.randomUUID().toString();
@@ -204,6 +206,9 @@ public class CourseAPITest {
         return loadCourse3();
       })
       .compose(f -> {
+        return loadCourse5();
+      })
+      .compose(f -> {
         return loadProcessingStatus();
       })
       .compose(f -> {
@@ -229,10 +234,10 @@ public class CourseAPITest {
           return deleteCourseListing2Instructors();
         })
         .compose(f -> {
-          return deleteCourseListings();
+          return deleteReserves();
         })
         .compose(f -> {
-          return deleteReserves();
+          return deleteCourseListings();
         })
         .compose(f -> {
           return deleteTerms();
@@ -2089,6 +2094,81 @@ public class CourseAPITest {
     });
   }
 
+  @Test
+  public void testSearchCoursesByTermId(TestContext context) {
+    Async async = context.async();
+    String url = baseUrl + "/courses?query=courseListing.termId=" + TERM_2_ID;
+    TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
+         "Get courses by term id").setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          JsonArray courseArray = res.result().getJson().getJsonArray("courses");
+          context.assertEquals(courseArray.size(), 1);
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
+
+  @Test
+  public void testSearchReservesByTermId(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reserveJson = new JsonObject()
+        .put("id", reserveId)
+        .put("itemId", OkapiMock.item1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyRightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_3_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+    String url = baseUrl + "/courselistings/" + COURSE_LISTING_3_ID + "/reserves";
+    TestUtil.doRequest(vertx, url, POST, standardHeaders, reserveJson.encode(),
+        201, "Post Reserve to Courselisting 3")
+    .compose(f -> {
+      String getCLUrl = baseUrl + "/courselistings/" + COURSE_LISTING_3_ID;
+      Future<WrappedResponse> future = Future.future();
+      TestUtil.doRequest(vertx, getCLUrl, GET, standardHeaders, null, 200,
+          "Get CourseListing 3").setHandler(res -> {
+        if(res.failed()) {
+          future.fail(res.cause());
+        }
+        else {
+          try {
+            JsonObject CLJson = res.result().getJson();
+            assertEquals(CLJson.getString("termId"), TERM_2_ID);
+            future.complete(res.result());
+          } catch(Exception e) {
+            future.fail(e);
+          }
+        }
+      });
+      return future;
+    })
+    .compose(f -> {
+      String getUrl = baseUrl + "/reserves?query=courseListing.termId=" + TERM_2_ID;
+      return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
+         "Get reserves by term id");
+    }).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        try {
+          JsonArray reserveArray = res.result().getJson().getJsonArray("reserves");
+          context.assertEquals(reserveArray.size(), 1);
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
+
   
    @Test
    public void testPutEmptyLocationIdToCourseListing(TestContext context) {
@@ -2625,6 +2705,24 @@ public class CourseAPITest {
         .put("id", COURSE_4_ID)
         .put("departmentId", DEPARTMENT_2_ID)
         .put("courseListingId", COURSE_LISTING_2_ID)
+        .put("name", "Data Structures for Engineers 101");
+    TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
+        courseJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourse5() {
+    Future<Void> future = Future.future();
+    JsonObject courseJson = new JsonObject()
+        .put("id", COURSE_5_ID)
+        .put("departmentId", DEPARTMENT_2_ID)
+        .put("courseListingId", COURSE_LISTING_3_ID)
         .put("name", "Data Structures for Engineers 101");
     TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
         courseJson.encode(), 201, "Post Course Listing").setHandler(res -> {
