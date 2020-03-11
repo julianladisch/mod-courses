@@ -81,7 +81,9 @@ public class CourseAPITest {
   public final static String INSTRUCTOR_2_ID = UUID.randomUUID().toString();
   public final static String INSTRUCTOR_3_ID = UUID.randomUUID().toString();
   public final static String COPYRIGHT_STATUS_1_ID = UUID.randomUUID().toString();
+  public final static String COPYRIGHT_STATUS_2_ID = UUID.randomUUID().toString();
   public final static String PROCESSING_STATUS_1_ID = UUID.randomUUID().toString();
+  public final static String PROCESSING_STATUS_2_ID = UUID.randomUUID().toString();
   public final static String EXTERNAL_ID_1 = "0001";
   public final static String EXTERNAL_ID_2 = "0002";
   public final static String EXTERNAL_ID_3 = "0003";
@@ -209,10 +211,16 @@ public class CourseAPITest {
         return loadCourse5();
       })
       .compose(f -> {
-        return loadProcessingStatus();
+        return loadProcessingStatus1();
       })
       .compose(f -> {
-        return loadCopyrightStatus();
+        return loadProcessingStatus2();
+      })
+      .compose(f -> {
+        return loadCopyrightStatus1();
+      })
+      .compose(f -> {
+        return loadCopyrightStatus2();
       })
       .setHandler(res -> {
         if(res.failed()) {
@@ -389,6 +397,23 @@ public class CourseAPITest {
             context.fail("Expected at least two instructors");
             return;
           }
+          async.complete();
+        } catch(Exception e) {
+          context.fail(e);
+        }
+      }
+    });
+  }
+
+  @Test
+  public void getCoursesByDepartment(TestContext context) {
+    Async async = context.async();
+    TestUtil.doRequest(vertx, baseUrl + "/courses?query=departmentId==" + DEPARTMENT_1_ID,
+        GET, null, null, 200, "Get courses for department").setHandler(res -> {
+      if(res.failed()) { context.fail(res.cause()); }
+      else {
+        try {
+          context.assertEquals(res.result().getJson().getJsonArray("courses").size(), 3);
           async.complete();
         } catch(Exception e) {
           context.fail(e);
@@ -918,6 +943,7 @@ public class CourseAPITest {
     });
   }
 
+  //This has to return 422 because of foreign key relationship
   @Test
   public void postReserveToCourseListingWithBogusCopyrightAndProcessingStatuses(
       TestContext context) {
@@ -930,17 +956,19 @@ public class CourseAPITest {
         .put("copyrightTracking", new JsonObject()
           .put("copyrightStatusId", UUID.randomUUID().toString()));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
-        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 422,
         "Post Course Reserve").setHandler(res -> {
       if(res.failed()) {
          context.fail(res.cause());
        } else {
+        /*
         JsonObject reserveJson = res.result().getJson();
         if(!reserveJson.containsKey("copiedItem") ||
             reserveJson.getJsonObject("copiedItem") == null) {
           context.fail("No copiedItem field found");
           return;
         }
+        */
         async.complete();
       }
     });
@@ -1811,7 +1839,7 @@ public class CourseAPITest {
    }
 
    @Test
-   public void TestGetReservesByCourseListingFail(TestContext context) {
+   public void testGetReservesByCourseListingFail(TestContext context) {
      Async async = context.async();
      new CourseAPIFail()
          .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
@@ -1829,7 +1857,7 @@ public class CourseAPITest {
    }
 
     @Test
-   public void TestGetReservesByCourseListingWTF(TestContext context) {
+   public void testGetReservesByCourseListingWTF(TestContext context) {
      Async async = context.async();
      new CourseAPIWTF()
          .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
@@ -1847,7 +1875,7 @@ public class CourseAPITest {
    }
 
    @Test
-   public void TestDeleteInstructorsByListingIdFail(TestContext context) {
+   public void testDeleteInstructorsByListingIdFail(TestContext context) {
      Async async = context.async();
      new CourseAPIFail().deleteCoursereservesCourselistingsInstructorsByListingId(
          COURSE_LISTING_1_ID, okapiHeaders,
@@ -1865,7 +1893,7 @@ public class CourseAPITest {
    }
 
    @Test
-   public void TestDeleteCourselistings(TestContext context) {
+   public void testDeleteCourselistings(TestContext context) {
      Async async = context.async();
      new CourseAPIFail().deleteCoursereservesCourselistings(okapiHeaders,
          res -> {
@@ -1883,7 +1911,7 @@ public class CourseAPITest {
 
 
    @Test
-   public void TestGetExpandedCourseBadValues(TestContext context) {
+   public void testGetExpandedCourseBadValues(TestContext context) {
      Async async = context.async();
      Course course = new Course();
      course.setId(UUID.randomUUID().toString());
@@ -1920,7 +1948,7 @@ public class CourseAPITest {
    
 
    @Test
-   public void TestGetPGClient(TestContext context) {
+   public void testGetPGClient(TestContext context) {
      Async async = context.async();
      PostgresClient pgClient = CRUtil.getPgClient(okapiHeaders,
          vertx.getOrCreateContext());
@@ -1929,7 +1957,7 @@ public class CourseAPITest {
    }
 
    @Test
-   public void TestGetPGClientFromHeaders(TestContext context) {
+   public void testGetPGClientFromHeaders(TestContext context) {
      Async async = context.async();
      PostgresClient pgClient = new CourseAPI().getPGClientFromHeaders(
          vertx.getOrCreateContext(), okapiHeaders);
@@ -1938,7 +1966,7 @@ public class CourseAPITest {
    }
 
    @Test
-   public void TestPutToItem(TestContext context) {
+   public void testPutToItem(TestContext context) {
      Async async = context.async();
      String itemId = OkapiMock.item1Id;
      String newBarcode = "1112223334";
@@ -2167,6 +2195,136 @@ public class CourseAPITest {
         }
       }
     });
+  }
+
+  @Test
+  public void testSearchReservesByProcessingStatus(TestContext context) {
+    Async async = context.async();
+    String reserve1Id = UUID.randomUUID().toString();
+    String reserve2Id = UUID.randomUUID().toString();
+    String reserve3Id = UUID.randomUUID().toString();
+    JsonObject reserve1Json = new JsonObject()
+        .put("id", reserve1Id)
+        .put("itemId", OkapiMock.item1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+
+    JsonObject reserve2Json = new JsonObject()
+        .put("id", reserve2Id)
+        .put("itemId", OkapiMock.item2Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+
+    JsonObject reserve3Json = new JsonObject()
+        .put("id", reserve3Id)
+        .put("itemId", OkapiMock.item2Id)
+        .put("processingStatusId", PROCESSING_STATUS_2_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+    String url = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves";
+    TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve1Json.encode(),
+        201, "Post Reserve 1 to Courselisting 1")
+    .compose(f -> {
+      return TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve2Json.encode(),
+        201, "Post Reserve 2 to Courselisting 1");
+    })
+    .compose(f -> {
+      return TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve3Json.encode(),
+        201, "Post Reserve 3 to Courselisting 1");
+    })
+   .compose( f -> {
+     String getUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves" +
+         "?query=processingStatus.name==frombulating";
+      return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
+          "Get Reserves by Processing Status");
+   }).setHandler(res -> {
+     if(res.failed()) {
+       context.fail(res.cause());
+     } else {
+       try {
+         context.assertEquals(res.result().getJson().getJsonArray("reserves").size(), 1);
+         async.complete();
+       } catch(Exception e) {
+         context.fail(e);
+       }
+     }
+   });
+  }
+
+  @Test
+  public void testSearchReservesByCopyrightStatus(TestContext context) {
+    Async async = context.async();
+    String reserve1Id = UUID.randomUUID().toString();
+    String reserve2Id = UUID.randomUUID().toString();
+    String reserve3Id = UUID.randomUUID().toString();
+    JsonObject reserve1Json = new JsonObject()
+        .put("id", reserve1Id)
+        .put("itemId", OkapiMock.item1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+
+    JsonObject reserve2Json = new JsonObject()
+        .put("id", reserve2Id)
+        .put("itemId", OkapiMock.item2Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+
+    JsonObject reserve3Json = new JsonObject()
+        .put("id", reserve3Id)
+        .put("itemId", OkapiMock.item2Id)
+        .put("processingStatusId", PROCESSING_STATUS_2_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_2_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+    String url = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves";
+    TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve1Json.encode(),
+        201, "Post Reserve 1 to Courselisting 1")
+    .compose(f -> {
+      return TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve2Json.encode(),
+        201, "Post Reserve 2 to Courselisting 1");
+    })
+    .compose(f -> {
+      return TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve3Json.encode(),
+        201, "Post Reserve 3 to Courselisting 1");
+    })
+   .compose( f -> {
+     String getUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves" +
+         "?query=copyrightStatus.name==cc";
+      return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
+          "Get Reserves by Processing Status");
+   }).setHandler(res -> {
+     if(res.failed()) {
+       context.fail(res.cause());
+     } else {
+       try {
+         context.assertEquals(res.result().getJson().getJsonArray("reserve").size(), 2);
+         async.complete();
+       } catch(Exception e) {
+         context.fail(e);
+       }
+     }
+   });
   }
 
   
@@ -2735,7 +2893,7 @@ public class CourseAPITest {
     return future;
   }
 
-  private Future<Void> loadCopyrightStatus() {
+  private Future<Void> loadCopyrightStatus1() {
      Future<Void> future = Future.future();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", COPYRIGHT_STATUS_1_ID)
@@ -2752,12 +2910,46 @@ public class CourseAPITest {
     return future;
   }
 
-    private Future<Void> loadProcessingStatus() {
+    private Future<Void> loadCopyrightStatus2() {
+     Future<Void> future = Future.future();
+     JsonObject copyrightStatusJson = new JsonObject()
+        .put("id", COPYRIGHT_STATUS_2_ID)
+        .put("description", "Reserved")
+        .put("name", "reserved");
+    TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", POST, null,
+        copyrightStatusJson.encode(), 201, "Post Copyright Status").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadProcessingStatus1() {
      Future<Void> future = Future.future();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", PROCESSING_STATUS_1_ID)
         .put("description", "Processing")
         .put("name", "processing");
+    TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", POST, null,
+        copyrightStatusJson.encode(), 201, "Post Processing Status").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadProcessingStatus2() {
+     Future<Void> future = Future.future();
+     JsonObject copyrightStatusJson = new JsonObject()
+        .put("id", PROCESSING_STATUS_2_ID)
+        .put("description", "Frombulating")
+        .put("name", "frombulating");
     TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", POST, null,
         copyrightStatusJson.encode(), 201, "Post Processing Status").setHandler(res -> {
           if(res.failed()) {

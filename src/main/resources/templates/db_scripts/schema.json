@@ -20,6 +20,29 @@
             ]
         },
         {
+            "tableName": "coursereserves_processingstates",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+        {
+            "tableName": "coursereserves_copyrightstates",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+
+        {
             "tableName": "coursereserves_courselistings",
             "withMetadata": true,
             "withAuditing": false,
@@ -92,6 +115,20 @@
                     "targetTable": "coursereserves_courselistings",
                     "targetTableAlias": "courseListing",
                     "tOps": "ADD"
+                },
+                {
+                    "fieldName": "processingStatusId",
+                    "tableAlias": "processingStatus",
+                    "targetTable": "coursereserves_processingstates",
+                    "targetTableAlias": "processingStatus",
+                    "tOps": "ADD"
+                },
+                {
+                    "fieldName": "copyrightTracking.copyrightStatusId",
+                    "tableAlias": "copyrightStatus",
+                    "targetTable": "coursereserves_copyrightstates",
+                    "targetTableAlias": "copyrightStatus",
+                    "tOps": "ADD"
                 }
             ]
         },
@@ -119,30 +156,6 @@
                     "tableAlias": "department",
                     "targetTable": "coursereserves_departments",
                     "targetTableAlias": "department",
-                    "tOps": "ADD"
-                }
-            ]
-        },
-        
-          
-        {
-            "tableName": "coursereserves_processingstates",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
-                    "tOps": "ADD"
-                }
-            ]
-        },
-        {
-            "tableName": "coursereserves_copyrightstates",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
                     "tOps": "ADD"
                 }
             ]
