@@ -4,6 +4,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -727,9 +728,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String reserveId, String lang,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    PgUtil.deleteById(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext,
-        DeleteCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
-        asyncResultHandler);
+    deleteCoursereservesReservesByReserveId(reserveId, lang, okapiHeaders,
+        asyncResultHandler, vertxContext);
   }
 
   @Override
@@ -1381,8 +1381,17 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void deleteCoursereservesReservesByReserveId(String reserveId,
       String lang, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    PgUtil.deleteById(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext,
-        DeleteCoursereservesReservesByReserveIdResponse.class, asyncResultHandler);
+    deleteReserve(reserveId, okapiHeaders, vertxContext).setHandler(deleteRes -> {
+      if(deleteRes.failed()) {
+        String message = logAndSaveError(deleteRes.cause());
+        asyncResultHandler.handle(Future.succeededFuture(
+            DeleteCoursereservesReservesByReserveIdResponse.respond500WithTextPlain(
+            getErrorResponse(message))));
+      } else {
+        asyncResultHandler.handle(Future.succeededFuture(
+            DeleteCoursereservesReservesByReserveIdResponse.respond204()));
+      }
+    });
   }
 
   public <T> Future<Results<T>> getItems(String tableName, Class<T> clazz,
@@ -1424,6 +1433,83 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       future.fail(e);
     }
     return future;
+  }
+
+  public Future<Void> deleteItem(String tableName, String id, Map<String,
+      String> okapiHeaders, Context vertxContext) {
+    Promise<Void> promise = Promise.promise();
+    PostgresClient pgClient = getPGClientFromHeaders(vertxContext, okapiHeaders);
+    pgClient.delete(tableName, id, deleteReply -> {
+      if(deleteReply.failed()) {
+        promise.fail(deleteReply.cause());
+      } else {
+        promise.complete();
+      }
+    });
+    return promise.future();
+  }
+
+  //Handle deleting the reserve and removing the temporaryLocation set to the
+  //associated item
+  public Future<Void> deleteReserve(String reserveId, Map<String, String> okapiHeaders,
+      Context vertxContext) {
+    Promise<Void> promise = Promise.promise();
+    CRUtil.getReserveById(reserveId, okapiHeaders, vertxContext).setHandler(getReserveRes -> {
+      if(getReserveRes.failed()) {
+        promise.fail(getReserveRes.cause());
+      } else {
+        Reserve reserve = getReserveRes.result();
+        Future<Void> resetItemFuture;
+        if(reserve.getItemId() == null) {
+          resetItemFuture = Future.succeededFuture();
+        } else {
+          resetItemFuture = resetItemTemporaryLocation(reserve.getItemId(),
+              okapiHeaders, vertxContext).setHandler(resetRes -> {
+            if(resetRes.failed()) {
+              promise.fail(resetRes.cause());
+            } else {
+              deleteItem(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext)
+                  .setHandler(deleteRes -> {
+                if(deleteRes.failed()) {
+                  promise.fail(deleteRes.cause());
+                } else {
+                  promise.complete();
+                }
+              });
+            }
+          });
+        }
+      }
+    });
+
+    return promise.future();
+  }
+
+  public Future<Void> resetItemTemporaryLocation(String itemId,
+      Map<String, String> okapiHeaders, Context vertxContext) {
+    Promise<Void> promise = Promise.promise();
+    CRUtil.lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders, vertxContext)
+        .setHandler(itemHoldingInstanceRes -> {
+      if(itemHoldingInstanceRes.failed()) {
+        promise.fail(itemHoldingInstanceRes.cause());
+      } else {
+        try {
+          JsonObject itemJson = itemHoldingInstanceRes.result().getJsonObject("item");
+          itemJson.putNull("temporaryLocationId");
+          CRUtil.putItemUpdate(itemJson, okapiHeaders, vertxContext)
+              .setHandler(putRes -> {
+            if(putRes.failed()) {
+              promise.fail(putRes.cause());
+            } else {
+              promise.complete();
+            }
+          });
+        } catch(Exception e) {
+          promise.fail(e);
+        }
+      }
+    });
+    return promise.future();
   }
 
 }
