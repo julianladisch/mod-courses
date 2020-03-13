@@ -12,9 +12,36 @@
                 {
                     "fieldName": "endDate",
                     "tOps": "ADD"
+                },
+                {
+                    "fieldName": "termId",
+                    "tOps": "ADD"
                 }
             ]
         },
+        {
+            "tableName": "coursereserves_processingstates",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+        {
+            "tableName": "coursereserves_copyrightstates",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+
         {
             "tableName": "coursereserves_courselistings",
             "withMetadata": true,
@@ -70,6 +97,42 @@
                 }
             ]
         },
+
+        {
+            "tableName": "coursereserves_reserves",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ],
+            "foreignKeys": [
+                {
+                    "fieldName": "courseListingId",
+                    "tableAlias": "courseListing",
+                    "targetTable": "coursereserves_courselistings",
+                    "targetTableAlias": "courseListing",
+                    "tOps": "ADD"
+                },
+                {
+                    "fieldName": "processingStatusId",
+                    "tableAlias": "processingStatus",
+                    "targetTable": "coursereserves_processingstates",
+                    "targetTableAlias": "processingStatus",
+                    "tOps": "ADD"
+                },
+                {
+                    "fieldName": "copyrightTracking.copyrightStatusId",
+                    "tableAlias": "copyrightStatus",
+                    "targetTable": "coursereserves_copyrightstates",
+                    "targetTableAlias": "copyrightStatus",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+
         {
             "tableName": "coursereserves_courses",
             "withMetadata": true,
@@ -93,41 +156,6 @@
                     "tableAlias": "department",
                     "targetTable": "coursereserves_departments",
                     "targetTableAlias": "department",
-                    "tOps": "ADD"
-                }
-            ]
-        },
-        
-        {
-            "tableName": "coursereserves_reserves",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
-                    "tOps": "ADD"
-                }
-            ]
-        },
-        
-        {
-            "tableName": "coursereserves_processingstates",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
-                    "tOps": "ADD"
-                }
-            ]
-        },
-        {
-            "tableName": "coursereserves_copyrightstates",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
                     "tOps": "ADD"
                 }
             ]
