@@ -1954,7 +1954,7 @@ public class CourseAPITest {
    @Test
    public void testDeleteReserveByIdFail(TestContext context) {
      Async async = context.async();
-     new CourseAPIFail().deleteCoursereservesReservesByReserveId(UUID.randomUUID().toString(),
+     new CourseAPIFail().deleteCoursereservesReservesByReserveId("blargh",
          null, okapiHeaders, res -> {
        if(res.failed()) {
          context.fail(res.cause());
@@ -2642,6 +2642,21 @@ public class CourseAPITest {
       }
     });
   }
+
+  @Test
+  public void testResetItemBadId(TestContext context) {
+    Async async = context.async();
+    new CourseAPI().resetItemTemporaryLocation(UUID.randomUUID().toString(),
+        okapiHeaders, vertx.getOrCreateContext()).setHandler(res -> {
+      if(res.succeeded()) {
+        context.fail("Expected failure");
+      } else {
+        async.complete();
+      }
+    });
+  }
+
+  
 
 
   
