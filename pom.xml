@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.folio</groupId>
   <artifactId>mod-courses</artifactId>
-  <version>0.0.25-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -52,7 +52,7 @@
     <url>https://github.com/folio-org/mod-courses</url>
     <connection>scm:git:git://github.com/folio-org/mod-courses</connection>
     <developerConnection>scm:git:git@github.com:folio-org/mod-courses.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v1.0.0</tag>
   </scm>
 
   <dependencies>
