@@ -1405,7 +1405,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       }
     });
     return future;
-  }
+ }
   
   public Future<Void> deleteAllItems(String tableName, String whereClause, 
       Map<String, String> okapiHeaders, Context vertxContext) {
@@ -1458,26 +1458,30 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       if(getReserveRes.failed()) {
         promise.fail(getReserveRes.cause());
       } else {
-        Reserve reserve = getReserveRes.result();
-        Future<Void> resetItemFuture;
-        if(reserve.getItemId() == null) {
-          resetItemFuture = Future.succeededFuture();
-        } else {
-          resetItemFuture = resetItemTemporaryLocation(reserve.getItemId(),
-              okapiHeaders, vertxContext).setHandler(resetRes -> {
-            if(resetRes.failed()) {
-              promise.fail(resetRes.cause());
-            } else {
-              deleteItem(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext)
-                  .setHandler(deleteRes -> {
-                if(deleteRes.failed()) {
-                  promise.fail(deleteRes.cause());
-                } else {
-                  promise.complete();
-                }
-              });
-            }
-          });
+        try {
+          Reserve reserve = getReserveRes.result();
+          Future<Void> resetItemFuture;
+          if(reserve.getItemId() == null) {
+            resetItemFuture = Future.succeededFuture();
+          } else {
+            resetItemFuture = resetItemTemporaryLocation(reserve.getItemId(),
+                okapiHeaders, vertxContext).setHandler(resetRes -> {
+              if(resetRes.failed()) {
+                promise.fail(resetRes.cause());
+              } else {
+                deleteItem(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext)
+                    .setHandler(deleteRes -> {
+                  if(deleteRes.failed()) {
+                    promise.fail(deleteRes.cause());
+                  } else {
+                    promise.complete();
+                  }
+                });
+              }
+            });
+          }
+        } catch(Exception e) {
+          promise.fail(e);
         }
       }
     });

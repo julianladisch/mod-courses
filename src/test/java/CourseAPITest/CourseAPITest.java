@@ -1951,6 +1951,64 @@ public class CourseAPITest {
      }, vertx.getOrCreateContext());
    }
 
+   @Test
+   public void testDeleteReserveByIdFail(TestContext context) {
+     Async async = context.async();
+     new CourseAPIFail().deleteCoursereservesReservesByReserveId(UUID.randomUUID().toString(),
+         null, okapiHeaders, res -> {
+       if(res.failed()) {
+         context.fail(res.cause());
+       } else {
+         if(res.result().getStatus() != 500) {
+           context.fail("Expected 500, got status " + res.result().getStatus());
+           return;
+         }
+         async.complete();
+       }
+     }, vertx.getOrCreateContext());
+   }
+
+   @Test
+   public void testDeleteBadReserveFail(TestContext context) {
+     Async async = context.async();
+     new CourseAPIFail().deleteReserve(UUID.randomUUID().toString(), okapiHeaders,
+         vertx.getOrCreateContext()).setHandler(res -> {
+       if(res.failed()) {
+         async.complete();
+       } else {
+         context.fail("Expected delete reserve to fail");
+       }
+     });
+
+   }
+
+   @Test
+   public void testDeleteReserveFail(TestContext context) {
+     Async async = context.async();
+     String reserveId = UUID.randomUUID().toString();
+    JsonObject reserveJson = new JsonObject()
+        .put("id", reserveId)
+        .put("itemId", OkapiMock.item1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyRightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+     String postUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
+        + "/reserves";
+     TestUtil.doRequest(vertx, postUrl, POST, standardHeaders, reserveJson.encode(),
+         201, "Post Reserve").setHandler(postRes -> {
+      new CourseAPIFail().deleteReserve(UUID.randomUUID().toString(), okapiHeaders,
+          vertx.getOrCreateContext()).setHandler(res -> {
+        if(res.failed()) {
+          async.complete();
+        } else {
+          context.fail("Expected delete reserve to fail");
+        }
+      });
+     });
+   }
 
    @Test
    public void testGetExpandedCourseBadValues(TestContext context) {
@@ -3192,6 +3250,12 @@ class CourseAPIFail extends CourseAPI {
     Future future = Future.failedFuture("IT ALWAYS FAILS");
     return future;
   }
+
+  public Future<Void> deleteItem(String tableName, String id, Map<String,
+      String> okapiHeaders, Context vertxContext) {
+    Future future = Future.failedFuture("IT ALWAYS FAILS");
+    return future;
+  }
   
 }
 
@@ -3204,6 +3268,11 @@ class CourseAPIWTF extends CourseAPI {
 
   public Future<Void> deleteAllItems(String tableName, String whereClause,
       Map<String, String> okapiHeaders, Context vertxContext) {
+    throw new RuntimeException("WTF");
+  }
+
+  public Future<Void> deleteItem(String tableName, String id, Map<String,
+      String> okapiHeaders, Context vertxContext) {
     throw new RuntimeException("WTF");
   }
 
