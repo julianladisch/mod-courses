@@ -5,7 +5,7 @@
     "properties": {
         "courseListings": {
             "description": "List of course listing records",
-            "id": "courseListings",
+            "id": "courseListing",
             "type": "array",
             "items": {
                 "type": "object",

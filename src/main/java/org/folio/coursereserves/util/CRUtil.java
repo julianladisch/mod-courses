@@ -33,12 +33,12 @@ import static org.folio.rest.impl.CourseAPI.TERMS_TABLE;
 import org.folio.rest.jaxrs.model.Contributor;
 import org.folio.rest.jaxrs.model.CopiedItem;
 import org.folio.rest.jaxrs.model.CopyrightStatusObject;
-import org.folio.rest.jaxrs.model.Copyrightstatus;
+import org.folio.rest.jaxrs.model.CopyrightStatus;
 import org.folio.rest.jaxrs.model.Course;
-import org.folio.rest.jaxrs.model.Courselisting;
+import org.folio.rest.jaxrs.model.CourseListing;
 import org.folio.rest.jaxrs.model.CourseListingObject;
 import org.folio.rest.jaxrs.model.CourseTypeObject;
-import org.folio.rest.jaxrs.model.Coursetype;
+import org.folio.rest.jaxrs.model.CourseType;
 import org.folio.rest.jaxrs.model.Department;
 import org.folio.rest.jaxrs.model.DepartmentObject;
 import org.folio.rest.jaxrs.model.HoldShelfExpiryPeriod;
@@ -47,7 +47,7 @@ import org.folio.rest.jaxrs.model.Instructor;
 import org.folio.rest.jaxrs.model.InstructorObject;
 import org.folio.rest.jaxrs.model.LocationObject;
 import org.folio.rest.jaxrs.model.ProcessingStatusObject;
-import org.folio.rest.jaxrs.model.Processingstatus;
+import org.folio.rest.jaxrs.model.ProcessingStatus;
 import org.folio.rest.jaxrs.model.Publication;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.jaxrs.model.ServicepointObject;
@@ -67,7 +67,7 @@ public class CRUtil {
 
   public static final Logger logger = LoggerFactory.getLogger(
           CRUtil.class);
-  
+
   public static final String SERVICE_POINTS_ENDPOINT = "/service-points";
   public static final String LOCATIONS_ENDPOINT = "/locations";
   public static final String LOAN_TYPES_ENDPOINT = "/loan-types";
@@ -281,7 +281,7 @@ public class CRUtil {
             String instanceId = holdingsJson.getString("instanceId");
             result.put("holdings", holdingsJson);
             logger.info("Making request for instance at " + INSTANCES_ENDPOINT + "/" + instanceId);
-            makeOkapiRequest(context.owner(), okapiHeaders, INSTANCES_ENDPOINT 
+            makeOkapiRequest(context.owner(), okapiHeaders, INSTANCES_ENDPOINT
                 + "/" + instanceId, HttpMethod.GET, null, null, 200).setHandler(
                 instanceRes -> {
               if(instanceRes.failed()) {
@@ -417,14 +417,14 @@ public class CRUtil {
               reserve.getCopiedItem().getTemporaryLocationId(), okapiHeaders, context);
           Future<JsonObject> permLocationFuture = lookupLocation(
               reserve.getCopiedItem().getPermanentLocationId(), okapiHeaders, context);
-          Future<Processingstatus> processingStatusFuture;
+          Future<ProcessingStatus> processingStatusFuture;
           if(reserve.getProcessingStatusId() != null) {
             processingStatusFuture = lookupProcessingStatus(
               reserve.getProcessingStatusId(), okapiHeaders, context);
           } else {
             processingStatusFuture = Future.failedFuture("No processing status id");
           }
-          Future<Copyrightstatus> copyrightStatusFuture;
+          Future<CopyrightStatus> copyrightStatusFuture;
           if(reserve.getCopyrightTracking() != null
               && reserve.getCopyrightTracking().getCopyrightStatusId() != null) {
             copyrightStatusFuture = lookupCopyrightStatus(
@@ -489,8 +489,8 @@ public class CRUtil {
 
   public static Future<Void> populateReserve(Reserve reserve,
       Future<JsonObject> tempLocationFuture, Future<JsonObject> permLocationFuture,
-      Future<Processingstatus> processingStatusFuture,
-      Future<Copyrightstatus> copyrightStatusFuture, Future<JsonObject> loanTypeFuture) {
+      Future<ProcessingStatus> processingStatusFuture,
+      Future<CopyrightStatus> copyrightStatusFuture, Future<JsonObject> loanTypeFuture) {
     Future<Void> future = Future.future();
     List<Future> futureList = new ArrayList<>();
     futureList.add(tempLocationFuture);
@@ -542,9 +542,9 @@ public class CRUtil {
     return future;
   }
 
-  public static Future<Courselisting> lookupExpandedCourseListing(String courseListingId,
+  public static Future<CourseListing> lookupExpandedCourseListing(String courseListingId,
       Map<String, String> okapiHeaders, Context context, Boolean expandTerm) {
-    Future<Courselisting> future = Future.future();
+    Future<CourseListing> future = Future.future();
     getCourseListingById(courseListingId, okapiHeaders, context).setHandler(clRes -> {
       if(clRes.failed()) {
         future.fail(clRes.cause());
@@ -552,15 +552,15 @@ public class CRUtil {
         future.complete(null);
       } else {
         try {
-          Courselisting courselisting = clRes.result();
+          CourseListing courselisting = clRes.result();
           String termId = courselisting.getTermId();
           String courseTypeId = courselisting.getCourseTypeId();
           String locationId = courselisting.getLocationId();
           String servicepointId = courselisting.getServicepointId();
           Future<Term> termFuture;
-          Future<Coursetype> coursetypeFuture;
+          Future<CourseType> coursetypeFuture;
           Future<JsonObject> locationFuture;
-          Future<JsonObject> servicePointFuture;          
+          Future<JsonObject> servicePointFuture;
           if(expandTerm && termId != null) {
             termFuture = lookupTerm(termId, okapiHeaders, context);
           } else {
@@ -581,7 +581,7 @@ public class CRUtil {
           } else {
             servicePointFuture = Future.failedFuture("No lookup");
           }
-          
+
           List<Future> futureList = new ArrayList<>();
           futureList.add(termFuture);
           futureList.add(coursetypeFuture);
@@ -612,17 +612,17 @@ public class CRUtil {
           future.fail(e);
         }
       }
-    });    
+    });
     return future;
   }
-  
+
   /* Basic lookup for courselisting, wrapped in a future */
-  public static Future<Courselisting> getCourseListingById(String courseListingId,
+  public static Future<CourseListing> getCourseListingById(String courseListingId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<Courselisting> future = Future.future();
+    Future<CourseListing> future = Future.future();
     logger.info("Looking up course listing for id '" + courseListingId + "'");
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
-    postgresClient.getById(COURSE_LISTINGS_TABLE, courseListingId, Courselisting.class,
+    postgresClient.getById(COURSE_LISTINGS_TABLE, courseListingId, CourseListing.class,
         courseListingReply -> {
       if(courseListingReply.failed()) {
         future.fail(courseListingReply.cause());
@@ -649,7 +649,7 @@ public class CRUtil {
     });
     return future;
   }
-  
+
   public static void populatePojoFromJson(Object pojo, JsonObject json,
       List<PopulateMapping> mapList) throws NoSuchMethodException,
       IllegalAccessException, IllegalArgumentException, InvocationTargetException {
@@ -707,7 +707,7 @@ public class CRUtil {
       }
     }
   }
-  
+
   public static Future<JsonObject> lookupLocation(String locationId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
@@ -745,7 +745,7 @@ public class CRUtil {
     });
     return future;
   }
-  
+
   public static Future<JsonObject> lookupServicepoint(String servicepointId,
       Map<String, String> okapiHeaders, Context context) {
     Future<JsonObject> future = Future.future();
@@ -806,7 +806,7 @@ public class CRUtil {
             promise.fail(getRes.cause());
           } else {
             try {
-              Courselisting courseListing = getRes.result();
+              CourseListing courseListing = getRes.result();
               List<Instructor> instructorList = instructorRes.result();
               logger.info("Found " + instructorList.size() + " instructors for listing " + courseListingId);
               courseListing.setInstructorObjects(instructorObjectListFromInstructorList(
@@ -866,11 +866,11 @@ public class CRUtil {
     return future;
   }
 
-  public static Future<Coursetype> lookupCourseType(String courseTypeId,
+  public static Future<CourseType> lookupCourseType(String courseTypeId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<Coursetype> future = Future.future();
+    Future<CourseType> future = Future.future();
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
-    postgresClient.getById(COURSE_TYPES_TABLE, courseTypeId, Coursetype.class,
+    postgresClient.getById(COURSE_TYPES_TABLE, courseTypeId, CourseType.class,
         reply -> {
       if(reply.failed()) {
         future.fail(reply.cause());
@@ -883,12 +883,12 @@ public class CRUtil {
     return future;
   }
 
-  public static Future<Processingstatus> lookupProcessingStatus(String processingStatusId,
+  public static Future<ProcessingStatus> lookupProcessingStatus(String processingStatusId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<Processingstatus> future = Future.future();
+    Future<ProcessingStatus> future = Future.future();
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(PROCESSING_STATUSES_TABLE, processingStatusId,
-        Processingstatus.class,
+        ProcessingStatus.class,
         reply -> {
       if(reply.failed()) {
         future.fail(reply.cause());
@@ -901,12 +901,12 @@ public class CRUtil {
     return future;
   }
 
-  public static Future<Copyrightstatus> lookupCopyrightStatus(String copyrightStatusId,
+  public static Future<CopyrightStatus> lookupCopyrightStatus(String copyrightStatusId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<Copyrightstatus> future = Future.future();
+    Future<CopyrightStatus> future = Future.future();
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(COPYRIGHT_STATUSES_TABLE, copyrightStatusId,
-        Copyrightstatus.class,
+        CopyrightStatus.class,
         reply -> {
       if(reply.failed()) {
         future.fail(reply.cause());
@@ -944,7 +944,7 @@ public class CRUtil {
   public static Future<Course> getExpandedCourse(Course course,
       Map<String, String> okapiHeaders, Context context) {
     Future<Course> future = Future.future();
-    Future<Courselisting> courseListingFuture;
+    Future<CourseListing> courseListingFuture;
     Course newCourse;
     try {
       PostgresClient postgresClient = getPgClient(okapiHeaders, context);
@@ -961,7 +961,7 @@ public class CRUtil {
         } else {
           try {
           CourseListingObject expandedCourseListing = new CourseListingObject();
-          Courselisting courseListing = courselistingReply.result();
+          CourseListing courseListing = courselistingReply.result();
           if(courseListing != null) {
             copyFields(expandedCourseListing, courseListing);
           }
@@ -1029,7 +1029,7 @@ public class CRUtil {
     copyFields(newCourse, originalCourse);
     return newCourse;
   }
-  
+
   private static TermObject termObjectFromTerm(Term term) {
     TermObject termObject = new TermObject();
     termObject.setEndDate(term.getEndDate());
@@ -1038,8 +1038,8 @@ public class CRUtil {
     termObject.setName(term.getName());
     return termObject;
   }
-  
-  private static CourseTypeObject courseTypeObjectFromCourseType(Coursetype coursetype) {
+
+  private static CourseTypeObject courseTypeObjectFromCourseType(CourseType coursetype) {
     CourseTypeObject courseTypeObject = new CourseTypeObject();
     courseTypeObject.setId(coursetype.getId());
     courseTypeObject.setDescription(coursetype.getDescription());
@@ -1084,7 +1084,7 @@ public class CRUtil {
     tlto.setName(json.getString("name"));
     return tlto;
   }
-  
+
   private static ServicepointObject servicepointObjectFromJson(JsonObject json) {
     if(json == null) {
       return null;
@@ -1101,7 +1101,7 @@ public class CRUtil {
     try {
       populatePojoFromJson(servicepointObject, json, mapList);
     } catch(Exception e) {
-      logger.error("Unable to create service point object from json: " 
+      logger.error("Unable to create service point object from json: "
         +e.getLocalizedMessage());
       return null;
     }
@@ -1121,7 +1121,7 @@ public class CRUtil {
     } catch(Exception e) {
       logger.error("Unable to add staffslips from json: " + e.getLocalizedMessage());
     }
-    
+
     try {
       JsonObject hsepJson = json.getJsonObject("holdShelfExpiryPeriod");
       if(hsepJson != null) {
@@ -1142,21 +1142,21 @@ public class CRUtil {
         servicepointObject.setHoldShelfExpiryPeriod(hsep);
       }
     } catch(Exception e) {
-      logger.error("Unable to add hold shelf expiry from json: " 
+      logger.error("Unable to add hold shelf expiry from json: "
           + e.getLocalizedMessage());
     }
-    return servicepointObject;    
+    return servicepointObject;
   }
-  
+
   public static List<InstructorObject> instructorObjectListFromInstructorList(
       List<Instructor> instructorList) {
     List<InstructorObject> instructorObjectList = new ArrayList<>();
     for(Instructor instructor : instructorList) {
       InstructorObject instructorObject = new InstructorObject();
       copyFields(instructorObject, instructor);
-      instructorObjectList.add(instructorObject);  
+      instructorObjectList.add(instructorObject);
     }
     return instructorObjectList;
   }
- 
+
 }
