@@ -13,8 +13,8 @@ documentation:
 types:
     course: !include course.json
     courses: !include courses.json
-    courselisting: !include courselisting.json
-    courselistings: !include courselistings.json
+    courseListing: !include courselisting.json
+    courseListings: !include courselistings.json
     instructor: !include instructor.json
     instructors: !include instructors.json
     reserve: !include reserve.json
@@ -23,14 +23,14 @@ types:
     roles: !include roles.json
     term: !include term.json
     terms: !include terms.json
-    coursetype: !include coursetype.json
-    coursetypes: !include coursetypes.json
+    courseType: !include coursetype.json
+    courseTypes: !include coursetypes.json
     department: !include department.json
     departments: !include departments.json
-    processingstatus: !include processingstatus.json
-    processingstatuses: !include processingstatuses.json
-    copyrightstatus: !include copyrightstatus.json
-    copyrightstatuses: !include copyrightstatuses.json
+    processingStatus: !include processingstatus.json
+    processingStatuses: !include processingstatuses.json
+    copyrightStatus: !include copyrightstatus.json
+    copyrightStatuses: !include copyrightstatuses.json
     errors: !include raml-util/schemas/errors.schema
 
 traits:
@@ -51,8 +51,8 @@ resourceTypes:
             collection:
                 exampleCollection: !include examples/courselistings.json
                 exampleItem: !include examples/courselisting.json
-                schemaCollection: courselistings
-                schemaItem: courselisting
+                schemaCollection: courseListings
+                schemaItem: courseListing
         get:
             description: "Return a list of listings"
             is: [
@@ -78,7 +78,7 @@ resourceTypes:
             type:
                 collection-item:
                     exampleItem: !include examples/courselisting.json
-                    schema: courselisting
+                    schema: courseListing
             get:
             put:
                 description: "Update a listing by id"
@@ -289,8 +289,8 @@ resourceTypes:
             collection:
                 exampleCollection: !include examples/coursetypes.json
                 exampleItem: !include examples/coursetype.json
-                schemaCollection: coursetypes
-                schemaItem: coursetype
+                schemaCollection: courseTypes
+                schemaItem: courseType
         get:
             description: "Return a list of course types"
             is: [
@@ -316,7 +316,7 @@ resourceTypes:
             type:
                 collection-item:
                     exampleItem: !include examples/coursetype.json
-                    schema: coursetype
+                    schema: courseType
             get:
             put:
                 description: "Update a course type by id"
@@ -367,8 +367,8 @@ resourceTypes:
             collection:
                 exampleCollection: !include examples/processingstatuses.json
                 exampleItem: !include examples/processingstatus.json
-                schemaCollection: processingstatuses
-                schemaItem: processingstatus
+                schemaCollection: processingStatuses
+                schemaItem: processingStatus
         get:
             description: "Return a list of statuses"
             is: [
@@ -394,7 +394,7 @@ resourceTypes:
             type:
                 collection-item:
                     exampleItem: !include examples/processingstatus.json
-                    schema: processingstatus
+                    schema: processingStatus
             get:
             put:
                 description: "Update a status by id"
@@ -406,8 +406,8 @@ resourceTypes:
             collection:
                 exampleCollection: !include examples/copyrightstatuses.json
                 exampleItem: !include examples/copyrightstatus.json
-                schemaCollection: copyrightstatuses
-                schemaItem: copyrightstatus
+                schemaCollection: copyrightStatuses
+                schemaItem: copyrightStatus
         get:
             description: "Return a list of copyright statuses"
             is: [
@@ -433,7 +433,7 @@ resourceTypes:
             type:
                 collection-item:
                     exampleItem: !include examples/copyrightstatus.json
-                    schema: copyrightstatus
+                    schema: copyrightStatus
             get:
             put:
                 description: "Update a status by id"
