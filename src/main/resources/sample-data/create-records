@@ -8,15 +8,15 @@ set -a
 set +a
 
 for dir in `echo '
-    roles
-    terms
-    coursetypes
-    departments
-    processingstatuses
-    copyrightstatuses
-    courselistings
-    courses
-    instructors
+#    roles
+#    terms
+#    coursetypes
+#    departments
+#    processingstatuses
+#    copyrightstatuses
+#    courselistings
+#    courses
+#    instructors
     reserves
 ' | grep -v '^[ ]*#'`;
     do
@@ -26,7 +26,7 @@ for dir in `echo '
 	    path=$dir
 	    echo
 	    echo "  Adding $dir '$file' at /$path"
-	    if [ $dir = instructors ]; then
+	    if [ $dir = instructors -o $dir = reserves ]; then
 		clid=`sed -n 's/^  "courseListingId": "\(.*\)",*/\1/p	' $file`
 		if [ "x$clid" != x ]; then
 		    path=courselistings/$clid/${path}
