@@ -219,6 +219,27 @@ public class OkapiMock extends AbstractVerticle {
           return;
         }
       }
+    } else if(context.request().method() == HttpMethod.DELETE) {
+      if(id == null) {
+        String message = String.format("DELETE requires id in path");
+        context.response().setStatusCode(400)
+            .end(message);
+      } else {
+        try {
+          if(!itemMap.containsKey(id)) {
+            context.response().setStatusCode(404)
+                .end("Item with id '" + id + "' does not exist");
+            return;
+          } else {
+            itemMap.remove(id);
+            context.response().setStatusCode(204)
+                .end();
+          }
+        } catch(Exception e) {
+          context.response().setStatusCode(500)
+              .end(e.getLocalizedMessage());
+        }
+      }
     } else {
       String message = String.format("Unsupported method %s", context.request()
           .method().toString());

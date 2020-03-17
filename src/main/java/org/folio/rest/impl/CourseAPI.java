@@ -1467,17 +1467,17 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             resetItemFuture = resetItemTemporaryLocation(reserve.getItemId(),
                 okapiHeaders, vertxContext).setHandler(resetRes -> {
               if(resetRes.failed()) {
-                promise.fail(resetRes.cause());
-              } else {
-                deleteItem(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext)
-                    .setHandler(deleteRes -> {
-                  if(deleteRes.failed()) {
-                    promise.fail(deleteRes.cause());
-                  } else {
-                    promise.complete();
-                  }
-                });
-              }
+                logger.error("Unable to delete item '" + reserve.getItemId() +
+                    "', " + resetRes.cause().getLocalizedMessage());
+              } 
+              deleteItem(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext)
+                  .setHandler(deleteRes -> {
+                if(deleteRes.failed()) {
+                  promise.fail(deleteRes.cause());
+                } else {
+                  promise.complete();
+                }
+              });              
             });
           }
         } catch(Exception e) {
