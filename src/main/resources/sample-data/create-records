@@ -8,15 +8,15 @@ set -a
 set +a
 
 for dir in `echo '
-#    roles
-#    terms
-#    coursetypes
-#    departments
-#    processingstatuses
-#    copyrightstatuses
-#    courselistings
-#    courses
-#    instructors
+    roles
+    terms
+    coursetypes
+    departments
+    processingstatuses
+    copyrightstatuses
+    courselistings
+    courses
+    instructors
     reserves
 ' | grep -v '^[ ]*#'`;
     do
