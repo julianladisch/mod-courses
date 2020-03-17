@@ -1,42 +1,54 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Location record populated from inventory for course-reserves",
   "type": "object",
   "properties": {
     "id": {
       "type": "string"
     },
     "name": {
+      "description": "name, copied from inventory",
       "type": "string"
     },
     "code": {
+      "description": "code, copied from inventory",
       "type": "string"
     },
     "description": {
+      "description": "description, copied from inventory",
       "type": "string"
     },
     "discoveryDisplayName": {
+      "description": "discoveryDisplayName, copied from inventory",
       "type": "string"
     },
     "isActive": {
+      "description": "isActive, copied from inventory",
       "type": "boolean"
     },
     "institutionId": {
+      "description": "institutionId, copied from inventory",
       "type": "string"
     },
     "campusId": {
+      "description": "campusId, copied from inventory",
       "type": "string"
     },
     "libraryId": {
+      "description": "libraryId, copied from inventory",
       "type": "string"
     },
     "details": {
+      "description": "details, copied from inventory",
       "type": "object"
     },
     "primaryServicePoint": {
+      "description": "primaryServicePoint, copied from inventory",
       "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
       "type": "string"
     },
     "servicePointIds": {
+      "description": "servicePointIds, copied from inventory",
       "type": "array",
       "items": {
         "type": "string",
