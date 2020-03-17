@@ -2656,6 +2656,44 @@ public class CourseAPITest {
     });
   }
 
+  @Test
+  public void testDeleteReserveWithDeletedItem(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reservePostJson1 = new JsonObject()
+        .put("id", reserveId)
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
+        "Post Course Reserve").setHandler(postRes -> {
+      if(postRes.failed()) {
+        context.fail(postRes.cause());
+      } else {
+        CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/"
+            + OkapiMock.item1Id, DELETE, null, null, 204).setHandler(deleteRes -> {
+          if(deleteRes.failed()) {
+            context.fail(deleteRes.cause());
+          } else {
+            TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+                "/reserves/" + reserveId, DELETE, acceptTextHeaders, null, 204,
+                "Delete Course Reserve").setHandler(deleteReserveRes -> {
+              if(deleteReserveRes.failed()) {
+                context.fail(deleteReserveRes.cause());
+              } else {
+                async.complete();
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
   
 
 
