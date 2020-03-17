@@ -8,8 +8,8 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.UUID;
 import org.folio.rest.jaxrs.model.CopiedItem;
 import org.folio.rest.jaxrs.model.CopyrightTracking;
-import org.folio.rest.jaxrs.model.Copyrightstatus;
-import org.folio.rest.jaxrs.model.Processingstatus;
+import org.folio.rest.jaxrs.model.CopyrightStatus;
+import org.folio.rest.jaxrs.model.ProcessingStatus;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,12 +31,12 @@ public class UtilVertxTest {
           Future.succeededFuture(new JsonObject().put("id", UUID.randomUUID().toString()));
       Future<JsonObject> permLocationFuture =
           Future.succeededFuture(new JsonObject().put("id", UUID.randomUUID().toString()));
-      Processingstatus ps = new Processingstatus();
+      ProcessingStatus ps = new ProcessingStatus();
       ps.setId(UUID.randomUUID().toString());
-      Future<Processingstatus> processingStatusFuture = Future.succeededFuture(ps);
-      Copyrightstatus cs = new Copyrightstatus();
+      Future<ProcessingStatus> processingStatusFuture = Future.succeededFuture(ps);
+      CopyrightStatus cs = new CopyrightStatus();
       cs.setId(UUID.randomUUID().toString());
-      Future<Copyrightstatus> copyrightStatusFuture = Future.succeededFuture(cs);
+      Future<CopyrightStatus> copyrightStatusFuture = Future.succeededFuture(cs);
       Future<JsonObject> loanTypeFuture =
           Future.succeededFuture(new JsonObject().put("id", UUID.randomUUID().toString()));
       CRUtil.populateReserve(reserve, tempLocationFuture, permLocationFuture,
@@ -68,12 +68,12 @@ public class UtilVertxTest {
           Future.failedFuture("Failed location");
       Future<JsonObject> permLocationFuture =
           Future.failedFuture("Failed location");
-      Processingstatus ps = new Processingstatus();
+      ProcessingStatus ps = new ProcessingStatus();
       ps.setId(UUID.randomUUID().toString());
-      Future<Processingstatus> processingStatusFuture = Future.failedFuture("Failed status");
-      Copyrightstatus cs = new Copyrightstatus();
+      Future<ProcessingStatus> processingStatusFuture = Future.failedFuture("Failed status");
+      CopyrightStatus cs = new CopyrightStatus();
       cs.setId(UUID.randomUUID().toString());
-      Future<Copyrightstatus> copyrightStatusFuture = Future.failedFuture("Failed status");
+      Future<CopyrightStatus> copyrightStatusFuture = Future.failedFuture("Failed status");
       Future<JsonObject> loanTypeFuture =
           Future.failedFuture("Failed loantype");
       CRUtil.populateReserve(reserve, tempLocationFuture, permLocationFuture,
