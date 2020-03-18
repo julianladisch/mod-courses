@@ -5,7 +5,7 @@
     "properties": {
         "processingStatuses": {
             "description": "List of processing status records",
-            "id": "processingStatuses",
+            "id": "processingStatus",
             "type": "array",
             "items": {
                 "type": "object",

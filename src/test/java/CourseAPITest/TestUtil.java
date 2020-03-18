@@ -12,6 +12,8 @@ import java.util.Map;
 
 
 public class TestUtil {
+  private static HttpClient httpClient = null;
+
   static class WrappedResponse {
     private String explanation;
     private int code;
@@ -51,6 +53,14 @@ public class TestUtil {
     public JsonObject getJson() {
       return json;
     }
+
+  }
+
+  private static HttpClient getHttpClient(Vertx vertx) {
+    if(httpClient == null) {
+      httpClient = vertx.createHttpClient();
+    }
+    return httpClient;
   }
 
   public static Future<WrappedResponse> doRequest(Vertx vertx, String url,
@@ -58,7 +68,8 @@ public class TestUtil {
           Integer expectedCode, String explanation) {
     Future<WrappedResponse> future = Future.future();
     boolean addPayLoad = false;
-    HttpClient client = vertx.createHttpClient();
+    //HttpClient client = vertx.createHttpClient();
+    HttpClient client = getHttpClient(vertx);
     HttpClientRequest request = client.requestAbs(method, url);
     //Add standard headers
     request.putHeader("X-Okapi-Tenant", "diku")

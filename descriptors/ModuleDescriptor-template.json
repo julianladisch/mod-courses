@@ -73,7 +73,7 @@
                 },
                 {
                     "methods": [ "PUT" ],
-                    "pathPattern": "/coursereserves/courselistingss/{id}/instructors/{i_id}",
+                    "pathPattern": "/coursereserves/courselistings/{id}/instructors/{i_id}",
                     "permissionsRequired": ["course-reserves-storage.courselistings.instructors.item.put"]
                 },
                 {

@@ -57,11 +57,11 @@
                 },
                 "permanentLocationId": {
                     "type": "string",
-                    "description": "Permanent location object",
                     "description": "Permanent Location ID, from item"
                 },
                 "permanentLocationObject": {
                     "type": "object",
+                    "description": "Permanent location object",
                     "$ref": "location.json"
                 },
                 "title": {

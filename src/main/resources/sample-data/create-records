@@ -26,7 +26,7 @@ for dir in `echo '
 	    path=$dir
 	    echo
 	    echo "  Adding $dir '$file' at /$path"
-	    if [ $dir = instructors ]; then
+	    if [ $dir = instructors -o $dir = reserves ]; then
 		clid=`sed -n 's/^  "courseListingId": "\(.*\)",*/\1/p	' $file`
 		if [ "x$clid" != x ]; then
 		    path=courselistings/$clid/${path}

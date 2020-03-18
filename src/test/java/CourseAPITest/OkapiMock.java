@@ -24,6 +24,7 @@ public class OkapiMock extends AbstractVerticle {
   public static String user1Id = UUID.randomUUID().toString();
   public static String user2Id = UUID.randomUUID().toString();
   public static String user3Id = UUID.randomUUID().toString();
+  public static String user4Id = UUID.randomUUID().toString();
   public static String group1Id = UUID.randomUUID().toString();
   public static String group2Id = UUID.randomUUID().toString();
   public static String group3Id = UUID.randomUUID().toString();
@@ -34,6 +35,7 @@ public class OkapiMock extends AbstractVerticle {
   public static String barcode1 = "326547658598";
   public static String barcode2 = "539311253355";
   public static String barcode3 = "794630622287";
+  public static String barcode4 = "229842532165";
   public static String location1Id = UUID.randomUUID().toString();
   public static String location2Id = UUID.randomUUID().toString();
   public static String callNumber1 = "D15.H63 A3 2002";
@@ -215,6 +217,27 @@ public class OkapiMock extends AbstractVerticle {
           context.response().setStatusCode(500)
               .end(e.getLocalizedMessage());
           return;
+        }
+      }
+    } else if(context.request().method() == HttpMethod.DELETE) {
+      if(id == null) {
+        String message = String.format("DELETE requires id in path");
+        context.response().setStatusCode(400)
+            .end(message);
+      } else {
+        try {
+          if(!itemMap.containsKey(id)) {
+            context.response().setStatusCode(404)
+                .end("Item with id '" + id + "' does not exist");
+            return;
+          } else {
+            itemMap.remove(id);
+            context.response().setStatusCode(204)
+                .end();
+          }
+        } catch(Exception e) {
+          context.response().setStatusCode(500)
+              .end(e.getLocalizedMessage());
         }
       }
     } else {
@@ -411,6 +434,13 @@ public class OkapiMock extends AbstractVerticle {
       .put("username", "lews")
       .put("patronGroup", group2Id)
       .put("barcode", barcode3)
+      .put("active", Boolean.TRUE));
+
+    userMap.put(user4Id, new JsonObject()
+      .put("id", user3Id)
+      .put("username", "snark")
+      .put("patronGroup", group2Id)
+      .put("barcode", barcode4)
       .put("active", Boolean.TRUE));
 
     groupMap = new HashMap<>();
