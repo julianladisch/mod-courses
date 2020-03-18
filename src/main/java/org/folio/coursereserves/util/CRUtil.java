@@ -227,7 +227,6 @@ public class CRUtil {
     try {
       JsonArray eaItemJsonArray = itemJson.getJsonArray("electronicAccess");
       JsonArray eaHoldingsJsonArray = holdingsJson.getJsonArray("electronicAccess");
-      //JsonObject eAJson = itemJson.getJsonArray("electronicAccess").getJsonObject(0);
       String uri = getStringValueFromObjectArray("uri", eaItemJsonArray);
       String publicNote = getStringValueFromObjectArray("publicNote", eaItemJsonArray);
       if(uri == null) {
