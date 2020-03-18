@@ -30,7 +30,9 @@ public class OkapiMock extends AbstractVerticle {
   public static String group3Id = UUID.randomUUID().toString();
   public static String item1Id = UUID.randomUUID().toString();
   public static String item2Id = UUID.randomUUID().toString();
+  public static String item3Id = UUID.randomUUID().toString();
   public static String holdings1Id = UUID.randomUUID().toString();
+  public static String holdings2Id = UUID.randomUUID().toString();
   public static String instance1Id = UUID.randomUUID().toString();
   public static String barcode1 = "326547658598";
   public static String barcode2 = "539311253355";
@@ -40,6 +42,9 @@ public class OkapiMock extends AbstractVerticle {
   public static String location2Id = UUID.randomUUID().toString();
   public static String callNumber1 = "D15.H63 A3 2002";
   public static String uri1 = "http://something.something";
+  public static String uri2 = "http://somethingelse.somethingelse";
+  public static String note1 = "note1";
+  public static String note2 = "note2";
   public static String volume1 = "1";
   public static String enumeration1 = "one";
   public static String title1 = "Interesting Times";
@@ -494,11 +499,25 @@ public class OkapiMock extends AbstractVerticle {
       .put("electronicAccess", new JsonArray()
           .add(new JsonObject()
              .put("uri", uri1)
-            .put("publicNote", uri1))
+            .put("publicNote", note1))
           )
     );
 
+    itemMap.put(item3Id, new JsonObject()
+      .put("id", item3Id)
+      .put("status", new JsonObject().put("name", "Available"))
+      .put("holdingsRecordId", holdings2Id)
+      .put("barcode", barcode2)
+      .put("volume", volume1)
+      .put("enumeration", enumeration1)
+      .put("permanentLocationId", location2Id)
+      .put("temporaryLocationId", location1Id)
+      .put("copyNumbers", new JsonArray()
+          .add(copy1))
+    );
+
     holdingsMap = new HashMap<>();
+
     holdingsMap.put(holdings1Id, new JsonObject()
       .put("id", holdings1Id)
       .put("instanceId", instance1Id)
@@ -506,6 +525,19 @@ public class OkapiMock extends AbstractVerticle {
       .put("temporaryLocationId", location2Id)
       .put("callNumber", callNumber1)
       
+    );
+
+    holdingsMap.put(holdings2Id, new JsonObject()
+      .put("id", holdings2Id)
+      .put("instanceId", instance1Id)
+      .put("permanentLocationId", location1Id)
+      .put("temporaryLocationId", location2Id)
+      .put("callNumber", callNumber1)
+      .put("electronicAccess", new JsonArray()
+          .add(new JsonObject()
+             .put("uri", uri2)
+             .put("publicNote", note2))
+          )
     );
 
     instanceMap = new HashMap<>();

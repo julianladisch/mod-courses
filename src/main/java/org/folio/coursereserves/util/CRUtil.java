@@ -194,6 +194,16 @@ public class CRUtil {
     return future;
   }
 
+  public static String getStringValueFromObjectArray(String fieldName, JsonArray array) {
+    try {
+      //Current behavior is to only check the first element of the array. This may change.
+      JsonObject eaJson = array.getJsonObject(0);
+      return eaJson.getString(fieldName);
+    } catch(Exception e) {
+      return null;
+    }
+  }
+
   public static void populateReserveCopiedItemFromJson(Reserve reserve, JsonObject json) {
     JsonObject itemJson = json.getJsonObject("item");
     JsonObject instanceJson = json.getJsonObject("instance");
@@ -215,13 +225,26 @@ public class CRUtil {
       logger.info("Unable to copy copyNumber(s) field from item: " + e.getLocalizedMessage());
     }
     try {
-      JsonObject eAJson = itemJson.getJsonArray("electronicAccess").getJsonObject(0);
-      copiedItem.setUri(eAJson.getString("uri"));
-      copiedItem.setUrl(eAJson.getString("publicNote"));
+      JsonArray eaItemJsonArray = itemJson.getJsonArray("electronicAccess");
+      JsonArray eaHoldingsJsonArray = holdingsJson.getJsonArray("electronicAccess");
+      String uri = getStringValueFromObjectArray("uri", eaItemJsonArray);
+      String publicNote = getStringValueFromObjectArray("publicNote", eaItemJsonArray);
+      if(uri == null) {
+        uri = getStringValueFromObjectArray("uri", eaHoldingsJsonArray);
+      }
+      if(publicNote == null) {
+        publicNote = getStringValueFromObjectArray("publicNote", eaHoldingsJsonArray);
+      }
+      copiedItem.setUri(uri);
+      copiedItem.setUrl(publicNote);
     } catch(Exception e) {
       logger.info("Unable to copy electronic access field from item: " + e.getLocalizedMessage());
     }
-    copiedItem.setPermanentLocationId(itemJson.getString("permanentLocationId"));
+    String permanentLocationId = itemJson.getString("permanentLocationId");
+    if(permanentLocationId == null) {
+      permanentLocationId = holdingsJson.getString("permanentLocationId");
+    }
+    copiedItem.setPermanentLocationId(permanentLocationId);
     copiedItem.setTemporaryLocationId(itemJson.getString("temporaryLocationId"));
     copiedItem.setCallNumber(holdingsJson.getString("callNumber"));
     JsonArray contributors = instanceJson.getJsonArray("contributors");

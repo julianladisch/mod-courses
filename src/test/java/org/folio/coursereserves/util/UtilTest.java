@@ -74,4 +74,12 @@ public class UtilTest {
     assertEquals(reserfList.get(0).getId(), reserve.getId());
   }
 
+  @Test
+  public void testGetStringValuesFromObjectArrays() {
+    JsonArray array = new JsonArray();
+    array.add(new JsonObject().put("dog", "woof"));
+    assertEquals(CRUtil.getStringValueFromObjectArray("dog", array), "woof");
+    assertNull(CRUtil.getStringValueFromObjectArray("cat", array));
+  }
+
 }
