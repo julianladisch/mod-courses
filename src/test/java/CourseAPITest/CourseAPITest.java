@@ -6,6 +6,7 @@ import io.vertx.core.Context;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
@@ -61,7 +62,7 @@ public class CourseAPITest {
   static int port;
   static int okapiPort;
   private static Vertx vertx;
-  private final Logger logger = LoggerFactory.getLogger(CourseAPITest.class);
+  private static final Logger logger = LoggerFactory.getLogger(CourseAPITest.class);
   public static String baseUrl;
   public static String okapiUrl;
   public final static String COURSE_LISTING_1_ID = UUID.randomUUID().toString();
@@ -90,10 +91,10 @@ public class CourseAPITest {
   public static Map<String, String> okapiHeaders = new HashMap<>();
   public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
   public static CaseInsensitiveHeaders acceptTextHeaders = new CaseInsensitiveHeaders();
-  public static String MODULE_TO = "0.0.23";
-  public static String MODULE_FROM = "0.0.22";
-
-
+  public static String MODULE_TO = "1.0.1";
+  public static String MODULE_FROM = "1.0.0";
+  private static String restVerticleId;
+  private static String okapiVerticleId;
 
 
   @Rule
@@ -118,8 +119,10 @@ public class CourseAPITest {
     DeploymentOptions okapiOptions = new DeploymentOptions()
         .setConfig(new JsonObject().put("port", okapiPort));
     try {
+      PostgresClient.setEmbeddedPort(NetworkUtils.nextFreePort());
       PostgresClient.setIsEmbedded(true);
       PostgresClient.getInstance(vertx).startEmbeddedPostgres();
+      Thread.sleep(3000);
     } catch(Exception e) {
       e.printStackTrace();
       context.fail(e);
@@ -129,6 +132,7 @@ public class CourseAPITest {
       if(deployCourseRes.failed()) {
         context.fail(deployCourseRes.cause());
       } else {
+        restVerticleId = deployCourseRes.result();
         try {
           initTenant("diku", port).setHandler(initRes -> {
             if(initRes.failed()) {
@@ -139,6 +143,7 @@ public class CourseAPITest {
                 if(deployOkapiRes.failed()) {
                   context.fail(deployOkapiRes.cause());
                 } else {
+                  okapiVerticleId = deployOkapiRes.result();
                   async.complete();
                 }
               });
@@ -155,10 +160,35 @@ public class CourseAPITest {
   @AfterClass
   public static void afterClass(TestContext context) {
     Async async = context.async();
-    vertx.close(context.asyncAssertSuccess( res -> {
-      PostgresClient.stopEmbeddedPostgres();
-      async.complete();
-    }));
+    vertx.undeploy(okapiVerticleId, undeployOkapiRes -> {
+      if(undeployOkapiRes.failed()) {
+        context.fail(undeployOkapiRes.cause());
+      } else {
+        vertx.undeploy(restVerticleId, undeployCourseRes -> {
+          if(undeployCourseRes.failed()) {
+            context.fail(undeployCourseRes.cause());
+          } else {
+            try {
+                PostgresClient.stopEmbeddedPostgres();
+              } catch(Exception e) {
+                logger.error(e.getLocalizedMessage());
+              }
+              async.complete();
+            /*
+            vertx.close(context.asyncAssertSuccess( res -> {
+              PostgresClient.stopEmbeddedPostgres();
+              try {
+                Thread.sleep(3000);
+              } catch(Exception e) {
+                logger.error(e.getLocalizedMessage());
+              }
+              async.complete();
+            }));
+            */
+          }
+        });
+      }
+    });
   }
 
   @Before
@@ -3303,7 +3333,7 @@ public class CourseAPITest {
   }
 
   private static Future<Void> initTenant(String tenantId, int port) {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     HttpClient client = vertx.createHttpClient();
     String url = "http://localhost:" + port + "/_/tenant";
     JsonObject payload = new JsonObject()
@@ -3312,16 +3342,17 @@ public class CourseAPITest {
     HttpClientRequest request = client.postAbs(url);
     request.handler(req -> {
       if(req.statusCode() != 201) {
-        future.fail("Expected 201, got " + req.statusCode());
+        promise.fail("Expected 201, got " + req.statusCode());
       } else {
-        future.complete();
+        promise.complete();
       }
     });
     request.putHeader("X-Okapi-Tenant", tenantId);
+    request.putHeader("X-Okapi-Url", okapiUrl);
     request.putHeader("Content-Type", "application/json");
     request.putHeader("Accept", "application/json, text/plain");
     request.end(payload.encode());
-    return future;
+    return promise.future();
   }
 
 }
