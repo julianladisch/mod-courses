@@ -6,6 +6,7 @@ import io.vertx.core.Context;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
@@ -3303,7 +3304,7 @@ public class CourseAPITest {
   }
 
   private static Future<Void> initTenant(String tenantId, int port) {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     HttpClient client = vertx.createHttpClient();
     String url = "http://localhost:" + port + "/_/tenant";
     JsonObject payload = new JsonObject()
@@ -3312,16 +3313,17 @@ public class CourseAPITest {
     HttpClientRequest request = client.postAbs(url);
     request.handler(req -> {
       if(req.statusCode() != 201) {
-        future.fail("Expected 201, got " + req.statusCode());
+        promise.fail("Expected 201, got " + req.statusCode());
       } else {
-        future.complete();
+        promise.complete();
       }
     });
     request.putHeader("X-Okapi-Tenant", tenantId);
+    request.putHeader("X-Okapi-Url", okapiUrl);
     request.putHeader("Content-Type", "application/json");
     request.putHeader("Accept", "application/json, text/plain");
     request.end(payload.encode());
-    return future;
+    return promise.future();
   }
 
 }
