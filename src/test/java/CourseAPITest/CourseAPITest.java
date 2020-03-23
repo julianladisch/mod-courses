@@ -122,6 +122,7 @@ public class CourseAPITest {
       PostgresClient.setEmbeddedPort(NetworkUtils.nextFreePort());
       PostgresClient.setIsEmbedded(true);
       PostgresClient.getInstance(vertx).startEmbeddedPostgres();
+      Thread.sleep(3000);
     } catch(Exception e) {
       e.printStackTrace();
       context.fail(e);
@@ -167,6 +168,13 @@ public class CourseAPITest {
           if(undeployCourseRes.failed()) {
             context.fail(undeployCourseRes.cause());
           } else {
+            try {
+                PostgresClient.stopEmbeddedPostgres();
+              } catch(Exception e) {
+                logger.error(e.getLocalizedMessage());
+              }
+              async.complete();
+            /*
             vertx.close(context.asyncAssertSuccess( res -> {
               PostgresClient.stopEmbeddedPostgres();
               try {
@@ -176,6 +184,7 @@ public class CourseAPITest {
               }
               async.complete();
             }));
+            */
           }
         });
       }

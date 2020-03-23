@@ -117,6 +117,9 @@ public class CourseAPIWithSampleDataTest {
           if(undeployCourseRes.failed()) {
             context.fail(undeployCourseRes.cause());
           } else {
+            PostgresClient.stopEmbeddedPostgres();
+            async.complete();
+            /*
             vertx.close(context.asyncAssertSuccess( res -> {
               PostgresClient.stopEmbeddedPostgres();
               try {
@@ -126,6 +129,7 @@ public class CourseAPIWithSampleDataTest {
               }
               async.complete();
             }));
+            */
           }
         });
       }
