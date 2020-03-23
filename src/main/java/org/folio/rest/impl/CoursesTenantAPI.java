@@ -6,38 +6,26 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import org.folio.rest.jaxrs.model.TenantAttributes;
 import javax.ws.rs.core.Response;
-import static org.folio.rest.impl.CourseAPI.logger;
-import org.folio.rest.jaxrs.model.Parameter;
 import org.folio.rest.tools.utils.TenantLoading;
+import org.folio.coursereserves.util.Util;
 
 
 
 public class CoursesTenantAPI extends TenantAPI {
 
   public static final String SAMPLE_DATA_COURSELISTING = "c03bcba3-a6a0-4251-b316-0631bb2e6f21";
-  public static final Logger logger = LoggerFactory.getLogger(
-      CoursesTenantAPI.class);
-
-  protected static String logAndSaveError(Throwable err) {
-    String message = err.getLocalizedMessage();
-    logger.error(message, err);
-    return message;
- }
+  public static final Logger logger = LoggerFactory.getLogger(CoursesTenantAPI.class);
 
   @Override
   public void postTenant(TenantAttributes tenantAttributes, Map<String, String> headers,
       Handler<AsyncResult<Response>> handler, Context context) {
-    //hndlr.handle(Future.succeededFuture(PostTenantResponse
-    //  .respond201WithApplicationJson("")));
     logger.info("Calling overridden postTenant method");
     super.postTenant(tenantAttributes, headers, res -> {
       if(res.failed()) {
-        String message = logAndSaveError(res.cause());
+        String message = Util.logAndSaveError(res.cause(), logger);
         handler.handle(Future.succeededFuture(PostTenantResponse
             .respond500WithTextPlain(message)));
       } else {    
@@ -56,7 +44,7 @@ public class CoursesTenantAPI extends TenantAPI {
         tenantLoading.perform(tenantAttributes, headers, context.owner(), 
             performRes -> {
           if(performRes.failed()) {
-            String message = logAndSaveError(performRes.cause());
+            String message = Util.logAndSaveError(performRes.cause(), logger);
             handler.handle(Future.succeededFuture(PostTenantResponse
                 .respond500WithTextPlain("Error calling perform() " + message)));
           } else {

@@ -62,7 +62,7 @@ public class CourseAPITest {
   static int port;
   static int okapiPort;
   private static Vertx vertx;
-  private final Logger logger = LoggerFactory.getLogger(CourseAPITest.class);
+  private static final Logger logger = LoggerFactory.getLogger(CourseAPITest.class);
   public static String baseUrl;
   public static String okapiUrl;
   public final static String COURSE_LISTING_1_ID = UUID.randomUUID().toString();
@@ -91,10 +91,10 @@ public class CourseAPITest {
   public static Map<String, String> okapiHeaders = new HashMap<>();
   public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
   public static CaseInsensitiveHeaders acceptTextHeaders = new CaseInsensitiveHeaders();
-  public static String MODULE_TO = "0.0.23";
-  public static String MODULE_FROM = "0.0.22";
-
-
+  public static String MODULE_TO = "1.0.1";
+  public static String MODULE_FROM = "1.0.0";
+  private static String restVerticleId;
+  private static String okapiVerticleId;
 
 
   @Rule
@@ -119,6 +119,7 @@ public class CourseAPITest {
     DeploymentOptions okapiOptions = new DeploymentOptions()
         .setConfig(new JsonObject().put("port", okapiPort));
     try {
+      PostgresClient.setEmbeddedPort(NetworkUtils.nextFreePort());
       PostgresClient.setIsEmbedded(true);
       PostgresClient.getInstance(vertx).startEmbeddedPostgres();
     } catch(Exception e) {
@@ -130,6 +131,7 @@ public class CourseAPITest {
       if(deployCourseRes.failed()) {
         context.fail(deployCourseRes.cause());
       } else {
+        restVerticleId = deployCourseRes.result();
         try {
           initTenant("diku", port).setHandler(initRes -> {
             if(initRes.failed()) {
@@ -140,6 +142,7 @@ public class CourseAPITest {
                 if(deployOkapiRes.failed()) {
                   context.fail(deployOkapiRes.cause());
                 } else {
+                  okapiVerticleId = deployOkapiRes.result();
                   async.complete();
                 }
               });
@@ -156,10 +159,27 @@ public class CourseAPITest {
   @AfterClass
   public static void afterClass(TestContext context) {
     Async async = context.async();
-    vertx.close(context.asyncAssertSuccess( res -> {
-      PostgresClient.stopEmbeddedPostgres();
-      async.complete();
-    }));
+    vertx.undeploy(okapiVerticleId, undeployOkapiRes -> {
+      if(undeployOkapiRes.failed()) {
+        context.fail(undeployOkapiRes.cause());
+      } else {
+        vertx.undeploy(restVerticleId, undeployCourseRes -> {
+          if(undeployCourseRes.failed()) {
+            context.fail(undeployCourseRes.cause());
+          } else {
+            vertx.close(context.asyncAssertSuccess( res -> {
+              PostgresClient.stopEmbeddedPostgres();
+              try {
+                Thread.sleep(3000);
+              } catch(Exception e) {
+                logger.error(e.getLocalizedMessage());
+              }
+              async.complete();
+            }));
+          }
+        });
+      }
+    });
   }
 
   @Before

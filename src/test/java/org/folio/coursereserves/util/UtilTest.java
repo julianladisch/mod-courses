@@ -2,7 +2,8 @@ package org.folio.coursereserves.util;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import java.util.ArrayList;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.List;
 import java.util.UUID;
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ import static org.junit.Assert.assertNull;
 import org.junit.Test;
 
 public class UtilTest {
+
+  public static final Logger logger = LoggerFactory.getLogger(UtilTest.class);
 
   @Test
   public void testPojoFromJson() throws Exception {
@@ -82,4 +85,14 @@ public class UtilTest {
     assertNull(CRUtil.getStringValueFromObjectArray("cat", array));
   }
 
+  @Test
+  public void testLogAndSaveError() {
+    String ahhString = "AAAAAAAHHHH";
+    try {
+      throw new Exception(ahhString);
+    } catch(Exception e) {
+      String message = Util.logAndSaveError(e, logger);
+      assertTrue(message.contains(ahhString));
+    }
+  }
 }
