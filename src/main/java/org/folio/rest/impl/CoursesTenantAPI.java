@@ -40,8 +40,7 @@ public class CoursesTenantAPI extends TenantAPI {
         String message = logAndSaveError(res.cause());
         handler.handle(Future.succeededFuture(PostTenantResponse
             .respond500WithTextPlain(message)));
-      } else {
-        logger.info("Post Tenant Successful, Doing loading with tenantParameters: " + debugParametersToString(tenantAttributes));
+      } else {    
         TenantLoading tenantLoading = new TenantLoading();
         tenantLoading
             .withKey("loadSample").withLead("sample-data").withPostOnly()
@@ -70,23 +69,5 @@ public class CoursesTenantAPI extends TenantAPI {
     },
     context);
   }
-
- private String debugParametersToString(TenantAttributes tenantAttributes) {
-   try {
-     List<String> lineList = new ArrayList<>();
-     List<Parameter> parameterList = tenantAttributes.getParameters();
-     for(Parameter parameter : parameterList) {
-       String line = parameter.getKey() + ", " + parameter.getValue();
-       lineList.add(line);
-     }
-     if(lineList.isEmpty()) {
-       return "<empty>";
-     } else {
-      return String.join("|", lineList);
-     }
-   } catch(Exception e) {
-     return "<error: " + e.getLocalizedMessage() + ">";
-   }
- }
   
 }
