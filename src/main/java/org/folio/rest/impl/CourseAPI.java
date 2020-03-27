@@ -8,7 +8,9 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.Response;
@@ -78,6 +80,23 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public static final String ID_FIELD = "'id'";
 
   private static boolean SUPPRESS_ERRORS = false;
+
+  protected static final Map<Class, String[]> scrubMap;
+  static {
+    Map<Class, String[]> mapInit = new HashMap<>();
+    mapInit.put(CourseListing.class,
+        new String[]{"servicepointObject", "locationObject", "termObject",
+          "courseTypeObject", "instructorObjects"});
+    mapInit.put(Course.class,
+        new String[]{"departmentObject", "courseListingObject"});
+    mapInit.put(Instructor.class,
+        new String[]{"patronGroupObject"});
+    mapInit.put(Reserve.class,
+        new String[]{"processingStatusObject", "copiedItem.temporaryLocationObject",
+          "copiedItem.permanentLocationObject", "temporaryLoanObject"
+        });
+    scrubMap = mapInit;
+  }
 
 
   public PostgresClient getPGClient(Context vertxContext, String tenantId) {
@@ -158,6 +177,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void postCoursereservesCourselistings(String lang, CourseListing entity,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     PgUtil.post(COURSE_LISTINGS_TABLE, entity, okapiHeaders, vertxContext,
         PostCoursereservesCourselistingsResponse.class, asyncResultHandler);
   }
@@ -1214,6 +1234,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void postCoursereservesCourses(String lang, Course entity,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     PgUtil.post(COURSES_TABLE, entity, okapiHeaders, vertxContext,
         PostCoursereservesCoursesResponse.class, asyncResultHandler);
   }
@@ -1514,6 +1535,24 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       }
     });
     return promise.future();
+  }
+
+  public static void scrubDerivedFields(Object pojo) {
+    String[] fieldArray = scrubMap.get(pojo.getClass());
+    if(fieldArray == null || fieldArray.length == 0) {
+      return;
+    }
+    for(String field : fieldArray) {
+      try {
+        String setterMethodName = "set" + field.substring(0, 1).toUpperCase()
+            + field.substring(1);
+        Method setterMethod = pojo.getClass().getMethod(setterMethodName);
+        setterMethod.invoke(pojo, null); //Set field to null
+      } catch(Exception e) {
+        logger.error("Unable to call method for field " + field + " : "
+            + e.getLocalizedMessage());
+      }
+    }
   }
 
 }
