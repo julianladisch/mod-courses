@@ -38,9 +38,13 @@ import org.folio.rest.client.TenantClient;
 import org.folio.rest.impl.CourseAPI;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.getCQL;
+import org.folio.rest.jaxrs.model.CopyrightStatusObject;
+import org.folio.rest.jaxrs.model.CopyrightTracking;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.jaxrs.model.Course;
+import org.folio.rest.jaxrs.model.CourseListing;
 import org.folio.rest.jaxrs.model.Instructor;
+import org.folio.rest.jaxrs.model.LocationObject;
 import org.folio.rest.persist.PgUtil;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
@@ -2762,6 +2766,8 @@ public class CourseAPITest {
       }
     });
   }
+
+  
 
   
 
