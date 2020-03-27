@@ -1559,9 +1559,11 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             if(i == subFieldArray.length - 1) {
               String setterMethodName = "set" + capField;              
               Method setterMethod = getMethodByName(currentObject, setterMethodName);
-              logger.debug("Calling set method " + setterMethod.getName() + " ("+
-                  setterMethod.getParameterCount() + " expected parameters)"+ " with value null");
-              setterMethod.invoke(currentObject, new Object[]{ null }); //Set field to null
+              if(setterMethod != null) {
+                logger.debug("Calling set method " + setterMethod.getName() + " ("+
+                    setterMethod.getParameterCount() + " expected parameters)"+ " with value null");
+                setterMethod.invoke(currentObject, new Object[]{ null }); //Set field to null
+              }
               break;
             } else {
               String getterMethodName = "get" + capField;              
