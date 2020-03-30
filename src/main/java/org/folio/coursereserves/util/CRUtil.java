@@ -739,7 +739,7 @@ public class CRUtil {
     makeOkapiRequest(context.owner(), okapiHeaders, locationPath, HttpMethod.GET,
         null, null, 200).setHandler(locationRes-> {
       if(locationRes.failed()) {
-        logger.debug("Location request failed");
+        logger.error("Location request failed: " + locationRes.cause().getLocalizedMessage());
         future.fail(locationRes.cause());
       } else {
         logger.debug("Location request succeeded");

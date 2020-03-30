@@ -38,9 +38,13 @@ import org.folio.rest.client.TenantClient;
 import org.folio.rest.impl.CourseAPI;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.getCQL;
+import org.folio.rest.jaxrs.model.CopyrightStatusObject;
+import org.folio.rest.jaxrs.model.CopyrightTracking;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.jaxrs.model.Course;
+import org.folio.rest.jaxrs.model.CourseListing;
 import org.folio.rest.jaxrs.model.Instructor;
+import org.folio.rest.jaxrs.model.LocationObject;
 import org.folio.rest.persist.PgUtil;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
@@ -78,6 +82,7 @@ public class CourseAPITest {
   public final static String DEPARTMENT_1_ID = UUID.randomUUID().toString();
   public final static String DEPARTMENT_2_ID = UUID.randomUUID().toString();
   public final static String COURSE_TYPE_1_ID = UUID.randomUUID().toString();
+  public final static String COURSE_TYPE_2_ID = UUID.randomUUID().toString();
   public final static String INSTRUCTOR_1_ID = UUID.randomUUID().toString();
   public final static String INSTRUCTOR_2_ID = UUID.randomUUID().toString();
   public final static String INSTRUCTOR_3_ID = UUID.randomUUID().toString();
@@ -524,7 +529,7 @@ public class CourseAPITest {
         context.fail(res.cause());
       } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
-            , GET, null, null, 200, "Get courselisting by id").setHandler(
+            , GET, standardHeaders, null, 200, "Get courselisting by id").setHandler(
                 res2 -> {
           if(res2.failed()) {
             context.fail(res2.cause());
@@ -535,6 +540,56 @@ public class CourseAPITest {
                 context.fail("Bad term id for courselisting after put");
                 return;
               }
+            } catch(Exception e) {
+              context.fail(e);
+            }
+            async.complete();
+          }
+        });
+      }
+    });
+  }
+
+  @Test
+  public void putCourseListingByIdWithScrubbedField(TestContext context) {
+    Async async = context.async();
+    CaseInsensitiveHeaders acceptText = new CaseInsensitiveHeaders();
+    acceptText.add("Accept", "text/plain");
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", COURSE_LISTING_1_ID)
+        .put("termId", TERM_2_ID)
+        .put("termObject", new JsonObject().put("id", TERM_1_ID).put("name", "whatever")
+          .put("startDate", "2020-01-01").put("endDate","2000-01-01"))
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("courseTypeObject", new JsonObject().put("id", COURSE_TYPE_2_ID).put("name","whatever"))
+        .put("locationId", OkapiMock.location1Id)
+        .put("locationObject", new JsonObject().put("id", OkapiMock.location2Id))
+        .put("externalId", UUID.randomUUID().toString());
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID,
+        PUT, acceptText, courseListingJson.encode(), 204, "Put CourseListing 1")
+        .setHandler( res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
+            , GET, standardHeaders, null, 200, "Get courselisting by id").setHandler(
+                res2 -> {
+          if(res2.failed()) {
+            context.fail(res2.cause());
+          } else {
+            try {
+              JsonObject courseListing = res2.result().getJson();
+              context.assertEquals(courseListing.getString("termId"), TERM_2_ID);
+              context.assertEquals(courseListing.getJsonObject("termObject")
+                  .getString("id"), TERM_2_ID);
+              context.assertEquals(courseListing.getString("locationId"),
+                  OkapiMock.location1Id);
+              context.assertEquals(courseListing.getJsonObject("locationObject")
+                  .getString("id"), OkapiMock.location1Id);
+              context.assertEquals(courseListing.getString("courseTypeId"),
+                  COURSE_TYPE_1_ID);
+              context.assertEquals(courseListing.getJsonObject("courseTypeObject")
+                  .getString("id"), COURSE_TYPE_1_ID);
             } catch(Exception e) {
               context.fail(e);
             }
@@ -1468,8 +1523,7 @@ public class CourseAPITest {
               async.complete();
             }
           }
-        });
-   
+        });   
   }
   
   @Test
@@ -2762,6 +2816,62 @@ public class CourseAPITest {
       }
     });
   }
+
+  @Test
+  public void loadAndRetrieveCourseListingWithScrubbedFields(TestContext context) {
+    Async async = context.async();
+    String courseListingId = UUID.randomUUID().toString();
+    JsonObject courseListingJson = new JsonObject()
+        .put("id", courseListingId)
+        .put("termId", TERM_1_ID)
+        .put("termObject", new JsonObject().put("id", TERM_2_ID).put("name", "whatever")
+           .put("startDate", "2020-01-01").put("endDate","2000-01-01"))
+        .put("externalId", UUID.randomUUID().toString())
+        .put("courseTypeId", COURSE_TYPE_1_ID)
+        .put("courseTypeObject", new JsonObject().put("id", COURSE_TYPE_2_ID).put("name","whatever"))
+        .put("locationId", OkapiMock.location1Id)
+        .put("locationObject", new JsonObject().put("id", OkapiMock.location2Id))
+        .put("instructorObjects", new JsonArray()
+            .add(new JsonObject().put("id", INSTRUCTOR_1_ID).put("name", "whatever")
+                .put("courseListingId", courseListingId)));
+
+    Future<WrappedResponse> clFuture = TestUtil.doRequest(vertx, baseUrl + "/courselistings",
+        POST, standardHeaders, courseListingJson.encode(), 201, "Post CourseListing With Location")
+          .compose(res -> {
+              JsonObject courseJson = new JsonObject()
+                  .put("id", UUID.randomUUID().toString())
+                  .put("departmentId", DEPARTMENT_1_ID)
+                  .put("courseListingId", courseListingId)
+                  .put("name", "Bogus Test Course");
+              return TestUtil.doRequest(vertx, baseUrl + "/courses", POST, standardHeaders,
+                  courseJson.encode(), 201, "Post Course with new Course Listing");
+        }).compose(res -> {
+          String courseId = res.getJson().getString("id");
+          return TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId,
+              GET, standardHeaders, null, 200, "Get newly created Course");
+        }).setHandler(res -> {
+          if(res.failed()) {
+          context.fail(res.cause());
+          } else {
+            JsonObject resultJson = res.result().getJson();
+            JsonObject clJson = resultJson.getJsonObject("courseListingObject");
+            if(clJson == null) {
+              context.fail("No courseListingObject found in result");
+            } else if(!clJson.containsKey("locationObject")) {
+              context.fail("No location object in result: " + resultJson.encode());
+            } else if(clJson.getJsonObject("locationObject") == null) {
+              context.fail("Null location object result");
+            } else if(!clJson.getJsonObject("locationObject")
+                .getString("id").equals(OkapiMock.location1Id)) {
+              context.fail("Returned id for locationObject does not match");
+            } else {
+              async.complete();
+            }
+          }
+        });
+  }
+
+  
 
   
 
