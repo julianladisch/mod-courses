@@ -610,11 +610,20 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
               .respond422WithApplicationJson(ValidationHelper
                   .createValidationErrorMessage("listingId", entity.getCourseListingId(),
                       String.format("listingId should be %s", listingId)))));
-    } else {
+      return;
+    }
+    CRUtil.getCourseListingById(listingId, okapiHeaders, vertxContext)
+        .setHandler(getCLRes -> {
       try {
+        String courseListingLocation = null;
+        if(!getCLRes.failed()) {
+          courseListingLocation = getCLRes.result().getLocationId();
+        }
         String originalTemporaryLocationId;
         if(entity.getCopiedItem() != null) {
           originalTemporaryLocationId = entity.getCopiedItem().getTemporaryLocationId();
+        } else if(courseListingLocation != null) {
+          originalTemporaryLocationId = courseListingLocation;
         } else {
           originalTemporaryLocationId = null;
         }
@@ -669,7 +678,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             PostCoursereservesCourselistingsReservesByListingIdResponse
             .respond500WithTextPlain(getErrorResponse(message))));
       }
-    }
+    });
+    
   }
 
 
