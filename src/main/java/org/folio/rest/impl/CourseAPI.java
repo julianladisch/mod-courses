@@ -237,6 +237,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void putCoursereservesCourselistingsByListingId(String listingId,
       String lang, CourseListing entity, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     PgUtil.put(COURSE_LISTINGS_TABLE, entity, listingId, okapiHeaders, vertxContext,
         PutCoursereservesCourselistingsByListingIdResponse.class, asyncResultHandler);
   }
@@ -334,6 +335,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String courseId, String lang,
       Course entity, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     PgUtil.put(COURSES_TABLE, entity, courseId, okapiHeaders, vertxContext,
         PutCoursereservesCourselistingsCoursesByListingIdAndCourseIdResponse.class,
         asyncResultHandler);
@@ -378,6 +380,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String lang, Instructor entity,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     if(!entity.getCourseListingId().equals(listingId)) {
       asyncResultHandler.handle(Future.succeededFuture(
           PostCoursereservesCourselistingsInstructorsByListingIdResponse
@@ -482,6 +485,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String instructorId, String lang, Instructor entity,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     PostgresClient postgresClient = getPGClientFromHeaders(vertxContext, okapiHeaders);
     postgresClient.update(INSTRUCTORS_TABLE, entity, instructorId, putReply -> {
       if(putReply.failed()) {
@@ -599,6 +603,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void postCoursereservesCourselistingsReservesByListingId(String listingId,
       String lang, Reserve entity, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     if(!entity.getCourseListingId().equals(listingId)) {
       asyncResultHandler.handle(Future.succeededFuture(
           PostCoursereservesCourselistingsReservesByListingIdResponse
@@ -739,6 +744,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       String listingId, String reserveId, String lang, Reserve entity,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     PgUtil.put(RESERVES_TABLE, entity, reserveId, okapiHeaders, vertxContext,
         PutCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
         asyncResultHandler);
@@ -1324,6 +1330,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void putCoursereservesCoursesByCourseId(String courseId, String lang,
       Course entity, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     PgUtil.put(COURSES_TABLE, entity, courseId, okapiHeaders, vertxContext,
         PutCoursereservesCoursesByCourseIdResponse.class, asyncResultHandler);
   }
@@ -1349,6 +1356,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void postCoursereservesReserves(String lang, Reserve entity,
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
         PostCoursereservesReservesResponse.class, asyncResultHandler);
   }
@@ -1395,6 +1403,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void putCoursereservesReservesByReserveId(String reserveId, String lang,
       Reserve entity, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    scrubDerivedFields(entity);
     PgUtil.put(RESERVES_TABLE, entity, reserveId, okapiHeaders, vertxContext,
         PutCoursereservesReservesByReserveIdResponse.class, asyncResultHandler);
   }
