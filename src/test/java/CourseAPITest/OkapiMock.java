@@ -40,7 +40,13 @@ public class OkapiMock extends AbstractVerticle {
   public static String barcode4 = "229842532165";
   public static String location1Id = UUID.randomUUID().toString();
   public static String location2Id = UUID.randomUUID().toString();
-  public static String callNumber1 = "D15.H63 A3 2002";
+  public static String fullCallNumber1 = "D15.H63 A3 2002";
+  public static String callNumber1 = "791.43";
+  public static String callNumberPrefix1 = "F";
+  public static String callNumberSuffix1 = "CAM";
+  public static String callNumber2 = "800.23";
+  public static String callNumberPrefix2 = "N";
+  public static String callNumberSuffix2 = "MOO";
   public static String uri1 = "http://something.something";
   public static String uri2 = "http://somethingelse.somethingelse";
   public static String note1 = "note1";
@@ -473,6 +479,9 @@ public class OkapiMock extends AbstractVerticle {
         .put("status", new JsonObject().put("name", "Available"))
         .put("holdingsRecordId", holdings1Id)
         .put("barcode", barcode1)
+        .put("itemLevelCallNumber", callNumber1)
+        .put("itemLevelCallNumberPrefix", callNumberPrefix1)
+        .put("itemLevelCallNumberSuffix", callNumberSuffix1)
         .put("volume", volume1)
         .put("enumeration", enumeration1)
         .put("copyNumber", copy1)
@@ -523,7 +532,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("instanceId", instance1Id)
       .put("permanentLocationId", location1Id)
       .put("temporaryLocationId", location2Id)
-      .put("callNumber", callNumber1)
+      .put("callNumber", fullCallNumber1)
       
     );
 
@@ -532,7 +541,9 @@ public class OkapiMock extends AbstractVerticle {
       .put("instanceId", instance1Id)
       .put("permanentLocationId", location1Id)
       .put("temporaryLocationId", location2Id)
-      .put("callNumber", callNumber1)
+      .put("callNumber", callNumber2)
+      .put("callNumberSuffix", callNumberSuffix2)
+      .put("callNumberPrefix", callNumberPrefix2)
       .put("electronicAccess", new JsonArray()
           .add(new JsonObject()
              .put("uri", uri2)

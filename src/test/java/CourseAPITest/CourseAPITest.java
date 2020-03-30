@@ -60,6 +60,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import static org.junit.Assert.assertEquals;
 
 @RunWith(VertxUnitRunner.class)
 public class CourseAPITest {
@@ -2859,6 +2860,86 @@ public class CourseAPITest {
                   }
                 }
               });
+            } catch(Exception e) {
+              context.fail(e);
+            }
+          }
+        });
+      }
+    });
+  }
+
+  @Test
+  public void testReserveCallNumberFromItem(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reservePostJson1 = new JsonObject()
+        .put("id", reserveId)
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
+        "Post Course Reserve").setHandler(postRes -> {
+      if(postRes.failed()) {
+        context.fail(postRes.cause());
+      } else {
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves/" + reserveId, GET, standardHeaders, null, 200,
+        "Post Course Reserve").setHandler(getRes -> {
+          if(getRes.failed()) {
+            context.fail(getRes.cause());
+          } else {
+            try {
+              JsonObject reserveJson = getRes.result().getJson();
+              JsonObject copiedJson = reserveJson.getJsonObject("copiedItem");
+              context.assertEquals(copiedJson.getString("callNumber"),
+                  CRUtil.makeCallNumber(OkapiMock.callNumberPrefix1,
+                  OkapiMock.callNumber1, OkapiMock.callNumberSuffix1));
+              async.complete();
+            } catch(Exception e) {
+              context.fail(e);
+            }
+          }
+        });
+      }
+    });
+  }
+
+  @Test
+  public void testReserveCallNumberFromHoldings(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reservePostJson1 = new JsonObject()
+        .put("id", reserveId)
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item3Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
+        "Post Course Reserve").setHandler(postRes -> {
+      if(postRes.failed()) {
+        context.fail(postRes.cause());
+      } else {
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves/" + reserveId, GET, standardHeaders, null, 200,
+        "Post Course Reserve").setHandler(getRes -> {
+          if(getRes.failed()) {
+            context.fail(getRes.cause());
+          } else {
+            try {
+              JsonObject reserveJson = getRes.result().getJson();
+              JsonObject copiedJson = reserveJson.getJsonObject("copiedItem");
+              context.assertEquals(copiedJson.getString("callNumber"),
+                  CRUtil.makeCallNumber(OkapiMock.callNumberPrefix2,
+                  OkapiMock.callNumber2, OkapiMock.callNumberSuffix2));
+              async.complete();
             } catch(Exception e) {
               context.fail(e);
             }
