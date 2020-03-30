@@ -246,7 +246,13 @@ public class CRUtil {
     }
     copiedItem.setPermanentLocationId(permanentLocationId);
     copiedItem.setTemporaryLocationId(itemJson.getString("temporaryLocationId"));
-    copiedItem.setCallNumber(holdingsJson.getString("callNumber"));
+    String callNumber = makeCallNumber(itemJson.getString("itemLevelCallNumberPrefix"),
+        itemJson.getString("itemLevelCallNumber"), itemJson.getString("itemLevelCallNumberSuffix"));
+    if(callNumber == null) {
+      callNumber = makeCallNumber(holdingsJson.getString("callNumberPrefix"),
+          holdingsJson.getString("callNumber"), holdingsJson.getString("callNumberSuffix"));
+    }
+    copiedItem.setCallNumber(callNumber);
     JsonArray contributors = instanceJson.getJsonArray("contributors");
     if(contributors != null && contributors.size() > 0) {
       List<Contributor> contributorList = new ArrayList<>();
@@ -1180,6 +1186,20 @@ public class CRUtil {
       instructorObjectList.add(instructorObject);
     }
     return instructorObjectList;
+  }
+
+  public static String makeCallNumber(String prefix, String number, String suffix) {
+    if(number == null || number.isEmpty()) {
+      return null;
+    }
+    if(prefix == null) {
+      prefix = "";
+    }
+
+    if(suffix == null) {
+      suffix = "";
+    }
+    return prefix + number + suffix;
   }
 
 }

@@ -95,4 +95,11 @@ public class UtilTest {
       assertTrue(message.contains(ahhString));
     }
   }
+
+  @Test public void testMakeCallNumber() {
+    String callNumberGood = CRUtil.makeCallNumber("F", "99.99", "COW");
+    assertEquals("F99.99COW", callNumberGood);
+    String callNumberBad = CRUtil.makeCallNumber("G", null, "PIG");
+    assertNull(callNumberBad);
+  }
 }
