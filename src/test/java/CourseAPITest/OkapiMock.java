@@ -31,6 +31,7 @@ public class OkapiMock extends AbstractVerticle {
   public static String item1Id = UUID.randomUUID().toString();
   public static String item2Id = UUID.randomUUID().toString();
   public static String item3Id = UUID.randomUUID().toString();
+  public static String item4Id = UUID.randomUUID().toString();
   public static String holdings1Id = UUID.randomUUID().toString();
   public static String holdings2Id = UUID.randomUUID().toString();
   public static String instance1Id = UUID.randomUUID().toString();
@@ -516,11 +517,23 @@ public class OkapiMock extends AbstractVerticle {
       .put("id", item3Id)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings2Id)
-      .put("barcode", barcode2)
+      .put("barcode", barcode3)
       .put("volume", volume1)
       .put("enumeration", enumeration1)
       .put("permanentLocationId", location2Id)
       .put("temporaryLocationId", location1Id)
+      .put("copyNumbers", new JsonArray()
+          .add(copy1))
+    );
+
+    itemMap.put(item4Id, new JsonObject()
+      .put("id", item4Id)
+      .put("status", new JsonObject().put("name", "Available"))
+      .put("holdingsRecordId", holdings2Id)
+      .put("barcode", barcode4)
+      .put("volume", volume1)
+      .put("enumeration", enumeration1)
+      .put("permanentLocationId", location2Id)
       .put("copyNumbers", new JsonArray()
           .add(copy1))
     );

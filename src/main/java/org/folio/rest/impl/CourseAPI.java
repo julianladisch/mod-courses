@@ -619,13 +619,12 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         if(!getCLRes.failed()) {
           courseListingLocation = getCLRes.result().getLocationId();
         }
-        String originalTemporaryLocationId;
+        String originalTemporaryLocationId = null;
         if(entity.getCopiedItem() != null) {
           originalTemporaryLocationId = entity.getCopiedItem().getTemporaryLocationId();
-        } else if(courseListingLocation != null) {
+        }
+        if(originalTemporaryLocationId == null && courseListingLocation != null) {
           originalTemporaryLocationId = courseListingLocation;
-        } else {
-          originalTemporaryLocationId = null;
         }
         Future<JsonObject> getCopiedItemsFuture;
         if(entity.getItemId() != null || (
@@ -636,6 +635,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
           logger.info("Not attempting to look up copied items for reserve");
           getCopiedItemsFuture = Future.succeededFuture();
         }
+        String finalOriginalTemporaryLocationId = originalTemporaryLocationId;
         getCopiedItemsFuture.setHandler(copyItemsRes-> {
           if(copyItemsRes.failed()) {
             String message = logAndSaveError(copyItemsRes.cause());
@@ -646,18 +646,17 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
           } else {
             try {
              Future<Void> putFuture;
-             if(originalTemporaryLocationId != null && getCopiedItemsFuture.succeeded()) {
+             if(finalOriginalTemporaryLocationId != null && getCopiedItemsFuture.succeeded()) {
                JsonObject itemJson = getCopiedItemsFuture.result().getJsonObject("item");
-               itemJson.put("temporaryLocationId", originalTemporaryLocationId);
+               itemJson.put("temporaryLocationId", finalOriginalTemporaryLocationId);
                putFuture = CRUtil.putItemUpdate(itemJson, okapiHeaders, vertxContext);
              } else {
                putFuture = Future.succeededFuture();
              }
-             //TODO: Modify item record and PUT back to inventory
              putFuture.setHandler(putRes -> {
                //We need to set the temporary location if it exists
-               if(originalTemporaryLocationId != null && entity.getCopiedItem() != null) {
-                 entity.getCopiedItem().setTemporaryLocationId(originalTemporaryLocationId);
+               if(finalOriginalTemporaryLocationId != null && entity.getCopiedItem() != null) {
+                 entity.getCopiedItem().setTemporaryLocationId(finalOriginalTemporaryLocationId);
                }
                //should we kill the POST if the PUT to inventory fails?
                PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
