@@ -93,7 +93,8 @@
                     "modulePermissions": [
                         "inventory-storage.items.item.put",
                         "inventory-storage.items.collection.get",
-                        "inventory-storage.holdings.item.get"
+                        "inventory-storage.holdings.item.get",
+                        "inventory-storage.instances.item.get"
                     ]
                 },
                 {
