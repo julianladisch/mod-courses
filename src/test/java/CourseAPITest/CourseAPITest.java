@@ -2410,7 +2410,7 @@ public class CourseAPITest {
 
     JsonObject reserve3Json = new JsonObject()
         .put("id", reserve3Id)
-        .put("itemId", OkapiMock.item2Id)
+        .put("itemId", OkapiMock.item3Id)
         .put("processingStatusId", PROCESSING_STATUS_2_ID)
         .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
         .put("copyrightTracking", new JsonObject()
@@ -2722,6 +2722,40 @@ public class CourseAPITest {
                   });
                 }
             });
+          }
+        });
+      }
+    });
+  }
+
+  @Test
+  public void testAddReserveByBarcodeTwice(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reservePostJson = new JsonObject()
+    .put("id", reserveId)
+    .put("courseListingId", COURSE_LISTING_1_ID)
+    .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+    .put("copyrightTracking", new JsonObject()
+      .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID)
+    )
+    .put("copiedItem", new JsonObject()
+      .put("barcode", OkapiMock.barcode1)
+    );
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+      "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+      "Post Course Reserve").setHandler(postReserveRes -> {
+      if(postReserveRes.failed()) {
+        context.fail(postReserveRes.cause());
+      } else {
+        reservePostJson.put("id", UUID.randomUUID().toString());
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+          "/reserves", POST, standardHeaders, reservePostJson.encode(), 422,
+          "Post Course Reserve").setHandler(repostReserveRes -> {
+          if(repostReserveRes.failed()) {
+            context.fail(repostReserveRes.cause());
+          } else {
+            async.complete();
           }
         });
       }
