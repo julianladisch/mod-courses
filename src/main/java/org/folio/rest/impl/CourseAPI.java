@@ -553,50 +553,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     } else {
       query = String.format("(%s) AND %s", courseListingQueryClause, query);
     }
-    String tenantId = getTenant(okapiHeaders);
-    PostgresClient pgClient = getPGClient(vertxContext, tenantId);
-    try {
-      getItems(RESERVES_TABLE, Reserve.class, getCQL(query, limit, offset, RESERVES_TABLE),
-          pgClient).setHandler(getReply -> {
-        if(getReply.failed()) {
-          String message = logAndSaveError(getReply.cause());
-          asyncResultHandler.handle(Future.succeededFuture(
-              GetCoursereservesCourselistingsReservesByListingIdResponse.respond500WithTextPlain(
-              getErrorResponse(message))));
-        } else {
-          Future<List<Reserve>> reserveListFuture = null;
-          if(expand == null || !expand.equals("*")) {
-            reserveListFuture = Future.succeededFuture(getReply.result().getResults());
-          } else {
-            reserveListFuture = CRUtil.expandListOfReserves(getReply.result().getResults(),
-                okapiHeaders, vertxContext);
-          }
-          reserveListFuture.setHandler(reserveListRes -> {
-            if(reserveListRes.failed()) {
-              String message = logAndSaveError(reserveListRes.cause());
-              asyncResultHandler.handle(Future.succeededFuture(
-                  GetCoursereservesCourselistingsReservesByListingIdResponse.respond500WithTextPlain(
-                  getErrorResponse(message))));
-            } else {
-              Reserves reserves = new Reserves();
-              reserves.setReserves(reserfListFromReserveList(reserveListRes.result()));
-              reserves.setTotalRecords(getReply.result().getResultInfo().getTotalRecords());
-              asyncResultHandler.handle(Future.succeededFuture(
-              GetCoursereservesCourselistingsReservesByListingIdResponse
-                  .respond200WithApplicationJson(reserves)));
-            }
-          });
-        }
-      });
-    } catch(Exception e) {
-      String message = logAndSaveError(e);
-      if(isCQLError(e)) {
-        message = String.format("CQL Error: %s", message);
-      }
-      asyncResultHandler.handle(Future.succeededFuture(
-          GetCoursereservesCourselistingsReservesByListingIdResponse
-              .respond500WithTextPlain(getErrorResponse(message))));
-    }
+    handleGetReserves(expand, query, offset, limit, okapiHeaders, asyncResultHandler,
+        vertxContext);
   }
 
   @Override
@@ -1353,12 +1311,16 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   }
 
   @Override
-  public void getCoursereservesReserves(String query, int offset, int limit,
+  public void getCoursereservesReserves(String expand, String query, int offset, int limit,
       String lang, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    /*
     PgUtil.get(RESERVES_TABLE, Reserve.class, Reserves.class, query, offset,
         limit, okapiHeaders, vertxContext, GetCoursereservesReservesResponse.class,
         asyncResultHandler);
+    */
+    handleGetReserves(expand, query, offset, limit, okapiHeaders, asyncResultHandler,
+        vertxContext);
   }
 
   @Override
@@ -1612,5 +1574,55 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       }
     }
     return null;
+  }
+
+  protected void handleGetReserves(String expand, String query, int offset, int limit,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    String tenantId = getTenant(okapiHeaders);
+    PostgresClient pgClient = getPGClient(vertxContext, tenantId);
+    try {
+      getItems(RESERVES_TABLE, Reserve.class, getCQL(query, limit, offset, RESERVES_TABLE),
+          pgClient).setHandler(getReply -> {
+        if(getReply.failed()) {
+          String message = logAndSaveError(getReply.cause());
+          asyncResultHandler.handle(Future.succeededFuture(
+              GetCoursereservesCourselistingsReservesByListingIdResponse.respond500WithTextPlain(
+              getErrorResponse(message))));
+        } else {
+          Future<List<Reserve>> reserveListFuture = null;
+          if(expand == null || !expand.equals("*")) {
+            reserveListFuture = Future.succeededFuture(getReply.result().getResults());
+          } else {
+            reserveListFuture = CRUtil.expandListOfReserves(getReply.result().getResults(),
+                okapiHeaders, vertxContext);
+          }
+          reserveListFuture.setHandler(reserveListRes -> {
+            if(reserveListRes.failed()) {
+              String message = logAndSaveError(reserveListRes.cause());
+              asyncResultHandler.handle(Future.succeededFuture(
+                  GetCoursereservesCourselistingsReservesByListingIdResponse.respond500WithTextPlain(
+                  getErrorResponse(message))));
+            } else {
+              Reserves reserves = new Reserves();
+              reserves.setReserves(reserfListFromReserveList(reserveListRes.result()));
+              reserves.setTotalRecords(getReply.result().getResultInfo().getTotalRecords());
+              asyncResultHandler.handle(Future.succeededFuture(
+              GetCoursereservesCourselistingsReservesByListingIdResponse
+                  .respond200WithApplicationJson(reserves)));
+            }
+          });
+        }
+      });
+    } catch(Exception e) {
+      String message = logAndSaveError(e);
+      if(isCQLError(e)) {
+        message = String.format("CQL Error: %s", message);
+      }
+      asyncResultHandler.handle(Future.succeededFuture(
+          GetCoursereservesCourselistingsReservesByListingIdResponse
+              .respond500WithTextPlain(getErrorResponse(message))));
+    }
+
   }
 }
