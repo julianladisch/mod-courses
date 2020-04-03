@@ -2096,6 +2096,35 @@ public class CourseAPITest {
    }
 
    @Test
+   public void testGetReservesFail(TestContext context) {
+     Async async = context.async();
+     String reserveId = UUID.randomUUID().toString();
+    JsonObject reserveJson = new JsonObject()
+        .put("id", reserveId)
+        .put("itemId", OkapiMock.item1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyRightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("startDate", "2020-01-01T00:00:00Z");
+     String postUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
+        + "/reserves";
+     TestUtil.doRequest(vertx, postUrl, GET, standardHeaders, reserveJson.encode(),
+         201, "Post Reserve").setHandler(postRes -> {
+      new CourseAPIFail().handleGetReserves("*", null, 0, 1, okapiHeaders,
+          res -> {
+            if(res.failed()) {
+              async.complete();
+            } else {
+              context.fail("Expected get reserves to fail");
+            }
+          },
+          vertx.getOrCreateContext());
+     });
+   }
+
+   @Test
    public void testGetExpandedCourseBadValues(TestContext context) {
      Async async = context.async();
      Course course = new Course();

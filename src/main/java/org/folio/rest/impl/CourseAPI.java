@@ -1314,11 +1314,6 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
   public void getCoursereservesReserves(String expand, String query, int offset, int limit,
       String lang, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    /*
-    PgUtil.get(RESERVES_TABLE, Reserve.class, Reserves.class, query, offset,
-        limit, okapiHeaders, vertxContext, GetCoursereservesReservesResponse.class,
-        asyncResultHandler);
-    */
     handleGetReserves(expand, query, offset, limit, okapiHeaders, asyncResultHandler,
         vertxContext);
   }
@@ -1576,7 +1571,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     return null;
   }
 
-  protected void handleGetReserves(String expand, String query, int offset, int limit,
+  public void handleGetReserves(String expand, String query, int offset, int limit,
       Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
       Context vertxContext) {
     String tenantId = getTenant(okapiHeaders);
