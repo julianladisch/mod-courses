@@ -90,7 +90,12 @@
                     "methods": [ "POST" ],
                     "pathPattern": "/coursereserves/courselistings/{id}/reserves",
                     "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.post"],
-                    "modulePermissions": ["inventory-storage.items.item.put"]
+                    "modulePermissions": [
+                        "inventory-storage.items.item.put",
+                        "inventory-storage.items.collection.get",
+                        "inventory-storage.holdings.item.get",
+                        "inventory-storage.instances.item.get"
+                    ]
                 },
                 {
                     "methods": [ "GET" ],
