@@ -2113,11 +2113,11 @@ public class CourseAPITest {
      TestUtil.doRequest(vertx, postUrl, GET, standardHeaders, reserveJson.encode(),
          201, "Post Reserve").setHandler(postRes -> {
       new CourseAPIFail().handleGetReserves("*", null, 0, 1, okapiHeaders,
-          res -> {
-            if(res.failed()) {
+          reply -> {
+            if(reply.result().getStatus() == 500) {
               async.complete();
             } else {
-              context.fail("Expected get reserves to fail");
+              context.fail("Expected get reserves to fail w/ 500");
             }
           },
           vertx.getOrCreateContext());
