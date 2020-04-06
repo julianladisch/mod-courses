@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 
 
 public class OkapiMock extends AbstractVerticle {
-  private final Logger logger = LoggerFactory.getLogger(OkapiMock.class.getClass()
+  private static final Logger logger = LoggerFactory.getLogger(OkapiMock.class.getClass()
       .getName());
   public static String user1Id = UUID.randomUUID().toString();
   public static String user2Id = UUID.randomUUID().toString();
@@ -32,6 +32,8 @@ public class OkapiMock extends AbstractVerticle {
   public static String item2Id = UUID.randomUUID().toString();
   public static String item3Id = UUID.randomUUID().toString();
   public static String item4Id = UUID.randomUUID().toString();
+  public static String item5Id = UUID.randomUUID().toString();
+  public static String item6Id = UUID.randomUUID().toString();
   public static String holdings1Id = UUID.randomUUID().toString();
   public static String holdings2Id = UUID.randomUUID().toString();
   public static String instance1Id = UUID.randomUUID().toString();
@@ -105,6 +107,7 @@ public class OkapiMock extends AbstractVerticle {
     router.route("/service-points/:id").handler(this::handleServicePoints);
     router.route("/loan-types/:id").handler(this::handleLoanTypes);
     router.route("/reset").handler(this::handleReset);
+    router.route("/addsample").handler(this::handleAddSample);
 
     logger.info("Running OkapiMock on port " + port);
     server.requestHandler(router::accept).listen(port, result -> {
@@ -167,11 +170,13 @@ public class OkapiMock extends AbstractVerticle {
    }
    
   private void handleItems(RoutingContext context) {
+    logger.info("Got request for items: " + context.request().absoluteURI());
     String id = context.request().getParam("id");
     if (context.request().method() == HttpMethod.GET) {
       String query = context.request().query();
       if (query != null) {
         String barcode = parseBarcode(query);
+        logger.info("Searching for barcode " + barcode);
         JsonArray matchingItems = new JsonArray();
         for(JsonObject json : itemMap.values()) {
           if(json.containsKey("barcode") && json.getString("barcode").equals(barcode)) {
@@ -425,7 +430,34 @@ public class OkapiMock extends AbstractVerticle {
      }
    }
 
+   private void handleAddSample(RoutingContext context) {
+     logger.info("Adding sample data in mock okapi");
+     if(context.request().method() == HttpMethod.POST) {
+       String postContent = context.getBodyAsString();
+       JsonObject json = new JsonObject(postContent);
+       try {
+        if(json != null && json.containsKey("add")) {
+          if(json.getBoolean("add")) {
+            addSampleData();
+            context.response().setStatusCode(201).end(json.encode());
+          } else {
+            throw new Exception("Bad input");
+          }
+        }
+       } catch(Exception e) {
+         context.response().setStatusCode(400).end(e.getLocalizedMessage());
+       }
+     } else {
+       String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
+        context.response().setStatusCode(400)
+          .end(message);
+        return;
+     }
+   }
+
    private static void initData() {
+    logger.info("Resetting data in mock okapi");
     userMap = new HashMap<>();
     userMap.put(user1Id, new JsonObject()
       .put("id", user1Id)
@@ -449,7 +481,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("active", Boolean.TRUE));
 
     userMap.put(user4Id, new JsonObject()
-      .put("id", user3Id)
+      .put("id", user4Id)
       .put("username", "snark")
       .put("patronGroup", group2Id)
       .put("barcode", barcode4)
@@ -702,5 +734,53 @@ public class OkapiMock extends AbstractVerticle {
       .put("name", "Reserved Loan")
     );
         
+  }
+
+  private static void addSampleData() {
+    logger.info("Adding sample data to mock okapi");
+    itemMap.put(item5Id, new JsonObject()
+      .put("id", item5Id)
+      .put("status", new JsonObject().put("name", "Available"))
+      .put("holdingsRecordId", holdings2Id)
+      .put("barcode", "4539876054383" )
+      .put("volume", volume1)
+      .put("enumeration", enumeration1)
+      .put("permanentLocationId", location2Id)
+      .put("copyNumbers", new JsonArray()
+          .add(copy1))
+    );
+
+    itemMap.put(item6Id, new JsonObject()
+      .put("id", item6Id)
+      .put("status", new JsonObject().put("name", "Available"))
+      .put("holdingsRecordId", holdings2Id)
+      .put("barcode", "90000")
+      .put("volume", volume1)
+      .put("enumeration", enumeration1)
+      .put("permanentLocationId", location2Id)
+      .put("copyNumbers", new JsonArray()
+          .add(copy1))
+    );
+
+     userMap.put("9cc888e5-f6d7-4709-b113-3040e8fbe648", new JsonObject()
+      .put("id", "9cc888e5-f6d7-4709-b113-3040e8fbe648")
+      .put("username", "maagard")
+      .put("patronGroup", group3Id)
+      .put("barcode", barcode2)
+      .put("active", Boolean.TRUE));
+
+    userMap.put("2e53ca2f-9bd9-424d-bcef-67f5f268edb0", new JsonObject()
+      .put("id", "2e53ca2f-9bd9-424d-bcef-67f5f268edb0")
+      .put("username", "caadams")
+      .put("patronGroup", group2Id)
+      .put("barcode", barcode3)
+      .put("active", Boolean.TRUE));
+
+    userMap.put("f61c6a9e-92b5-470c-8463-6494afd108e6", new JsonObject()
+      .put("id", "f61c6a9e-92b5-470c-8463-6494afd108e6")
+      .put("username", "mtaylor")
+      .put("patronGroup", group2Id)
+      .put("barcode", barcode4)
+      .put("active", Boolean.TRUE));
   }
 }

@@ -570,73 +570,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                       String.format("listingId should be %s", listingId)))));
       return;
     }
-    CRUtil.getCourseListingById(listingId, okapiHeaders, vertxContext)
-        .setHandler(getCLRes -> {
-      try {
-        String courseListingLocation = null;
-        if(!getCLRes.failed()) {
-          courseListingLocation = getCLRes.result().getLocationId();
-        }
-        String originalTemporaryLocationId = null;
-        if(entity.getCopiedItem() != null) {
-          originalTemporaryLocationId = entity.getCopiedItem().getTemporaryLocationId();
-        }
-        if(originalTemporaryLocationId == null && courseListingLocation != null) {
-          originalTemporaryLocationId = courseListingLocation;
-        }
-        Future<JsonObject> getCopiedItemsFuture;
-        if(entity.getItemId() != null || (
-            entity.getCopiedItem() != null && entity.getCopiedItem().getBarcode() != null)) {
-          getCopiedItemsFuture = CRUtil.populateReserveInventoryCache(entity,
-              okapiHeaders, vertxContext);
-        } else {
-          logger.info("Not attempting to look up copied items for reserve");
-          getCopiedItemsFuture = Future.succeededFuture();
-        }
-        String finalOriginalTemporaryLocationId = originalTemporaryLocationId;
-        getCopiedItemsFuture.setHandler(copyItemsRes-> {
-          if(copyItemsRes.failed()) {
-            String message = logAndSaveError(copyItemsRes.cause());
-            //Fail it
-            asyncResultHandler.handle(Future.succeededFuture(
-                PostCoursereservesCourselistingsReservesByListingIdResponse
-                    .respond400WithTextPlain(getErrorResponse(message))));
-          } else {
-            try {
-             Future<Void> putFuture;
-             if(finalOriginalTemporaryLocationId != null && getCopiedItemsFuture.succeeded()) {
-               JsonObject itemJson = getCopiedItemsFuture.result().getJsonObject("item");
-               itemJson.put("temporaryLocationId", finalOriginalTemporaryLocationId);
-               putFuture = CRUtil.putItemUpdate(itemJson, okapiHeaders, vertxContext);
-             } else {
-               putFuture = Future.succeededFuture();
-             }
-             putFuture.setHandler(putRes -> {
-               //We need to set the temporary location if it exists
-               if(finalOriginalTemporaryLocationId != null && entity.getCopiedItem() != null) {
-                 entity.getCopiedItem().setTemporaryLocationId(finalOriginalTemporaryLocationId);
-               }
-               //should we kill the POST if the PUT to inventory fails?
-               PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
-               PostCoursereservesCourselistingsReservesByListingIdResponse.class,
-               asyncResultHandler);
-             });
-           } catch(Exception e) {
-             String message = logAndSaveError(e);
-             asyncResultHandler.handle(Future.succeededFuture(
-                 PostCoursereservesCourselistingsReservesByListingIdResponse
-                 .respond500WithTextPlain(getErrorResponse(message))));
-           }
-          }
-        });
-      } catch(Exception e) {
-        String message = logAndSaveError(e);
-        asyncResultHandler.handle(Future.succeededFuture(
-            PostCoursereservesCourselistingsReservesByListingIdResponse
-            .respond500WithTextPlain(getErrorResponse(message))));
-      }
-    });
-    
+    handlePostReserves(listingId, entity, okapiHeaders, asyncResultHandler, vertxContext);
   }
 
 
@@ -1323,8 +1257,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     scrubDerivedFields(entity);
-    PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
-        PostCoursereservesReservesResponse.class, asyncResultHandler);
+    handlePostReserves(entity.getCourseListingId(), entity, okapiHeaders,
+        asyncResultHandler, vertxContext);
   }
 
   @Override
@@ -1620,4 +1554,118 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     }
 
   }
+
+  public void handlePostReserves(String listingId, Reserve entity,
+      Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
+      Context vertxContext) {
+    CRUtil.getCourseListingById(listingId, okapiHeaders, vertxContext)
+        .setHandler(getCLRes -> {
+      try {
+        String courseListingLocation = null;
+        if(!getCLRes.failed()) {
+          courseListingLocation = getCLRes.result().getLocationId();
+        }
+        String originalTemporaryLocationId = null;
+        if(entity.getCopiedItem() != null) {
+          originalTemporaryLocationId = entity.getCopiedItem().getTemporaryLocationId();
+        }
+        if(originalTemporaryLocationId == null && courseListingLocation != null) {
+          originalTemporaryLocationId = courseListingLocation;
+        }
+        Future<JsonObject> getCopiedItemsFuture;
+        if(entity.getItemId() != null || (
+            entity.getCopiedItem() != null && entity.getCopiedItem().getBarcode() != null)) {
+          getCopiedItemsFuture = CRUtil.populateReserveInventoryCache(entity,
+              okapiHeaders, vertxContext);
+        } else {
+          logger.info("Not attempting to look up copied items for reserve");
+          getCopiedItemsFuture = Future.succeededFuture();
+        }
+        String finalOriginalTemporaryLocationId = originalTemporaryLocationId;
+        getCopiedItemsFuture.setHandler(getCopiedItemsRes-> {
+          if(getCopiedItemsRes.failed()) {
+            String message = logAndSaveError(getCopiedItemsRes.cause());
+            //Fail it
+            asyncResultHandler.handle(Future.succeededFuture(
+                PostCoursereservesCourselistingsReservesByListingIdResponse
+                    .respond400WithTextPlain(getErrorResponse(message))));
+          } else {
+            String itemId;
+            if(getCopiedItemsFuture.result().getJsonObject("item") != null) {
+              itemId = getCopiedItemsFuture.result().getJsonObject("item").getString("id");
+            } else {
+              itemId = null;
+            }
+            checkUniqueReserveForListing(listingId, itemId, okapiHeaders,
+                vertxContext).setHandler(checkUniqueRes -> {
+              if(checkUniqueRes.succeeded() && Boolean.TRUE.equals(checkUniqueRes.result())) {
+                String message = "itemId " + itemId + " is not unique for courseListing "
+                    + listingId;
+                asyncResultHandler.handle(Future.succeededFuture(
+                      PostCoursereservesCourselistingsReservesByListingIdResponse
+                          .respond422WithApplicationJson(ValidationHelper
+                          .createValidationErrorMessage("itemId", itemId, message))));
+              } else {
+                try {
+                  Future<Void> putFuture;
+                  if(finalOriginalTemporaryLocationId != null && getCopiedItemsFuture.succeeded()) {
+                    JsonObject itemJson = getCopiedItemsFuture.result().getJsonObject("item");
+                    itemJson.put("temporaryLocationId", finalOriginalTemporaryLocationId);
+                    putFuture = CRUtil.putItemUpdate(itemJson, okapiHeaders, vertxContext);
+                  } else {
+                    putFuture = Future.succeededFuture();
+                  }
+                  putFuture.setHandler(putRes -> {
+                    //We need to set the temporary location if it exists
+                    if(finalOriginalTemporaryLocationId != null && entity.getCopiedItem() != null) {
+                      entity.getCopiedItem().setTemporaryLocationId(finalOriginalTemporaryLocationId);
+                    }
+                    //should we kill the POST if the PUT to inventory fails?
+                    PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
+                    PostCoursereservesCourselistingsReservesByListingIdResponse.class,
+                    asyncResultHandler);
+                  });
+                } catch(Exception e) {
+                  String message = logAndSaveError(e);
+                  asyncResultHandler.handle(Future.succeededFuture(
+                      PostCoursereservesCourselistingsReservesByListingIdResponse
+                      .respond500WithTextPlain(getErrorResponse(message))));
+                }
+              }
+            });
+          }
+        });
+      } catch(Exception e) {
+        String message = logAndSaveError(e);
+        asyncResultHandler.handle(Future.succeededFuture(
+            PostCoursereservesCourselistingsReservesByListingIdResponse
+            .respond500WithTextPlain(getErrorResponse(message))));
+      }
+    });
+  }
+
+  public Future<Boolean> checkUniqueReserveForListing(String courseListingId,
+      String itemId, Map<String, String> okapiHeaders, Context context) {
+    Promise<Boolean> promise = Promise.promise();
+    PostgresClient postgresClient = getPGClientFromHeaders(context, okapiHeaders);
+    String query = "courseListingId=" + courseListingId + " AND itemId=" +itemId;
+    try {
+      CQLWrapper cql = CourseAPI.getCQL(query, 0, 1, RESERVES_TABLE);
+      getItems(RESERVES_TABLE, Reserve.class, cql, postgresClient).setHandler(getReply -> {
+        if(getReply.failed()) {
+          promise.fail(getReply.cause());
+        } else {
+          if(getReply.result().getResultInfo().getTotalRecords() > 0) {
+            promise.complete(true);
+          } else {
+            promise.complete(false);
+          }
+        }
+      });
+    } catch(Exception e) {
+      promise.fail(e);
+    }
+    return promise.future();
+   }
+
 }

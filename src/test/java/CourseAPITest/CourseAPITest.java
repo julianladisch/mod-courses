@@ -1029,6 +1029,7 @@ public class CourseAPITest {
     });
   }
 
+
   //This has to return 422 because of foreign key relationship
   @Test
   public void postReserveToCourseListingWithBogusCopyrightAndProcessingStatuses(
@@ -2937,6 +2938,51 @@ public class CourseAPITest {
     });
   }
 
+   @Test
+  public void testAddSameReserveToDifferentListing(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    String reserveId2 = UUID.randomUUID().toString();
+    JsonObject reservePostJson = new JsonObject()
+    .put("id", reserveId)
+    .put("courseListingId", COURSE_LISTING_1_ID)
+    .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+    .put("copyrightTracking", new JsonObject()
+      .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID)
+    )
+    .put("copiedItem", new JsonObject()
+      .put("barcode", OkapiMock.barcode1)
+    );
+    JsonObject reservePostJson2 = new JsonObject()
+    .put("id", reserveId2)
+    .put("courseListingId", COURSE_LISTING_2_ID)
+    .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+    .put("copyrightTracking", new JsonObject()
+      .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID)
+    )
+    .put("copiedItem", new JsonObject()
+      .put("barcode", OkapiMock.barcode1)
+    );
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+      "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+      "Post Course Reserve").setHandler(postReserveRes -> {
+      if(postReserveRes.failed()) {
+        context.fail(postReserveRes.cause());
+      } else {
+        reservePostJson.put("id", UUID.randomUUID().toString());
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_2_ID +
+          "/reserves", POST, standardHeaders, reservePostJson2.encode(), 201,
+          "Post Course Reserve").setHandler(repostReserveRes -> {
+          if(repostReserveRes.failed()) {
+            context.fail(repostReserveRes.cause());
+          } else {
+            async.complete();
+          }
+        });
+      }
+    });
+  }
+
   @Test
   public void testResetItemBadId(TestContext context) {
     Async async = context.async();
@@ -3263,6 +3309,19 @@ public class CourseAPITest {
         });
   }
 
+  @Test
+  public void testLookupUniqueItemIdCourseListingFail(TestContext context) {
+    Async async = context.async();
+    new CourseAPIFail().checkUniqueReserveForListing(UUID.randomUUID().toString(),
+        UUID.randomUUID().toString(), okapiHeaders, vertx.getOrCreateContext())
+        .setHandler(res -> {
+      if(res.failed()) {
+        async.complete();
+      } else {
+        context.fail("Expected failed result");
+      }
+    });
+  }
   
 
   

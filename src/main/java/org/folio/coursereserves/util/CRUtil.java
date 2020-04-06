@@ -59,7 +59,6 @@ import org.folio.rest.jaxrs.model.TermObject;
 import org.folio.rest.persist.Criteria.Criteria;
 import org.folio.rest.persist.Criteria.Criterion;
 import org.folio.rest.persist.PgUtil;
-import static org.folio.rest.persist.PgUtil.postgresClient;
 import org.folio.rest.persist.PostgresClient;
 
 
@@ -469,7 +468,7 @@ public class CRUtil {
           } else {
             loanTypeFuture = Future.failedFuture("No temporary loan type id");
           }
-          populateReserve(reserve, tempLocationFuture, permLocationFuture,
+          populateReserveForRetrieval(reserve, tempLocationFuture, permLocationFuture,
               processingStatusFuture, copyrightStatusFuture, loanTypeFuture)
               .setHandler(populateRes -> {
             if(populateRes.failed()) {
@@ -516,7 +515,7 @@ public class CRUtil {
     return future;
   }
 
-  public static Future<Void> populateReserve(Reserve reserve,
+  public static Future<Void> populateReserveForRetrieval(Reserve reserve,
       Future<JsonObject> tempLocationFuture, Future<JsonObject> permLocationFuture,
       Future<ProcessingStatus> processingStatusFuture,
       Future<CopyrightStatus> copyrightStatusFuture, Future<JsonObject> loanTypeFuture) {
@@ -1201,5 +1200,6 @@ public class CRUtil {
     }
     return prefix + number + suffix;
   }
-
 }
+
+
