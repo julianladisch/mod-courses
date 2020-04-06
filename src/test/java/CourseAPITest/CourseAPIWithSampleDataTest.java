@@ -146,7 +146,7 @@ public class CourseAPIWithSampleDataTest {
     });
   }
 
-  /*
+
   @Before
   public void beforeEach(TestContext context) {
     Async async = context.async();
@@ -160,7 +160,6 @@ public class CourseAPIWithSampleDataTest {
       });
     });
   }
-  */
 
   @After
   public void afterEach(TestContext context) {
