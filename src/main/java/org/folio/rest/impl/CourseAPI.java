@@ -1598,7 +1598,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             }
             checkUniqueReserveForListing(listingId, itemId, okapiHeaders,
                 vertxContext).setHandler(checkUniqueRes -> {
-              if(checkUniqueRes.succeeded() && checkUniqueRes.result()) {
+              if(checkUniqueRes.succeeded() && Boolean.TRUE.equals(checkUniqueRes.result())) {
                 String message = "itemId " + itemId + " is not unique for courseListing "
                     + listingId;
                 asyncResultHandler.handle(Future.succeededFuture(
