@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.folio.coursereserves.util.PopulateMapping.ImportType;
+import org.folio.rest.impl.CourseAPI;
 import static org.folio.rest.impl.CourseAPI.COPYRIGHT_STATUSES_TABLE;
 import static org.folio.rest.impl.CourseAPI.COURSE_LISTINGS_TABLE;
 import static org.folio.rest.impl.CourseAPI.COURSE_TYPES_TABLE;
@@ -61,6 +62,7 @@ import org.folio.rest.persist.Criteria.Criterion;
 import org.folio.rest.persist.PgUtil;
 import static org.folio.rest.persist.PgUtil.postgresClient;
 import org.folio.rest.persist.PostgresClient;
+import org.folio.rest.persist.cql.CQLWrapper;
 
 
 public class CRUtil {
@@ -1201,14 +1203,6 @@ public class CRUtil {
     }
     return prefix + number + suffix;
   }
-
-  public static Future<Void> checkUniqueReserveForListing(String courseListingId,
-      String itemId, Map<String, String> okapiHeaders, Context context) {
-    Promise<Void> promise = Promise.promise();
-
-    return promise.future();
-   }
-
 }
 
 
