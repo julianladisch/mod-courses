@@ -469,7 +469,7 @@ public class CRUtil {
           } else {
             loanTypeFuture = Future.failedFuture("No temporary loan type id");
           }
-          populateReserve(reserve, tempLocationFuture, permLocationFuture,
+          populateReserveForRetrieval(reserve, tempLocationFuture, permLocationFuture,
               processingStatusFuture, copyrightStatusFuture, loanTypeFuture)
               .setHandler(populateRes -> {
             if(populateRes.failed()) {
@@ -516,7 +516,7 @@ public class CRUtil {
     return future;
   }
 
-  public static Future<Void> populateReserve(Reserve reserve,
+  public static Future<Void> populateReserveForRetrieval(Reserve reserve,
       Future<JsonObject> tempLocationFuture, Future<JsonObject> permLocationFuture,
       Future<ProcessingStatus> processingStatusFuture,
       Future<CopyrightStatus> copyrightStatusFuture, Future<JsonObject> loanTypeFuture) {
@@ -1202,4 +1202,13 @@ public class CRUtil {
     return prefix + number + suffix;
   }
 
+  public static Future<Void> checkUniqueReserveForListing(String courseListingId,
+      String itemId, Map<String, String> okapiHeaders, Context context) {
+    Promise<Void> promise = Promise.promise();
+
+    return promise.future();
+   }
+
 }
+
+

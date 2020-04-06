@@ -107,13 +107,7 @@
                     "fieldName": "id",
                     "tOps": "ADD"
                 }
-            ],
-            "uniqueIndex": [
-                {
-                    "fieldName": "itemId",
-                    "tOps":"ADD"
-                }
-            ],
+            ], 
             "foreignKeys": [
                 {
                     "fieldName": "courseListingId",

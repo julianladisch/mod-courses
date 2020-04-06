@@ -39,7 +39,7 @@ public class UtilVertxTest {
       Future<CopyrightStatus> copyrightStatusFuture = Future.succeededFuture(cs);
       Future<JsonObject> loanTypeFuture =
           Future.succeededFuture(new JsonObject().put("id", UUID.randomUUID().toString()));
-      CRUtil.populateReserve(reserve, tempLocationFuture, permLocationFuture,
+      CRUtil.populateReserveForRetrieval(reserve, tempLocationFuture, permLocationFuture,
           processingStatusFuture, copyrightStatusFuture, loanTypeFuture)
           .setHandler(res -> {
         if(res.failed()) {
@@ -76,7 +76,7 @@ public class UtilVertxTest {
       Future<CopyrightStatus> copyrightStatusFuture = Future.failedFuture("Failed status");
       Future<JsonObject> loanTypeFuture =
           Future.failedFuture("Failed loantype");
-      CRUtil.populateReserve(reserve, tempLocationFuture, permLocationFuture,
+      CRUtil.populateReserveForRetrieval(reserve, tempLocationFuture, permLocationFuture,
           processingStatusFuture, copyrightStatusFuture, loanTypeFuture)
           .setHandler(res -> {
         if(res.failed()) {

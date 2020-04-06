@@ -1029,6 +1029,7 @@ public class CourseAPITest {
     });
   }
 
+
   //This has to return 422 because of foreign key relationship
   @Test
   public void postReserveToCourseListingWithBogusCopyrightAndProcessingStatuses(
@@ -3263,6 +3264,19 @@ public class CourseAPITest {
         });
   }
 
+  @Test
+  public void testLookupUniqueItemIdCourseListingFail(TestContext context) {
+    Async async = context.async();
+    new CourseAPIFail().checkUniqueReserveForListing(UUID.randomUUID().toString(),
+        UUID.randomUUID().toString(), okapiHeaders, vertx.getOrCreateContext())
+        .setHandler(res -> {
+      if(res.failed()) {
+        async.complete();
+      } else {
+        context.fail("Expected failed result");
+      }
+    });
+  }
   
 
   
