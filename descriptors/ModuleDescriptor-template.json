@@ -93,6 +93,7 @@
                     "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.post"],
                     "modulePermissions": [
                         "inventory-storage.items.item.put",
+                        "inventory-storage.items.item.get",
                         "inventory-storage.items.collection.get",
                         "inventory-storage.holdings.item.get",
                         "inventory-storage.instances.item.get"
@@ -347,6 +348,7 @@
                     "permissionsRequired": ["course-reserves-storage.reserves.item.post"],
                     "modulePermissions": [
                         "inventory-storage.items.item.put",
+                        "inventory-storage.items.item.get",
                         "inventory-storage.items.collection.get",
                         "inventory-storage.holdings.item.get",
                         "inventory-storage.instances.item.get"
