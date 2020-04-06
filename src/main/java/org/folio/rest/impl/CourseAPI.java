@@ -1596,8 +1596,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             } else {
               itemId = null;
             }
-            Future<Boolean> checkUniqueFuture = checkUniqueReserveForListing(listingId,
-                itemId, okapiHeaders, vertxContext).setHandler(checkUniqueRes -> {
+            checkUniqueReserveForListing(listingId, itemId, okapiHeaders,
+                vertxContext).setHandler(checkUniqueRes -> {
               if(checkUniqueRes.succeeded() && checkUniqueRes.result()) {
                 String message = "itemId " + itemId + " is not unique for courseListing "
                     + listingId;
