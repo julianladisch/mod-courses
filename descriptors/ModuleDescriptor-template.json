@@ -379,7 +379,16 @@
             "handlers" : [
                 {
                     "methods": [ "POST" ],
-                    "pathPattern" : "/_/tenant"
+                    "pathPattern" : "/_/tenant",
+                    "modulePermissions": [
+                        "inventory-storage.items.item.put",
+                        "inventory-storage.items.item.get",
+                        "inventory-storage.items.collection.get",
+                        "inventory-storage.holdings.item.get",
+                        "inventory-storage.instances.item.get",
+                        "users.item.get"
+                    ]
+
                 },
                 {
                     "methods": [ "DELETE" ],
