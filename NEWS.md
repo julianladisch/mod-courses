@@ -1,3 +1,6 @@
+## 1.0.2 2020-04-07
+* Add missing module permissions for location and servicepoint lookup
+
 ## 1.0.1 2020-04-06
 
 * Populate temporary location field from CourseListing (MODCR-17,MODCR-31)

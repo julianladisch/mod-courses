@@ -9,7 +9,11 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/courselistings",
-                    "permissionsRequired": ["course-reserves-storage.courselistings.collection.get"]
+                    "permissionsRequired": ["course-reserves-storage.courselistings.collection.get"],
+                    "modulePermissions": [
+                        "inventory-storage.locations.item.get",
+                        "inventory-storage.service-points.item.get"
+                    ]
                 },
                 {
                     "methods": [ "POST" ],
@@ -19,7 +23,11 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/courselistings/{id}",
-                    "permissionsRequired": ["course-reserves-storage.courselistings.item.get"]
+                    "permissionsRequired": ["course-reserves-storage.courselistings.item.get"],
+                    "modulePermissions": [
+                        "inventory-storage.locations.item.get",
+                        "inventory-storage.service-points.item.get"
+                    ]
                 },
                 {
                     "methods": [ "PUT" ],
@@ -85,7 +93,10 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/courselistings/{id}/reserves",
-                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.collection.get"]
+                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.collection.get"],
+                    "modulePermissions": [
+                        "inventory-storage.locations.item.get"
+                    ]
                 },
                 {
                     "methods": [ "POST" ],
@@ -102,7 +113,10 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/courselistings/{id}/reserves/{r_id}",
-                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.get"]
+                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.get"],
+                    "modulePermissions" : [
+                        "inventory-storage.locations.item.get"
+                    ]
                 },
                 {
                     "methods": [ "PUT" ],
@@ -319,7 +333,12 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/courses/{id}",
-                    "permissionsRequired": ["course-reserves-storage.courses.item.get"]
+                    "permissionsRequired": ["course-reserves-storage.courses.item.get"],
+                    "modulePermissions": [
+                        "inventory-storage.locations.item.get",
+                        "inventory-storage.service-points.item.get"
+                    ]
+
                 },
                 {
                     "methods": [ "PUT" ],
@@ -340,7 +359,10 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/reserves",
-                    "permissionsRequired": ["course-reserves-storage.reserves.collection.get"]
+                    "permissionsRequired": ["course-reserves-storage.reserves.collection.get"],
+                    "modulePermissions": [
+                        "inventory-storage.locations.item.get"
+                    ]
                 },
                 {
                     "methods": [ "POST" ],
@@ -358,7 +380,10 @@
                 {
                     "methods": [ "GET" ],
                     "pathPattern": "/coursereserves/reserves/{id}",
-                    "permissionsRequired": ["course-reserves-storage.reserves.item.get"]
+                    "permissionsRequired": ["course-reserves-storage.reserves.item.get"],
+                    "modulePermissions": [
+                        "inventory-storage.locations.item.get"
+                    ]
                 },
                 {
                     "methods": [ "PUT" ],
