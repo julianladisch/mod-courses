@@ -84,7 +84,7 @@ public class CRUtil {
   }
 
   public static List<PopulateMapping> getLocationMapList() {
-    List<PopulateMapping> mapList = new ArrayList();
+    List<PopulateMapping> mapList = new ArrayList<>();
     mapList.add(new PopulateMapping("id"));
     mapList.add(new PopulateMapping("name"));
     mapList.add(new PopulateMapping("code"));

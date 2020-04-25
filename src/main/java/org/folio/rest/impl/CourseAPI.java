@@ -652,11 +652,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     scrubDerivedFields(entity);
-    /*
-    PgUtil.put(RESERVES_TABLE, entity, reserveId, okapiHeaders, vertxContext,
-        PutCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
-        asyncResultHandler);
-    */
+
     handleWriteReserves(listingId, entity, okapiHeaders, asyncResultHandler,
         vertxContext, WriteType.PUT);
   }
@@ -1314,10 +1310,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       Reserve entity, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     scrubDerivedFields(entity);
-    /*
-    PgUtil.put(RESERVES_TABLE, entity, reserveId, okapiHeaders, vertxContext,
-        PutCoursereservesReservesByReserveIdResponse.class, asyncResultHandler);
-    */
+
     handleWriteReserves(entity.getCourseListingId(), entity, okapiHeaders,
         asyncResultHandler, vertxContext, WriteType.PUT);
   }
@@ -1354,7 +1347,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
 
   public Future<Void> deleteAllItems(String tableName, String whereClause,
       Map<String, String> okapiHeaders, Context vertxContext) {
-    Future future = Future.future();
+    Future<Void> future = Future.future();
     try {
       PostgresClient pgClient = getPGClientFromHeaders(vertxContext, okapiHeaders);
       String tenantId = getTenant(okapiHeaders);
