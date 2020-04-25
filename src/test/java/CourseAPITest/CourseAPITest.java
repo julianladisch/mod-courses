@@ -3014,8 +3014,11 @@ public class CourseAPITest {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
-        CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/"
-            + OkapiMock.item1Id, DELETE, null, null, 204).setHandler(deleteRes -> {
+        TestUtil.doOkapiRequest(vertx, "/item-storage/items/" +OkapiMock.item1Id,
+            DELETE, okapiHeaders, null, null, 204, "Delete Item 1")
+        //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/")
+        //    + OkapiMock.item1Id, DELETE, null, null, 204)
+            .setHandler(deleteRes -> {
           if(deleteRes.failed()) {
             context.fail(deleteRes.cause());
           } else {
@@ -3883,8 +3886,10 @@ public class CourseAPITest {
   private Future<Void> resetMockOkapi() {
     Future<Void> future = Future.future();
     JsonObject payload = new JsonObject().put("reset", true);
-    CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/reset", POST, null,
-        payload.encode(), 201).setHandler(res -> {
+    TestUtil.doOkapiRequest(vertx, "/reset", POST, okapiHeaders, null,
+        payload.encode(), 201, "Reset Okapi").setHandler(res -> {
+    //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/reset", POST, null,
+    //    payload.encode(), 201).setHandler(res -> {
       if(res.failed()) {
         future.fail(res.cause());
       } else {

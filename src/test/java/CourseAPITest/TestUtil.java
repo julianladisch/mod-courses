@@ -64,9 +64,10 @@ public class TestUtil {
     return httpClient;
   }
 
-  public static Future<WrappedResponse> doOkapiRequest(Vertx vertx, String requestPath,
-      HttpMethod method, Map<String, String> okapiHeaders, Map<String, String> extraHeaders,
-      String payload, Integer expectedCode, String explanation) {
+  public static Future<WrappedResponse> doOkapiRequest(Vertx vertx,
+      String requestPath, HttpMethod method, Map<String, String> okapiHeaders,
+      Map<String, String> extraHeaders, String payload,
+      Integer expectedCode, String explanation) {
     HttpClient client = getHttpClient(vertx);
     CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
     CaseInsensitiveHeaders originalHeaders = new CaseInsensitiveHeaders();
