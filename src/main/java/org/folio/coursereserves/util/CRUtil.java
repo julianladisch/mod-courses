@@ -1037,7 +1037,7 @@ public class CRUtil {
 
   public static Future<Void> putItemUpdate(JsonObject itemJson,
       Map<String, String> okapiHeaders, Context context) {
-    Future future = Future.future();
+    Future<Void> future = Future.future();
     try {
        String id = itemJson.getString("id");
        String putPath = ITEMS_ENDPOINT + "/" + id;
