@@ -252,6 +252,10 @@ public class CRUtil {
           holdingsJson.getString("callNumber"), holdingsJson.getString("callNumberSuffix"));
     }
     copiedItem.setCallNumber(callNumber);
+    String temporaryLoanTypeId = itemJson.getString("temporaryLoanTypeId");
+    if(reserve.getTemporaryLoanTypeId() == null) {
+      reserve.setTemporaryLoanTypeId(temporaryLoanTypeId);
+    }
     JsonArray contributors = instanceJson.getJsonArray("contributors");
     if(contributors != null && contributors.size() > 0) {
       List<Contributor> contributorList = new ArrayList<>();
