@@ -74,6 +74,7 @@ public class OkapiMock extends AbstractVerticle {
   public static String campus1Id = UUID.randomUUID().toString();
   public static String staffSlip1Id = UUID.randomUUID().toString();
   public static String loanType1Id = UUID.randomUUID().toString();
+  public static String loanType2Id = UUID.randomUUID().toString();
 
 
   private static Map<String, JsonObject> userMap;

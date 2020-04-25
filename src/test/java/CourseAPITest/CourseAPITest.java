@@ -2938,7 +2938,7 @@ public class CourseAPITest {
     });
   }
 
-  /*
+  
   @Test
   public void testAddReserveWithTemporaryLoanType(TestContext context) {
     Async async = context.async();
@@ -2960,29 +2960,31 @@ public class CourseAPITest {
           baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves/" + reserveId,
           GET, standardHeaders, null, 200, "Get newly created reserve");
     }).compose(f -> {
-
-    });
-  
-
-
-      .setHandler(postReserveRes -> {
-      if(postReserveRes.failed()) {
-        context.fail(postReserveRes.cause());
+      String itemId = f.getJson().getString("itemId");
+      return TestUtil.doOkapiRequest(vertx, "/item-storage/items/" + itemId,
+          GET, okapiHeaders, null, null, 200, "Get item record");
+    }).compose(f -> {
+      context.assertEquals(OkapiMock.loanType1Id, 
+            f.getJson().getString("temporaryLoanTypeId"));
+      reservePostJson.put("temporaryLoanTypeId", OkapiMock.loanType2Id);
+      return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+          "/reserves/" + reserveId, PUT, standardHeaders, reservePostJson.encode(),
+          204, "Update reserve record");
+    }).compose( f -> {
+      return TestUtil.doOkapiRequest(vertx, "/item-storage/items/" + OkapiMock.item1Id,
+          GET, okapiHeaders, null, null, 200, "Get item record");
+    }).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
       } else {
-        reservePostJson.put("id", UUID.randomUUID().toString());
-        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
-          "/reserves", POST, standardHeaders, reservePostJson.encode(), 422,
-          "Post Course Reserve").setHandler(repostReserveRes -> {
-          if(repostReserveRes.failed()) {
-            context.fail(repostReserveRes.cause());
-          } else {
-            async.complete();
-          }
-        });
+        context.assertEquals(OkapiMock.loanType2Id, 
+            res.result().getJson().getString("temporaryLoanTypeId"));
+        async.complete();
       }
     });
+  
   }
-  */
+
 
    @Test
   public void testAddSameReserveToDifferentListing(TestContext context) {

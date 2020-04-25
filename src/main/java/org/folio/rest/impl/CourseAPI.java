@@ -1621,7 +1621,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
               } else {
                 try {
                   Future<Void> putFuture;
-                  if(finalOriginalTemporaryLocationId != null && getCopiedItemsFuture.succeeded()) {
+                  if((finalOriginalTemporaryLocationId != null || entity.getTemporaryLoanTypeId() != null)
+                      && getCopiedItemsFuture.succeeded()) {
                     JsonObject itemJson = getCopiedItemsFuture.result().getJsonObject("item");
                     itemJson.put("temporaryLocationId", finalOriginalTemporaryLocationId);
                     if(entity.getTemporaryLoanTypeId() != null) {
