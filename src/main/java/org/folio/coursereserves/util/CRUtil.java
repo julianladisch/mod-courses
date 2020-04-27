@@ -392,9 +392,9 @@ public class CRUtil {
     }
     logger.debug("Creating request for url " + requestUrl);
     HttpClientRequest request = client.requestAbs(method, requestUrl);
-    for(Map.Entry entry : headers.entries()) {
-      String key = (String)entry.getKey();
-      String value = (String)entry.getValue();
+    for(Map.Entry<String, String> entry : headers.entries()) {
+      String key = entry.getKey();
+      String value = entry.getValue();
       if( key != null && value != null) {
         request.putHeader(key, value);
       }
@@ -1037,7 +1037,7 @@ public class CRUtil {
 
   public static Future<Void> putItemUpdate(JsonObject itemJson,
       Map<String, String> okapiHeaders, Context context) {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     try {
        String id = itemJson.getString("id");
        String putPath = ITEMS_ENDPOINT + "/" + id;
@@ -1045,15 +1045,15 @@ public class CRUtil {
            textAcceptHeaders, itemJson.encode(), 204).setHandler(res -> {
          if(res.failed()) {
            logger.error("Put failed: " + res.cause().getLocalizedMessage());
-           future.fail(res.cause());
+           promise.fail(res.cause());
          } else {
-           future.complete();
+           promise.complete();
          }
        });
     } catch(Exception e) {
-      future.fail(e);
+      promise.fail(e);
     }
-    return future;
+    return promise.future();
   }
 
   private static Course copyCourse(Course originalCourse) {

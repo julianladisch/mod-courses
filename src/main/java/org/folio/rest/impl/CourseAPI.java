@@ -1347,7 +1347,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
 
   public Future<Void> deleteAllItems(String tableName, String whereClause,
       Map<String, String> okapiHeaders, Context vertxContext) {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     try {
       PostgresClient pgClient = getPGClientFromHeaders(vertxContext, okapiHeaders);
       String tenantId = getTenant(okapiHeaders);
@@ -1362,15 +1362,15 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       pgClient.execute(deleteAllQuery, mutateReply -> {
         if(mutateReply.failed()) {
           String message = logAndSaveError(mutateReply.cause());
-          future.fail(mutateReply.cause());
+          promise.fail(mutateReply.cause());
         } else {
-          future.complete();
+          promise.complete();
         }
       });
     } catch(Exception e) {
-      future.fail(e);
+      promise.fail(e);
     }
-    return future;
+    return promise.future();
   }
 
   public Future<Void> deleteItem(String tableName, String id, Map<String,
