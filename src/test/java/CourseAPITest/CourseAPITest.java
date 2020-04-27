@@ -2938,6 +2938,54 @@ public class CourseAPITest {
     });
   }
 
+  
+  @Test
+  public void testAddReserveWithTemporaryLoanType(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reservePostJson = new JsonObject()
+    .put("id", reserveId)
+    .put("courseListingId", COURSE_LISTING_1_ID)
+    .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+    .put("copyrightTracking", new JsonObject()
+      .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID)
+    )
+    .put("copiedItem", new JsonObject()
+      .put("barcode", OkapiMock.barcode1)
+    );
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+      "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+      "Post Course Reserve").compose(f -> {
+      return TestUtil.doRequest(vertx,
+          baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves/" + reserveId,
+          GET, standardHeaders, null, 200, "Get newly created reserve");
+    }).compose(f -> {
+      String itemId = f.getJson().getString("itemId");
+      return TestUtil.doOkapiRequest(vertx, "/item-storage/items/" + itemId,
+          GET, okapiHeaders, null, null, 200, "Get item record");
+    }).compose(f -> {
+      context.assertEquals(OkapiMock.loanType1Id, 
+            f.getJson().getString("temporaryLoanTypeId"));
+      reservePostJson.put("temporaryLoanTypeId", OkapiMock.loanType2Id);
+      return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+          "/reserves/" + reserveId, PUT, standardHeaders, reservePostJson.encode(),
+          204, "Update reserve record");
+    }).compose( f -> {
+      return TestUtil.doOkapiRequest(vertx, "/item-storage/items/" + OkapiMock.item1Id,
+          GET, okapiHeaders, null, null, 200, "Get item record");
+    }).setHandler(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        context.assertEquals(OkapiMock.loanType2Id, 
+            res.result().getJson().getString("temporaryLoanTypeId"));
+        async.complete();
+      }
+    });
+  
+  }
+
+
    @Test
   public void testAddSameReserveToDifferentListing(TestContext context) {
     Async async = context.async();
@@ -3014,8 +3062,11 @@ public class CourseAPITest {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
-        CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/"
-            + OkapiMock.item1Id, DELETE, null, null, 204).setHandler(deleteRes -> {
+        TestUtil.doOkapiRequest(vertx, "/item-storage/items/" +OkapiMock.item1Id,
+            DELETE, okapiHeaders, null, null, 204, "Delete Item 1")
+        //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/")
+        //    + OkapiMock.item1Id, DELETE, null, null, 204)
+            .setHandler(deleteRes -> {
           if(deleteRes.failed()) {
             context.fail(deleteRes.cause());
           } else {
@@ -3883,8 +3934,10 @@ public class CourseAPITest {
   private Future<Void> resetMockOkapi() {
     Future<Void> future = Future.future();
     JsonObject payload = new JsonObject().put("reset", true);
-    CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/reset", POST, null,
-        payload.encode(), 201).setHandler(res -> {
+    TestUtil.doOkapiRequest(vertx, "/reset", POST, okapiHeaders, null,
+        payload.encode(), 201, "Reset Okapi").setHandler(res -> {
+    //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/reset", POST, null,
+    //    payload.encode(), 201).setHandler(res -> {
       if(res.failed()) {
         future.fail(res.cause());
       } else {

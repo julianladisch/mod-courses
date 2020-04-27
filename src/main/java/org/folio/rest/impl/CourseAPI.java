@@ -99,6 +99,11 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     scrubMap = mapInit;
   }
 
+  enum WriteType {
+    POST,
+    PUT
+  }
+
 
   public PostgresClient getPGClient(Context vertxContext, String tenantId) {
     return PostgresClient.getInstance(vertxContext.owner(), tenantId);
@@ -570,7 +575,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                       String.format("listingId should be %s", listingId)))));
       return;
     }
-    handlePostReserves(listingId, entity, okapiHeaders, asyncResultHandler, vertxContext);
+    handleWriteReserves(listingId, entity, okapiHeaders, asyncResultHandler,
+        vertxContext, WriteType.POST);
   }
 
 
@@ -646,9 +652,9 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     scrubDerivedFields(entity);
-    PgUtil.put(RESERVES_TABLE, entity, reserveId, okapiHeaders, vertxContext,
-        PutCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
-        asyncResultHandler);
+
+    handleWriteReserves(listingId, entity, okapiHeaders, asyncResultHandler,
+        vertxContext, WriteType.PUT);
   }
 
   @Override
@@ -1257,8 +1263,8 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     scrubDerivedFields(entity);
-    handlePostReserves(entity.getCourseListingId(), entity, okapiHeaders,
-        asyncResultHandler, vertxContext);
+    handleWriteReserves(entity.getCourseListingId(), entity, okapiHeaders,
+        asyncResultHandler, vertxContext, WriteType.POST);
   }
 
   @Override
@@ -1304,8 +1310,9 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       Reserve entity, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     scrubDerivedFields(entity);
-    PgUtil.put(RESERVES_TABLE, entity, reserveId, okapiHeaders, vertxContext,
-        PutCoursereservesReservesByReserveIdResponse.class, asyncResultHandler);
+
+    handleWriteReserves(entity.getCourseListingId(), entity, okapiHeaders,
+        asyncResultHandler, vertxContext, WriteType.PUT);
   }
 
   @Override
@@ -1340,7 +1347,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
 
   public Future<Void> deleteAllItems(String tableName, String whereClause,
       Map<String, String> okapiHeaders, Context vertxContext) {
-    Future future = Future.future();
+    Promise<Void> promise = Promise.promise();
     try {
       PostgresClient pgClient = getPGClientFromHeaders(vertxContext, okapiHeaders);
       String tenantId = getTenant(okapiHeaders);
@@ -1355,15 +1362,15 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
       pgClient.execute(deleteAllQuery, mutateReply -> {
         if(mutateReply.failed()) {
           String message = logAndSaveError(mutateReply.cause());
-          future.fail(mutateReply.cause());
+          promise.fail(mutateReply.cause());
         } else {
-          future.complete();
+          promise.complete();
         }
       });
     } catch(Exception e) {
-      future.fail(e);
+      promise.fail(e);
     }
-    return future;
+    return promise.future();
   }
 
   public Future<Void> deleteItem(String tableName, String id, Map<String,
@@ -1555,9 +1562,9 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
 
   }
 
-  public void handlePostReserves(String listingId, Reserve entity,
+  public void handleWriteReserves(String listingId, Reserve entity,
       Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler,
-      Context vertxContext) {
+      Context vertxContext, WriteType writeType) {
     CRUtil.getCourseListingById(listingId, okapiHeaders, vertxContext)
         .setHandler(getCLRes -> {
       try {
@@ -1596,10 +1603,16 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             } else {
               itemId = null;
             }
-            checkUniqueReserveForListing(listingId, itemId, okapiHeaders,
-                vertxContext).setHandler(checkUniqueRes -> {
+            Future<Boolean> checkUniqueFuture;
+            if(writeType == WriteType.POST) {
+              checkUniqueFuture = checkUniqueReserveForListing(listingId, itemId, okapiHeaders,
+                vertxContext);
+            } else {
+              checkUniqueFuture = Future.succeededFuture(Boolean.FALSE);
+            }
+            checkUniqueFuture.setHandler(checkUniqueRes -> {
               if(checkUniqueRes.succeeded() && Boolean.TRUE.equals(checkUniqueRes.result())) {
-                String message = "itemId " + itemId + " is not unique for courseListing "
+                String message = "itemId " + itemId + " is already in use for courseListing "
                     + listingId;
                 asyncResultHandler.handle(Future.succeededFuture(
                       PostCoursereservesCourselistingsReservesByListingIdResponse
@@ -1608,9 +1621,13 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
               } else {
                 try {
                   Future<Void> putFuture;
-                  if(finalOriginalTemporaryLocationId != null && getCopiedItemsFuture.succeeded()) {
+                  if((finalOriginalTemporaryLocationId != null || entity.getTemporaryLoanTypeId() != null)
+                      && getCopiedItemsFuture.succeeded()) {
                     JsonObject itemJson = getCopiedItemsFuture.result().getJsonObject("item");
                     itemJson.put("temporaryLocationId", finalOriginalTemporaryLocationId);
+                    if(entity.getTemporaryLoanTypeId() != null) {
+                      itemJson.put("temporaryLoanTypeId", entity.getTemporaryLoanTypeId());
+                    }
                     putFuture = CRUtil.putItemUpdate(itemJson, okapiHeaders, vertxContext);
                   } else {
                     putFuture = Future.succeededFuture();
@@ -1621,9 +1638,16 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                       entity.getCopiedItem().setTemporaryLocationId(finalOriginalTemporaryLocationId);
                     }
                     //should we kill the POST if the PUT to inventory fails?
-                    PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
-                    PostCoursereservesCourselistingsReservesByListingIdResponse.class,
-                    asyncResultHandler);
+                    if(writeType == WriteType.POST) {
+                      PgUtil.post(RESERVES_TABLE, entity, okapiHeaders, vertxContext,
+                          PostCoursereservesCourselistingsReservesByListingIdResponse.class,
+                          asyncResultHandler);
+                    } else {
+                      PgUtil.put(RESERVES_TABLE, entity, entity.getId(), okapiHeaders,
+                          vertxContext,
+                          PutCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
+                          asyncResultHandler);
+                    }
                   });
                 } catch(Exception e) {
                   String message = logAndSaveError(e);

@@ -84,7 +84,7 @@ public class CRUtil {
   }
 
   public static List<PopulateMapping> getLocationMapList() {
-    List<PopulateMapping> mapList = new ArrayList();
+    List<PopulateMapping> mapList = new ArrayList<>();
     mapList.add(new PopulateMapping("id"));
     mapList.add(new PopulateMapping("name"));
     mapList.add(new PopulateMapping("code"));
@@ -252,6 +252,10 @@ public class CRUtil {
           holdingsJson.getString("callNumber"), holdingsJson.getString("callNumberSuffix"));
     }
     copiedItem.setCallNumber(callNumber);
+    String temporaryLoanTypeId = itemJson.getString("temporaryLoanTypeId");
+    if(reserve.getTemporaryLoanTypeId() == null) {
+      reserve.setTemporaryLoanTypeId(temporaryLoanTypeId);
+    }
     JsonArray contributors = instanceJson.getJsonArray("contributors");
     if(contributors != null && contributors.size() > 0) {
       List<Contributor> contributorList = new ArrayList<>();
@@ -388,9 +392,9 @@ public class CRUtil {
     }
     logger.debug("Creating request for url " + requestUrl);
     HttpClientRequest request = client.requestAbs(method, requestUrl);
-    for(Map.Entry entry : headers.entries()) {
-      String key = (String)entry.getKey();
-      String value = (String)entry.getValue();
+    for(Map.Entry<String, String> entry : headers.entries()) {
+      String key = entry.getKey();
+      String value = entry.getValue();
       if( key != null && value != null) {
         request.putHeader(key, value);
       }
@@ -1033,7 +1037,7 @@ public class CRUtil {
 
   public static Future<Void> putItemUpdate(JsonObject itemJson,
       Map<String, String> okapiHeaders, Context context) {
-    Future future = Future.future();
+    Promise<Void> promise = Promise.promise();
     try {
        String id = itemJson.getString("id");
        String putPath = ITEMS_ENDPOINT + "/" + id;
@@ -1041,15 +1045,15 @@ public class CRUtil {
            textAcceptHeaders, itemJson.encode(), 204).setHandler(res -> {
          if(res.failed()) {
            logger.error("Put failed: " + res.cause().getLocalizedMessage());
-           future.fail(res.cause());
+           promise.fail(res.cause());
          } else {
-           future.complete();
+           promise.complete();
          }
        });
     } catch(Exception e) {
-      future.fail(e);
+      promise.fail(e);
     }
-    return future;
+    return promise.future();
   }
 
   private static Course copyCourse(Course originalCourse) {
