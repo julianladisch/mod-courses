@@ -1,3 +1,6 @@
+## 1.0.3 2020-04-27
+* Write changes in temporaryLoanTypeId back to item record on POST/PUT for reserves
+
 ## 1.0.2 2020-04-07
 * Add missing module permissions for location and servicepoint lookup
 
