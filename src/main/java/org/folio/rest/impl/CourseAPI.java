@@ -86,7 +86,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
     Map<Class, String[]> mapInit = new HashMap<>();
     mapInit.put(CourseListing.class,
         new String[]{"servicepointObject", "locationObject", "termObject",
-          "courseTypeObject", "instructorObjects"});
+          "courseTypeObject"});
     mapInit.put(Course.class,
         new String[]{"departmentObject", "courseListingObject"});
     mapInit.put(Instructor.class,

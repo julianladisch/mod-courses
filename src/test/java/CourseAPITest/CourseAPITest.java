@@ -2905,6 +2905,37 @@ public class CourseAPITest {
   }
 
   @Test
+  public void testInstructorsForModifiedCourseListing(TestContext context) {
+    Async async = context.async();
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID,
+        GET, standardHeaders, null, 200, "Get course listing").compose(f -> {
+      context.assertTrue(f.getJson().containsKey("instructorObjects"));
+      context.assertTrue(f.getJson().getJsonArray("instructorObjects").size() > 1);
+      JsonObject clJson = f.getJson();
+      clJson.put("termId", TERM_2_ID);
+      
+      return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID,
+        PUT, acceptTextHeaders, clJson.encode(), 204, "Modify course listing");
+      
+      //return Future.succeededFuture(f);
+    }).compose(f -> {
+      return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID,
+        GET, acceptTextHeaders, null, 200, "Get course listing again");
+    }).compose( f-> {
+      context.assertEquals(f.getJson().getString("termId"), TERM_2_ID);
+      context.assertTrue(f.getJson().containsKey("instructorObjects"));
+      context.assertTrue(f.getJson().getJsonArray("instructorObjects").size() > 1);
+      return Future.succeededFuture(f);
+    }).setHandler(res -> {
+      if(res.succeeded()) {
+        async.complete();
+      } else {
+        context.fail(res.cause());
+      }
+    });
+  }
+
+  @Test
   public void testAddReserveByBarcodeTwice(TestContext context) {
     Async async = context.async();
     String reserveId = UUID.randomUUID().toString();
@@ -2984,7 +3015,6 @@ public class CourseAPITest {
     });
   
   }
-
 
    @Test
   public void testAddSameReserveToDifferentListing(TestContext context) {
