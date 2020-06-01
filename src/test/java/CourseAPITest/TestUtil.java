@@ -77,8 +77,12 @@ public class TestUtil {
       return Future.failedFuture("No okapi URL found in headers");
     }
     String requestUrl = okapiUrl + requestPath;
-    headers.add("x-okapi-token", originalHeaders.get("x-okapi-token"));
-    headers.add("x-okapi-tenant", originalHeaders.get("x-okapi-tenant"));
+    if(originalHeaders.contains("x-okapi-token")) {
+      headers.add("x-okapi-token", originalHeaders.get("x-okapi-token"));
+    }
+    if(originalHeaders.contains("x-okapi-tenant")) {
+      headers.add("x-okapi-tenant", originalHeaders.get("x-okapi-tenant"));
+    }
     headers.add("content-type", "application/json");
     headers.add("accept", "application/json");
     if(extraHeaders != null) {

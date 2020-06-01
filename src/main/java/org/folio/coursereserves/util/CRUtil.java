@@ -405,7 +405,8 @@ public class CRUtil {
         request.putHeader(key, value);
       }
     }
-    request.exceptionHandler(e -> { future.fail(e); });
+    request.exceptionHandler(e -> { future.fail("Failure making request " 
+        + e.getLocalizedMessage()); });
     request.handler( requestRes -> {
       requestRes.bodyHandler(bodyHandlerRes -> {
         try {
@@ -425,7 +426,8 @@ public class CRUtil {
             }
           }
         } catch(Exception e) {
-          future.fail(e);
+          future.fail("Error getting result from bodyhandler "
+              + e.getLocalizedMessage());
         }
       });
     });
