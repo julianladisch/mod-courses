@@ -19,13 +19,15 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.asyncsql.AsyncSQLClient;
-import io.vertx.ext.sql.SQLClient;
-import io.vertx.ext.sql.SQLConnection;
+//import io.vertx.ext.asyncsql.AsyncSQLClient;
+//import io.vertx.ext.sql.SQLClient;
+//import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
@@ -308,6 +310,26 @@ public class CourseAPITest {
   public void dummyTest(TestContext context) {
     Async async = context.async();
     async.complete();
+  }
+  
+  @Test
+  public void testOkapiReset(TestContext context) {
+    Async async = context.async();
+    JsonObject payload = new JsonObject().put("reset", true);
+    TestUtil.doOkapiRequest(vertx, "/reset", POST, okapiHeaders, null,
+        payload.encode(), 201, "Test Reset Okapi").onComplete(res -> {
+      if(res.failed()) {
+        res.cause().printStackTrace();
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        res.cause().printStackTrace(pw);
+        String errmess = res.cause().getLocalizedMessage() + sw.toString();
+        logger.error(errmess);
+        context.fail(errmess);
+      } else {
+        async.complete();
+      }
+    });
   }
 
   @Test

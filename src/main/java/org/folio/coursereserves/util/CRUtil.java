@@ -381,13 +381,19 @@ public class CRUtil {
       return future;
     }
     String requestUrl = okapiUrl + requestPath;
-    headers.add("x-okapi-token", originalHeaders.get("x-okapi-token"));
-    headers.add("x-okapi-tenant", originalHeaders.get("x-okapi-tenant"));
+    if(originalHeaders.contains("x-okapi-token")) {
+      headers.add("x-okapi-token", originalHeaders.get("x-okapi-token"));
+    }
+    if(originalHeaders.contains("x-okapi-tenant")) {
+      headers.add("x-okapi-tenant", originalHeaders.get("x-okapi-tenant"));
+    }
     headers.add("content-type", "application/json");
     headers.add("accept", "application/json");
     if(extraHeaders != null) {
       for(Map.Entry<String, String> entry : extraHeaders.entrySet()) {
-        headers.add(entry.getKey(), entry.getValue());
+        if(entry.getKey() != null && entry.getValue() != null) {
+          headers.add(entry.getKey(), entry.getValue());
+        }
       }
     }
     logger.debug("Creating request for url " + requestUrl);
