@@ -6,9 +6,9 @@ import io.vertx.core.Context;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import static io.vertx.core.http.HttpMethod.DELETE;
@@ -19,13 +19,15 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.asyncsql.AsyncSQLClient;
-import io.vertx.ext.sql.SQLClient;
-import io.vertx.ext.sql.SQLConnection;
+//import io.vertx.ext.asyncsql.AsyncSQLClient;
+//import io.vertx.ext.sql.SQLClient;
+//import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
@@ -95,8 +97,8 @@ public class CourseAPITest {
   public final static String EXTERNAL_ID_2 = "0002";
   public final static String EXTERNAL_ID_3 = "0003";
   public static Map<String, String> okapiHeaders = new HashMap<>();
-  public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
-  public static CaseInsensitiveHeaders acceptTextHeaders = new CaseInsensitiveHeaders();
+  public static MultiMap standardHeaders = MultiMap.caseInsensitiveMultiMap();
+  public static MultiMap acceptTextHeaders = MultiMap.caseInsensitiveMultiMap();
   public static String MODULE_TO = "1.0.1";
   public static String MODULE_FROM = "1.0.0";
   private static String restVerticleId;
@@ -309,6 +311,33 @@ public class CourseAPITest {
     Async async = context.async();
     async.complete();
   }
+  
+  @Test
+  public void testOkapiReset(TestContext context) {
+    Async async = context.async();
+    JsonObject payload = new JsonObject().put("reset", true);
+    try {
+      TestUtil.doOkapiRequest(vertx, "/reset", POST, okapiHeaders, null,
+          payload.encode(), 201, "Test Reset Okapi").onComplete(res -> {
+        if(res.failed()) {
+          res.cause().printStackTrace();
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          res.cause().printStackTrace(pw);
+          String errmess = res.cause().getLocalizedMessage() + sw.toString();
+          logger.error(errmess);
+          context.fail(errmess);
+        } else {
+          async.complete();
+        }
+      });
+    } catch(Exception e) {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
+      context.fail("Error calling doOkapiRequest: " + e.getLocalizedMessage() + sw.toString());
+    }
+  }
 
   @Test
   public void getRoles(TestContext context) {
@@ -516,7 +545,7 @@ public class CourseAPITest {
   @Test
   public void putCourseListingById(TestContext context) {
     Async async = context.async();
-    CaseInsensitiveHeaders acceptText = new CaseInsensitiveHeaders();
+    MultiMap acceptText = MultiMap.caseInsensitiveMultiMap();
     acceptText.add("Accept", "text/plain");
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_1_ID)
@@ -554,7 +583,7 @@ public class CourseAPITest {
   @Test
   public void putCourseListingByIdWithScrubbedField(TestContext context) {
     Async async = context.async();
-    CaseInsensitiveHeaders acceptText = new CaseInsensitiveHeaders();
+    MultiMap acceptText = MultiMap.caseInsensitiveMultiMap();
     acceptText.add("Accept", "text/plain");
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_1_ID)

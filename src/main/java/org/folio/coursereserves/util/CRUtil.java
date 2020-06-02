@@ -3,9 +3,9 @@ package org.folio.coursereserves.util;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
@@ -73,6 +73,9 @@ public class CRUtil {
   public static final String ITEMS_ENDPOINT = "/item-storage/items";
   public static final String HOLDINGS_ENDPOINT = "/holdings-storage/holdings";
   public static final String INSTANCES_ENDPOINT = "/instance-storage/instances";
+  public static final String OKAPI_URL_HEADER = "x-okapi-url";
+  public static final String OKAPI_TOKEN_HEADER = "x-okapi-token";
+  public static final String OKAPI_TENANT_HEADER = "x-okapi-tenant";
 
   protected static final List<PopulateMapping> LOCATION_MAP_LIST = getLocationMapList();
 
@@ -108,8 +111,8 @@ public class CRUtil {
 
   public static Future<JsonObject> populateReserveInventoryCache(Reserve reserve,
       Map<String, String> okapiHeaders, Context context) {
-    Future<JsonObject> future = Future.future();
-    Future<String> itemIdFuture;
+    Promise<JsonObject> promise = Promise.promise();
+    Promise<String> itemIdPromise = Promise.promise();
     String barcode;
     if(reserve.getCopiedItem() != null) {
       barcode = reserve.getCopiedItem().getBarcode();
@@ -118,30 +121,28 @@ public class CRUtil {
     }
     String itemId = reserve.getItemId();
     if(itemId != null && barcode == null) {
-      itemIdFuture = Future.succeededFuture(itemId);
+      itemIdPromise.complete(itemId);
     } else if(barcode != null) {
-      itemIdFuture = Future.future();
-      //String barcode = reserve.getCopiedItem().getBarcode();
       lookupItemByBarcode(barcode, okapiHeaders, context)
-          .setHandler(barcodeItemLookupRes -> {
+          .onComplete(barcodeItemLookupRes -> {
         if(barcodeItemLookupRes.failed()) {
-          itemIdFuture.fail(barcodeItemLookupRes.cause());
+          itemIdPromise.fail(barcodeItemLookupRes.cause());
         } else {
           if(barcodeItemLookupRes.result() != null) {
-            itemIdFuture.complete(barcodeItemLookupRes.result().getString("id"));
+            itemIdPromise.complete(barcodeItemLookupRes.result().getString("id"));
           } else {
-            itemIdFuture.fail("No item found for barcode " + barcode);
+            itemIdPromise.fail("No item found for barcode " + barcode);
           }
         }
       });
     } else {
-      future.fail("Must provide item id or item barcode to populate copied items");
-      return future;
+      promise.fail("Must provide item id or item barcode to populate copied items");
+      return promise.future();
     }
-    itemIdFuture.setHandler(itemIdRes -> {
+    itemIdPromise.future().onComplete(itemIdRes -> {
       if(itemIdRes.failed()) {
         logger.error("Failed to get item id " + itemIdRes.cause().getLocalizedMessage());
-        future.fail(itemIdRes.cause());
+        promise.fail(itemIdRes.cause());
       } else {
         reserve.setItemId(itemIdRes.result());
         String retrievedItemId = itemIdRes.result();
@@ -152,45 +153,45 @@ public class CRUtil {
           if(inventoryRes.failed()) {
             logger.error("Unable to do inventory lookup: "
                 + inventoryRes.cause().getLocalizedMessage());
-            future.fail(inventoryRes.cause());
+            promise.fail(inventoryRes.cause());
           } else {
             try {
               logger.info("Attempting to populate copied items with inventory lookup for item id "
                   + retrievedItemId);
               populateReserveCopiedItemFromJson(reserve, inventoryRes.result());
-              future.complete(inventoryRes.result());
+              promise.complete(inventoryRes.result());
             } catch(Exception e) {
-              future.fail(e);
+              promise.fail(e);
             }
           }
         });
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<List<Reserve>> expandListOfReserves(List<Reserve> listOfReserves,
       Map<String, String> okapiHeaders, Context context) {
-    Future<List<Reserve>> future = Future.future();
+    Promise<List<Reserve>> promise = Promise.promise();
     List<Future> expandedReserveFutureList = new ArrayList<>();
     for(Reserve reserve : listOfReserves) {
       expandedReserveFutureList.add(lookupExpandedReserve(reserve.getId(),
           okapiHeaders, context, true));
     }
     CompositeFuture compositeFuture = CompositeFuture.all(expandedReserveFutureList);
-    compositeFuture.setHandler(expandReservesRes -> {
+    compositeFuture.onComplete(expandReservesRes -> {
       if(expandReservesRes.failed()) {
-        future.fail(expandReservesRes.cause());
+        promise.fail(expandReservesRes.cause());
       } else {
         List<Reserve> newListOfReserves = new ArrayList<>();
         for( Future reserveFuture : expandedReserveFutureList ) {
           Future<Reserve> f = (Future<Reserve>)reserveFuture;
           newListOfReserves.add(f.result());
         }
-        future.complete(newListOfReserves);
+        promise.complete(newListOfReserves);
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static String getStringValueFromObjectArray(String fieldName, JsonArray array) {
@@ -291,103 +292,110 @@ public class CRUtil {
 
   public static Future<JsonObject> lookupItemHoldingsInstanceByItemId(String itemId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<JsonObject> future = Future.future();
+    Promise promise = Promise.promise();
     JsonObject result = new JsonObject();
     logger.info("Making request for item at " + ITEMS_ENDPOINT + "/" + itemId);
     makeOkapiRequest(context.owner(), okapiHeaders, ITEMS_ENDPOINT + "/" + itemId,
-        HttpMethod.GET, null, null, 200).setHandler(itemRes -> {
+        HttpMethod.GET, null, null, 200).onComplete(itemRes -> {
       if(itemRes.failed()) {
         logger.error("Unable to lookup item by id " + itemId);
-        future.fail(itemRes.cause());
+        promise.fail(itemRes.cause());
       } else {
         JsonObject itemJson = itemRes.result();
         String holdingsId = itemJson.getString("holdingsRecordId");
         result.put("item", itemJson);
         logger.info("Making request for holdings at " + HOLDINGS_ENDPOINT + "/" + holdingsId);
         makeOkapiRequest(context.owner(), okapiHeaders, HOLDINGS_ENDPOINT + "/" + holdingsId,
-            HttpMethod.GET, null, null, 200).setHandler(holdingsRes -> {
+            HttpMethod.GET, null, null, 200).onComplete(holdingsRes -> {
           if(holdingsRes.failed()) {
-            future.fail(holdingsRes.cause());
+            promise.fail(holdingsRes.cause());
           } else {
             JsonObject holdingsJson = holdingsRes.result();
             String instanceId = holdingsJson.getString("instanceId");
             result.put("holdings", holdingsJson);
             logger.info("Making request for instance at " + INSTANCES_ENDPOINT + "/" + instanceId);
             makeOkapiRequest(context.owner(), okapiHeaders, INSTANCES_ENDPOINT
-                + "/" + instanceId, HttpMethod.GET, null, null, 200).setHandler(
+                + "/" + instanceId, HttpMethod.GET, null, null, 200).onComplete(
                 instanceRes -> {
               if(instanceRes.failed()) {
-                future.fail(instanceRes.cause());
+                promise.fail(instanceRes.cause());
               } else {
                 JsonObject instanceJson = instanceRes.result();
                 result.put("instance", instanceJson);
                 logger.info("Inventory lookup complete");
-                future.complete(result);
+                promise.complete(result);
               }
             });
           }
         });
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<JsonObject> lookupUserAndGroupByUserId(String userId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<JsonObject> future = Future.future();
+    Promise<JsonObject> promise = Promise.promise();
     String userPath = "/users/" + userId;
     JsonObject result = new JsonObject();
     makeOkapiRequest(context.owner(), okapiHeaders, userPath, HttpMethod.GET,
-        null, null, 200).setHandler(userRes -> {
+        null, null, 200).onComplete(userRes -> {
       try {
         if(userRes.failed()) {
-          future.fail(userRes.cause());
+          promise.fail(userRes.cause());
         } else {
           result.put("user", userRes.result());
           String groupId = userRes.result().getString("patronGroup");
           String groupPath = "/groups/" + groupId;
           makeOkapiRequest(context.owner(), okapiHeaders, groupPath, HttpMethod.GET,
-              null, null, 200).setHandler(groupRes -> {
+              null, null, 200).onComplete(groupRes -> {
             try {
               if(groupRes.failed()) {
-                future.fail(groupRes.cause());
+                promise.fail(groupRes.cause());
               } else {
                 result.put("group", groupRes.result());
-                future.complete(result);
+                promise.complete(result);
               }
             } catch(Exception e) {
-              future.fail(e);
+              promise.fail(e);
             }
           });
         }
       } catch(Exception e) {
-        future.fail(e);
+        promise.fail(e);
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<JsonObject> makeOkapiRequest(Vertx vertx,
       Map<String, String> okapiHeaders, String requestPath, HttpMethod method,
       Map<String, String> extraHeaders, String payload, Integer expectedCode) {
-    Future<JsonObject> future = Future.future();
+    Promise<JsonObject> promise = Promise.promise();
     HttpClient client = vertx.createHttpClient();
-    CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
-    CaseInsensitiveHeaders originalHeaders = new CaseInsensitiveHeaders();
+    MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+    MultiMap originalHeaders = MultiMap.caseInsensitiveMultiMap();
+
     originalHeaders.setAll(okapiHeaders);
-    String okapiUrl = originalHeaders.get("x-okapi-url");
+    String okapiUrl = originalHeaders.get(OKAPI_URL_HEADER);
     if(okapiUrl == null) {
-      future.fail("No okapi URL found in headers");
-      return future;
+      promise.fail("No okapi URL found in headers");
+      return promise.future();
     }
     String requestUrl = okapiUrl + requestPath;
-    headers.add("x-okapi-token", originalHeaders.get("x-okapi-token"));
-    headers.add("x-okapi-tenant", originalHeaders.get("x-okapi-tenant"));
+    if(originalHeaders.contains(OKAPI_TOKEN_HEADER)) {
+      headers.add(OKAPI_TOKEN_HEADER, originalHeaders.get(OKAPI_TOKEN_HEADER));
+    }
+    if(originalHeaders.contains(OKAPI_TENANT_HEADER)) {
+      headers.add(OKAPI_TENANT_HEADER, originalHeaders.get(OKAPI_TENANT_HEADER));
+    }
     headers.add("content-type", "application/json");
     headers.add("accept", "application/json");
     if(extraHeaders != null) {
       for(Map.Entry<String, String> entry : extraHeaders.entrySet()) {
-        headers.add(entry.getKey(), entry.getValue());
+        if(entry.getKey() != null && entry.getValue() != null) {
+          headers.add(entry.getKey(), entry.getValue());
+        }
       }
     }
     logger.debug("Creating request for url " + requestUrl);
@@ -399,7 +407,8 @@ public class CRUtil {
         request.putHeader(key, value);
       }
     }
-    request.exceptionHandler(e -> { future.fail(e); });
+    request.exceptionHandler(e -> { promise.fail("Failure making request "
+        + e.getLocalizedMessage()); });
     request.handler( requestRes -> {
       requestRes.bodyHandler(bodyHandlerRes -> {
         try {
@@ -410,16 +419,17 @@ public class CRUtil {
                 expectedCode, method.toString(), requestUrl, requestRes.statusCode(),
                 response);
             logger.error(message);
-            future.fail(message);
+            promise.fail(message);
           } else {
             if(response != null && response.length() > 0) {
-              future.complete(new JsonObject(response));
+              promise.complete(new JsonObject(response));
             } else {
-              future.complete(null);
+              promise.complete(null);
             }
           }
         } catch(Exception e) {
-          future.fail(e);
+          promise.fail("Error getting result from bodyhandler "
+              + e.getLocalizedMessage());
         }
       });
     });
@@ -430,18 +440,18 @@ public class CRUtil {
       logger.debug("Sending payload-free request");
       request.end();
     }
-    return future;
+    return promise.future();
   }
 
   public static Future<Reserve> lookupExpandedReserve(String reserveId,
       Map<String, String> okapiHeaders, Context context, Boolean expand) {
-    Future<Reserve> future = Future.future();
-    getReserveById(reserveId, okapiHeaders, context).setHandler(reserveRes -> {
+    Promise<Reserve> promise = Promise.promise();
+    getReserveById(reserveId, okapiHeaders, context).onComplete(reserveRes -> {
       if(reserveRes.failed()) {
-        future.fail(reserveRes.cause());
+        promise.fail(reserveRes.cause());
       } else if(expand == false ||  reserveRes.result() == null ||
           reserveRes.result().getCopiedItem() == null) {
-        future.complete(reserveRes.result());
+        promise.complete(reserveRes.result());
       } else {
         try {
           Reserve reserve = reserveRes.result();
@@ -474,56 +484,56 @@ public class CRUtil {
           }
           populateReserveForRetrieval(reserve, tempLocationFuture, permLocationFuture,
               processingStatusFuture, copyrightStatusFuture, loanTypeFuture)
-              .setHandler(populateRes -> {
+              .onComplete(populateRes -> {
             if(populateRes.failed()) {
-              future.fail(populateRes.cause());
+              promise.fail(populateRes.cause());
             } else {
-              future.complete(reserve);
+              promise.complete(reserve);
             }
           });
         } catch(Exception e) {
-          future.fail(e);
+          promise.fail(e);
         }
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<JsonObject> lookupItemByBarcode(String barcode,
       Map<String, String> okapiHeaders, Context context) {
-    Future<JsonObject> future = Future.future();
+    Promise<JsonObject> promise = Promise.promise();
     String itemRequestUrl = String.format("%s?query=barcode=%s", ITEMS_ENDPOINT,
         barcode);
     logger.debug("Looking up item by barcode with url " + itemRequestUrl);
     makeOkapiRequest(context.owner(), okapiHeaders, itemRequestUrl, HttpMethod.GET,
-        null, null, 200).setHandler(itemQueryRes -> {
+        null, null, 200).onComplete(itemQueryRes -> {
       if(itemQueryRes.failed()) {
-        future.fail(itemQueryRes.cause());
+        promise.fail(itemQueryRes.cause());
       } else {
         try {
           JsonObject itemsResultJson = itemQueryRes.result();
           if(itemsResultJson.getInteger("totalRecords") > 1) {
-            future.fail(String.format("Expected 1 result for barcode %s, got multiple",
+            promise.fail(String.format("Expected 1 result for barcode %s, got multiple",
                 barcode));
           } else if(itemsResultJson.getInteger("totalRecords") < 1) {
-            future.complete(null);
+            promise.complete(null);
           } else {
             JsonObject itemJson = itemsResultJson.getJsonArray("items").getJsonObject(0);
-            future.complete(itemJson);
+            promise.complete(itemJson);
           }
         } catch(Exception e) {
-          future.fail(e);
+          promise.fail(e);
         }
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<Void> populateReserveForRetrieval(Reserve reserve,
       Future<JsonObject> tempLocationFuture, Future<JsonObject> permLocationFuture,
       Future<ProcessingStatus> processingStatusFuture,
       Future<CopyrightStatus> copyrightStatusFuture, Future<JsonObject> loanTypeFuture) {
-    Future<Void> future = Future.future();
+    Promise promise = Promise.promise();
     List<Future> futureList = new ArrayList<>();
     futureList.add(tempLocationFuture);
     futureList.add(permLocationFuture);
@@ -531,7 +541,7 @@ public class CRUtil {
     futureList.add(copyrightStatusFuture);
     futureList.add(loanTypeFuture);
     CompositeFuture compositeFuture = CompositeFuture.join(futureList);
-    compositeFuture.setHandler(compRes -> {
+    compositeFuture.onComplete(compRes -> {
       try {
         if(reserve.getCopiedItem() != null) {
           if(tempLocationFuture.succeeded()) {
@@ -566,22 +576,22 @@ public class CRUtil {
               loanTypeFuture.result());
           reserve.setTemporaryLoanTypeObject(tlto);
         }
-        future.complete();
+        promise.complete();
       } catch(Exception e) {
-        future.fail(e);
+        promise.fail(e);
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<CourseListing> lookupExpandedCourseListing(String courseListingId,
       Map<String, String> okapiHeaders, Context context, Boolean expandTerm) {
-    Future<CourseListing> future = Future.future();
-    getCourseListingById(courseListingId, okapiHeaders, context).setHandler(clRes -> {
+    Promise<CourseListing> promise = Promise.promise();
+    getCourseListingById(courseListingId, okapiHeaders, context).onComplete(clRes -> {
       if(clRes.failed()) {
-        future.fail(clRes.cause());
+        promise.fail(clRes.cause());
       } else if(clRes.result() == null) {
-        future.complete(null);
+        promise.complete(null);
       } else {
         try {
           CourseListing courselisting = clRes.result();
@@ -620,7 +630,7 @@ public class CRUtil {
           futureList.add(locationFuture);
           futureList.add(servicePointFuture);
           CompositeFuture compositeFuture = CompositeFuture.join(futureList);
-          compositeFuture.setHandler(compRes -> {
+          compositeFuture.onComplete(compRes -> {
             try {
               if(termFuture.succeeded()) {
                 courselisting.setTermObject(termObjectFromTerm(termFuture.result()));
@@ -635,17 +645,17 @@ public class CRUtil {
               if(servicePointFuture.succeeded()) {
                 courselisting.setServicepointObject(servicepointObjectFromJson(servicePointFuture.result()));
               }
-              future.complete(courselisting);
+              promise.complete(courselisting);
             } catch(Exception e) {
-              future.fail(e);
+              promise.fail(e);
             }
           });
         } catch(Exception e) {
-          future.fail(e);
+          promise.fail(e);
         }
       }
     });
-    return future;
+    return promise.future();
   }
 
   /* Basic lookup for courselisting, wrapped in a future */
@@ -742,57 +752,57 @@ public class CRUtil {
 
   public static Future<JsonObject> lookupLocation(String locationId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<JsonObject> future = Future.future();
+    Promise<JsonObject> promise = Promise.promise();
     String locationPath = LOCATIONS_ENDPOINT + "/" + locationId;
     logger.debug("Making request for location at " + locationPath);
     makeOkapiRequest(context.owner(), okapiHeaders, locationPath, HttpMethod.GET,
-        null, null, 200).setHandler(locationRes-> {
+        null, null, 200).onComplete(locationRes-> {
       if(locationRes.failed()) {
         logger.error("Location request failed: " + locationRes.cause().getLocalizedMessage());
-        future.fail(locationRes.cause());
+        promise.fail(locationRes.cause());
       } else {
         logger.debug("Location request succeeded");
         JsonObject locationJson = locationRes.result();
-        future.complete(locationJson);
+        promise.complete(locationJson);
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<JsonObject> lookupLoanType(String loanTypeId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<JsonObject> future = Future.future();
+    Promise<JsonObject> promise = Promise.promise();
     String loanTypePath = LOAN_TYPES_ENDPOINT + "/" + loanTypeId;
     logger.debug("Making request for location at " + loanTypePath);
     makeOkapiRequest(context.owner(), okapiHeaders, loanTypePath, HttpMethod.GET,
-        null, null, 200).setHandler(loanTypeRes-> {
+        null, null, 200).onComplete(loanTypeRes-> {
       if(loanTypeRes.failed()) {
         logger.error("Loan type request failed");
-        future.fail(loanTypeRes.cause());
+        promise.fail(loanTypeRes.cause());
       } else {
         logger.debug("Loan type request succeeded");
         JsonObject loanTypeJson = loanTypeRes.result();
-        future.complete(loanTypeJson);
+        promise.complete(loanTypeJson);
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<JsonObject> lookupServicepoint(String servicepointId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<JsonObject> future = Future.future();
+    Promise<JsonObject> promise = Promise.promise();
     String servicePointPath = SERVICE_POINTS_ENDPOINT + "/" + servicepointId;
     logger.debug("Making request for servicepoint at " + servicePointPath);
     makeOkapiRequest(context.owner(), okapiHeaders, servicePointPath,
-        HttpMethod.GET, null, null, 200).setHandler(spRes -> {
+        HttpMethod.GET, null, null, 200).onComplete(spRes -> {
       if(spRes.failed()) {
-        future.fail(spRes.cause());
+        promise.fail(spRes.cause());
       } else {
         JsonObject spJson = spRes.result();
-        future.complete(spJson);
+        promise.complete(spJson);
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<List<Instructor>> lookupInstructorsForCourseListing(
@@ -828,12 +838,12 @@ public class CRUtil {
       Map<String, String> okapiHeaders, Context context) {
     Promise<Void> promise = Promise.promise();
     lookupInstructorsForCourseListing(courseListingId,
-        okapiHeaders, context).setHandler(instructorRes -> {
+        okapiHeaders, context).onComplete(instructorRes -> {
       if(instructorRes.failed()) {
         promise.fail(instructorRes.cause());
       } else {
         getCourseListingById(courseListingId, okapiHeaders, context)
-            .setHandler(getRes -> {
+            .onComplete(getRes -> {
           if(getRes.failed()) {
             promise.fail(getRes.cause());
           } else {
@@ -952,30 +962,30 @@ public class CRUtil {
   }
   public static Future<List<Course>> expandListOfCourses(List<Course> listOfCourses,
       Map<String, String> okapiHeaders, Context context) {
-    Future<List<Course>> future = Future.future();
+    Promise<List<Course>> promise = Promise.promise();
     List<Future> expandedCourseFutureList = new ArrayList<>();
     for(Course course : listOfCourses) {
       expandedCourseFutureList.add(getExpandedCourse(course, okapiHeaders, context));
     }
     CompositeFuture compositeFuture = CompositeFuture.all(expandedCourseFutureList);
-    compositeFuture.setHandler(expandCoursesRes -> {
+    compositeFuture.onComplete(expandCoursesRes -> {
       if(expandCoursesRes.failed()) {
-        future.fail(expandCoursesRes.cause());
+        promise.fail(expandCoursesRes.cause());
       } else {
         List<Course> newListOfCourses = new ArrayList<>();
         for( Future fut : expandedCourseFutureList ) {
           Future<Course> f = (Future<Course>)fut;
           newListOfCourses.add(f.result());
         }
-        future.complete(newListOfCourses);
+        promise.complete(newListOfCourses);
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<Course> getExpandedCourse(Course course,
       Map<String, String> okapiHeaders, Context context) {
-    Future<Course> future = Future.future();
+    Promise<Course> promise = Promise.promise();
     Future<CourseListing> courseListingFuture;
     Course newCourse;
     try {
@@ -987,9 +997,9 @@ public class CRUtil {
         courseListingFuture = lookupExpandedCourseListing(course.getCourseListingId(),
             okapiHeaders, context, Boolean.TRUE);
       }
-      courseListingFuture.setHandler(courselistingReply -> {
+      courseListingFuture.onComplete(courselistingReply -> {
         if(courselistingReply.failed()) {
-          future.fail(courselistingReply.cause());
+          promise.fail(courselistingReply.cause());
         } else {
           try {
           CourseListingObject expandedCourseListing = new CourseListingObject();
@@ -1006,9 +1016,9 @@ public class CRUtil {
             departmentFuture = lookupDepartment(course.getDepartmentId(), okapiHeaders,
                 context);
           }
-          departmentFuture.setHandler(departmentReply -> {
+          departmentFuture.onComplete(departmentReply -> {
             if(departmentReply.failed()) {
-              future.fail(departmentReply.cause());
+              promise.fail(departmentReply.cause());
             } else {
               Department department = departmentReply.result();
               try {
@@ -1017,22 +1027,22 @@ public class CRUtil {
                   copyFields(departmentObject, department);
                   newCourse.setDepartmentObject(departmentObject);
                 }
-              future.complete(newCourse);
+              promise.complete(newCourse);
               } catch(Exception e) {
-                future.fail(e);
+                promise.fail(e);
               }
             }
           });
           } catch(Exception e) {
-            future.fail(e);
+            promise.fail(e);
           }
         }
       });
     }
       catch(Exception e) {
-        future.fail(e);
+        promise.fail(e);
     }
-    return future;
+    return promise.future();
   }
 
   public static Future<Void> putItemUpdate(JsonObject itemJson,
@@ -1042,7 +1052,7 @@ public class CRUtil {
        String id = itemJson.getString("id");
        String putPath = ITEMS_ENDPOINT + "/" + id;
        makeOkapiRequest(context.owner(), okapiHeaders, putPath, HttpMethod.PUT,
-           textAcceptHeaders, itemJson.encode(), 204).setHandler(res -> {
+           textAcceptHeaders, itemJson.encode(), 204).onComplete(res -> {
          if(res.failed()) {
            logger.error("Put failed: " + res.cause().getLocalizedMessage());
            promise.fail(res.cause());
