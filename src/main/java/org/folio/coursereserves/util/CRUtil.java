@@ -3,9 +3,9 @@ package org.folio.coursereserves.util;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
@@ -73,6 +73,9 @@ public class CRUtil {
   public static final String ITEMS_ENDPOINT = "/item-storage/items";
   public static final String HOLDINGS_ENDPOINT = "/holdings-storage/holdings";
   public static final String INSTANCES_ENDPOINT = "/instance-storage/instances";
+  public static final String OKAPI_URL_HEADER = "x-okapi-url";
+  public static final String OKAPI_TOKEN_HEADER = "x-okapi-token";
+  public static final String OKAPI_TENANT_HEADER = "x-okapi-tenant";
 
   protected static final List<PopulateMapping> LOCATION_MAP_LIST = getLocationMapList();
 
@@ -370,22 +373,23 @@ public class CRUtil {
   public static Future<JsonObject> makeOkapiRequest(Vertx vertx,
       Map<String, String> okapiHeaders, String requestPath, HttpMethod method,
       Map<String, String> extraHeaders, String payload, Integer expectedCode) {
-    Future<JsonObject> future = Future.future();
+    Promise<JsonObject> promise = Promise.promise();
     HttpClient client = vertx.createHttpClient();
-    CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
-    CaseInsensitiveHeaders originalHeaders = new CaseInsensitiveHeaders();
+    MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+    MultiMap originalHeaders = MultiMap.caseInsensitiveMultiMap();
+
     originalHeaders.setAll(okapiHeaders);
-    String okapiUrl = originalHeaders.get("x-okapi-url");
+    String okapiUrl = originalHeaders.get(OKAPI_URL_HEADER);
     if(okapiUrl == null) {
-      future.fail("No okapi URL found in headers");
-      return future;
+      promise.fail("No okapi URL found in headers");
+      return promise.future();
     }
     String requestUrl = okapiUrl + requestPath;
-    if(originalHeaders.contains("x-okapi-token")) {
-      headers.add("x-okapi-token", originalHeaders.get("x-okapi-token"));
+    if(originalHeaders.contains(OKAPI_TOKEN_HEADER)) {
+      headers.add(OKAPI_TOKEN_HEADER, originalHeaders.get(OKAPI_TOKEN_HEADER));
     }
-    if(originalHeaders.contains("x-okapi-tenant")) {
-      headers.add("x-okapi-tenant", originalHeaders.get("x-okapi-tenant"));
+    if(originalHeaders.contains(OKAPI_TENANT_HEADER)) {
+      headers.add(OKAPI_TENANT_HEADER, originalHeaders.get(OKAPI_TENANT_HEADER));
     }
     headers.add("content-type", "application/json");
     headers.add("accept", "application/json");
@@ -405,7 +409,7 @@ public class CRUtil {
         request.putHeader(key, value);
       }
     }
-    request.exceptionHandler(e -> { future.fail("Failure making request " 
+    request.exceptionHandler(e -> { promise.fail("Failure making request "
         + e.getLocalizedMessage()); });
     request.handler( requestRes -> {
       requestRes.bodyHandler(bodyHandlerRes -> {
@@ -417,16 +421,16 @@ public class CRUtil {
                 expectedCode, method.toString(), requestUrl, requestRes.statusCode(),
                 response);
             logger.error(message);
-            future.fail(message);
+            promise.fail(message);
           } else {
             if(response != null && response.length() > 0) {
-              future.complete(new JsonObject(response));
+              promise.complete(new JsonObject(response));
             } else {
-              future.complete(null);
+              promise.complete(null);
             }
           }
         } catch(Exception e) {
-          future.fail("Error getting result from bodyhandler "
+          promise.fail("Error getting result from bodyhandler "
               + e.getLocalizedMessage());
         }
       });
@@ -438,7 +442,7 @@ public class CRUtil {
       logger.debug("Sending payload-free request");
       request.end();
     }
-    return future;
+    return promise.future();
   }
 
   public static Future<Reserve> lookupExpandedReserve(String reserveId,

@@ -6,9 +6,9 @@ import io.vertx.core.Context;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import static io.vertx.core.http.HttpMethod.DELETE;
@@ -97,8 +97,8 @@ public class CourseAPITest {
   public final static String EXTERNAL_ID_2 = "0002";
   public final static String EXTERNAL_ID_3 = "0003";
   public static Map<String, String> okapiHeaders = new HashMap<>();
-  public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
-  public static CaseInsensitiveHeaders acceptTextHeaders = new CaseInsensitiveHeaders();
+  public static MultiMap standardHeaders = MultiMap.caseInsensitiveMultiMap();
+  public static MultiMap acceptTextHeaders = MultiMap.caseInsensitiveMultiMap();
   public static String MODULE_TO = "1.0.1";
   public static String MODULE_FROM = "1.0.0";
   private static String restVerticleId;
@@ -545,7 +545,7 @@ public class CourseAPITest {
   @Test
   public void putCourseListingById(TestContext context) {
     Async async = context.async();
-    CaseInsensitiveHeaders acceptText = new CaseInsensitiveHeaders();
+    MultiMap acceptText = MultiMap.caseInsensitiveMultiMap();
     acceptText.add("Accept", "text/plain");
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_1_ID)
@@ -583,7 +583,7 @@ public class CourseAPITest {
   @Test
   public void putCourseListingByIdWithScrubbedField(TestContext context) {
     Async async = context.async();
-    CaseInsensitiveHeaders acceptText = new CaseInsensitiveHeaders();
+    MultiMap acceptText = MultiMap.caseInsensitiveMultiMap();
     acceptText.add("Accept", "text/plain");
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_1_ID)

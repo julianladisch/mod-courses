@@ -1,9 +1,9 @@
 package CourseAPITest;
 
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -69,8 +69,8 @@ public class TestUtil {
       Map<String, String> extraHeaders, String payload,
       Integer expectedCode, String explanation) {
     HttpClient client = getHttpClient(vertx);
-    CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
-    CaseInsensitiveHeaders originalHeaders = new CaseInsensitiveHeaders();
+    MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+    MultiMap originalHeaders = MultiMap.caseInsensitiveMultiMap();
     originalHeaders.setAll(okapiHeaders);
     String okapiUrl = originalHeaders.get("x-okapi-url");
     if(okapiUrl == null) {
@@ -102,7 +102,7 @@ public class TestUtil {
   }
 
   public static Future<WrappedResponse> doRequest(Vertx vertx, String url,
-          HttpMethod method, CaseInsensitiveHeaders headers, String payload,
+          HttpMethod method, MultiMap headers, String payload,
           Integer expectedCode, String explanation) {
     //Future<WrappedResponse> future = Future.future();
     boolean addPayLoad = false;
