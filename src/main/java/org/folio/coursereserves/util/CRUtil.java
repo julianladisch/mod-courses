@@ -149,7 +149,7 @@ public class CRUtil {
         logger.info("Looking up information for item " + retrievedItemId
             + " from inventory module");
         lookupItemHoldingsInstanceByItemId(retrievedItemId, okapiHeaders, context)
-            .setHandler(inventoryRes -> {
+            .onComplete(inventoryRes -> {
           if(inventoryRes.failed()) {
             logger.error("Unable to do inventory lookup: "
                 + inventoryRes.cause().getLocalizedMessage());
