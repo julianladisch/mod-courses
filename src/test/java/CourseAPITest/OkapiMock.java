@@ -37,6 +37,7 @@ public class OkapiMock extends AbstractVerticle {
   public static String holdings1Id = UUID.randomUUID().toString();
   public static String holdings2Id = UUID.randomUUID().toString();
   public static String instance1Id = UUID.randomUUID().toString();
+  public static String instance1Hrid = "inst000000000006";
   public static String barcode1 = "326547658598";
   public static String barcode2 = "539311253355";
   public static String barcode3 = "794630622287";
@@ -169,7 +170,7 @@ public class OkapiMock extends AbstractVerticle {
         return;
       }
    }
-   
+
   private void handleItems(RoutingContext context) {
     logger.info("Got request for items: " + context.request().absoluteURI());
     String id = context.request().getParam("id");
@@ -276,7 +277,7 @@ public class OkapiMock extends AbstractVerticle {
        return null;
      }
    }
-   
+
    private void handleHoldings(RoutingContext context) {
      String id = context.request().getParam("id");
      if(context.request().method() == HttpMethod.GET) {
@@ -301,7 +302,7 @@ public class OkapiMock extends AbstractVerticle {
         return;
       }
    }
-   
+
    private void handleInstances(RoutingContext context) {
      String id = context.request().getParam("id");
      if(context.request().method() == HttpMethod.GET) {
@@ -326,7 +327,7 @@ public class OkapiMock extends AbstractVerticle {
         return;
       }
    }
-   
+
    private void handleLocations(RoutingContext context) {
      logger.info("Got location request");
      String id = context.request().getParam("id");
@@ -352,7 +353,7 @@ public class OkapiMock extends AbstractVerticle {
         return;
       }
    }
-   
+
    private void handleServicePoints(RoutingContext context) {
      logger.info("Got service points request");
      String id = context.request().getParam("id");
@@ -579,7 +580,6 @@ public class OkapiMock extends AbstractVerticle {
       .put("permanentLocationId", location1Id)
       .put("temporaryLocationId", location2Id)
       .put("callNumber", fullCallNumber1)
-      
     );
 
     holdingsMap.put(holdings2Id, new JsonObject()
@@ -600,6 +600,7 @@ public class OkapiMock extends AbstractVerticle {
     instanceMap = new HashMap<>();
     instanceMap.put(instance1Id, new JsonObject()
       .put("id", instance1Id)
+      .put("hrid", instance1Hrid)
       .put("title", title1)
       .put("contributors", new JsonArray()
         .add(new JsonObject()
@@ -635,7 +636,7 @@ public class OkapiMock extends AbstractVerticle {
           .add(servicePoint1Id)
           .add(servicePoint2Id)
           .add(servicePoint3Id)
-        )        
+        )
     );
 
     locationMap.put(location2Id, new JsonObject()
@@ -653,7 +654,7 @@ public class OkapiMock extends AbstractVerticle {
           .add(servicePoint3Id)
         )
     );
-    
+
     servicePointMap = new HashMap<>();
     servicePointMap
       .put(servicePoint1Id, new JsonObject()
@@ -681,7 +682,7 @@ public class OkapiMock extends AbstractVerticle {
           )
         )
     );
-    
+
     servicePointMap.put(servicePoint2Id, new JsonObject()
       .put("id", servicePoint2Id)
       .put("name", "Circ Desk 2")
@@ -734,7 +735,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("id", loanType1Id)
       .put("name", "Reserved Loan")
     );
-        
+
   }
 
   private static void addSampleData() {

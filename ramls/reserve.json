@@ -150,6 +150,10 @@
                     "type": "string",
                     "description": "The id of the associated instance record"
                 },
+                "instanceHrid": {
+                    "type": "string",
+                    "description": "The HRID of the associated instance record"
+                },
                 "holdingsId": {
                     "type": "string",
                     "description": "The id of the associated holdings record"
