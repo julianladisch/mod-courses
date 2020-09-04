@@ -2,7 +2,6 @@ package CourseAPITest;
 
 import static CourseAPITest.CourseAPITest.MODULE_FROM;
 import static CourseAPITest.CourseAPITest.MODULE_TO;
-import static CourseAPITest.CourseAPITest.port;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -10,7 +9,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpMethod;
 import static io.vertx.core.http.HttpMethod.GET;
 import static io.vertx.core.http.HttpMethod.POST;
 import io.vertx.core.json.JsonArray;
@@ -39,16 +37,16 @@ import org.junit.runner.RunWith;
 public class CourseAPIWithSampleDataTest {
   static int port;
   static int okapiPort;
-  private static Vertx vertx;
-  private static final Logger logger = LoggerFactory.getLogger(CourseAPIWithSampleDataTest.class);
+  protected static Vertx vertx;
+  protected static final Logger logger = LoggerFactory.getLogger(CourseAPIWithSampleDataTest.class);
   public static String baseUrl;
   public static String okapiUrl;
   public static String okapiTenantUrl;
   public static Map<String, String> okapiHeaders = new HashMap<>();
   public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
   public static CaseInsensitiveHeaders acceptTextHeaders = new CaseInsensitiveHeaders();
-  private static String restVerticleId;
-  private static String okapiVerticleId;
+  protected static String restVerticleId;
+  protected static String okapiVerticleId;
 
   @Rule
   public Timeout rule = Timeout.seconds(200);
@@ -168,7 +166,7 @@ public class CourseAPIWithSampleDataTest {
     async.complete();
   }
 
-  private static Future<Void> addSampleData() {
+  protected static Future<Void> addSampleData() {
     Future<Void> future = Future.future();
     JsonObject payload = new JsonObject().put("add", true);
     logger.info("Making request to add sample mock okapi data");
@@ -183,7 +181,7 @@ public class CourseAPIWithSampleDataTest {
     return future;
   }
 
-  private static Future<Void> resetMockOkapi() {
+  protected static Future<Void> resetMockOkapi() {
     Future<Void> future = Future.future();
     JsonObject payload = new JsonObject().put("reset", true);
     logger.info("Making request to reset mock okapi data");
@@ -198,10 +196,10 @@ public class CourseAPIWithSampleDataTest {
     return future;
   }
 
-  private static Future<Void> initTenant(String tenantId, int port) {
+  protected static Future<Void> initTenant(String tenantId, int port) {
     Promise<Void> promise = Promise.promise();
     HttpClient client = vertx.createHttpClient();
-    String url = "http://localhost:" + port + "/_/tenant?tenantParameters=loadSample=true";
+    String url = "http://localhost:" + port + "/_/tenant";
     JsonObject payload = new JsonObject()
         .put("module_to", MODULE_TO)
         .put("module_from", MODULE_FROM)
