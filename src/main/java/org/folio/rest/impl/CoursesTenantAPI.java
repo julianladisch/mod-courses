@@ -39,10 +39,10 @@ public class CoursesTenantAPI extends TenantAPI {
       if(res.failed()) {
         logger.error("Unable to load tenant: " + res.cause().getMessage());
         handler.handle(res);
-      } else if(loadSample) {
+      } else if(Boolean.TRUE.equals(loadSample)) {
         TenantLoading tenantLoading = new TenantLoading();
         tenantLoading
-            .withKey("loadSample").withLead("sample-data").withPostOnly()
+            .withKey(PARAMETER_LOAD_SAMPLE).withLead("sample-data").withPostOnly()
               .add("terms", "coursereserves/terms")
               .add("copyrightstatuses", "coursereserves/copyrightstatuses")
               .add("departments", "coursereserves/departments")
