@@ -9,11 +9,15 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.Map;
 
 
 public class TestUtil {
   private static HttpClient httpClient = null;
+  private static final Logger logger = LoggerFactory.getLogger(TestUtil.class.getClass()
+      .getName());
 
   static class WrappedResponse {
     private String explanation;
@@ -160,10 +164,12 @@ public class TestUtil {
         String explainString = "(no explanation)";
         if(explanation != null) { explainString = explanation; }
         if(expectedCode != null && expectedCode != req.statusCode()) {
-          promise.fail(request.method().toString() + " to " + request.absoluteURI()
+          String message = request.method().toString() + " to " + request.absoluteURI()
                   + " failed. Expected status code "
                   + expectedCode + ", got status code " + req.statusCode() + ": "
-                  + buf.toString() + " | " + explainString);
+                  + buf.toString() + " | " + explainString;
+          promise.fail(message);
+          logger.error(message);
         } else {
           System.out.println("Got status code " + req.statusCode() + " with payload of: " + buf.toString() + " | " + explainString);
           WrappedResponse wr = new WrappedResponse(explanation, req.statusCode(), buf.toString(), req);

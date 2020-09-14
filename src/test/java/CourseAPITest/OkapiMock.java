@@ -109,6 +109,7 @@ public class OkapiMock extends AbstractVerticle {
     router.route("/service-points/:id").handler(this::handleServicePoints);
     router.route("/loan-types/:id").handler(this::handleLoanTypes);
     router.route("/reset").handler(this::handleReset);
+    router.route("/wipe").handler(this::handleWipe);
     router.route("/addsample").handler(this::handleAddSample);
 
     logger.info("Running OkapiMock on port " + port);
@@ -406,6 +407,32 @@ public class OkapiMock extends AbstractVerticle {
       }
    }
 
+   private void handleWipe(RoutingContext context) {
+     logger.info("Got wipe request");
+     if(context.request().method() == HttpMethod.POST) {
+       String postContent = context.getBodyAsString();
+       JsonObject json = new JsonObject(postContent);
+       try {
+        if(json != null && json.containsKey("wipe")) {
+          if(json.getBoolean("wipe")) {
+            wipeData();
+            context.response().setStatusCode(201).end(json.encode());
+          } else {
+            throw new Exception("Bad input");
+          }
+        }
+       } catch(Exception e) {
+         context.response().setStatusCode(400).end(e.getLocalizedMessage());
+       }
+     } else {
+       String message = String.format("Unsupported method %s", context.request()
+            .method().toString());
+        context.response().setStatusCode(400)
+          .end(message);
+        return;
+     }
+   }
+
    private void handleReset(RoutingContext context) {
      logger.info("Got reset request");
      if(context.request().method() == HttpMethod.POST) {
@@ -458,9 +485,22 @@ public class OkapiMock extends AbstractVerticle {
      }
    }
 
-   private static void initData() {
-    logger.info("Resetting data in mock okapi");
+  private static void wipeData() {
+    logger.info("Wiping sample data from mock okapi");
     userMap = new HashMap<>();
+    groupMap = new HashMap<>();
+    itemMap = new HashMap<>();
+    holdingsMap = new HashMap<>();
+    instanceMap = new HashMap<>();
+    locationMap = new HashMap<>();
+    servicePointMap = new HashMap<>();
+    loanTypeMap = new HashMap<>();
+  }
+
+
+  private static void initData() {
+    logger.info("Resetting data in mock okapi");
+    wipeData();
     userMap.put(user1Id, new JsonObject()
       .put("id", user1Id)
       .put("username", "elsanto")
@@ -489,7 +529,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("barcode", barcode4)
       .put("active", Boolean.TRUE));
 
-    groupMap = new HashMap<>();
+    
     groupMap.put(group1Id, new JsonObject()
       .put("id", group1Id)
       .put("name", "wrasslers")
@@ -507,8 +547,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("name", "managers")
       .put("desc", "People Who manage")
     );
-
-    itemMap = new HashMap<>();
+    
     itemMap.put(item1Id, new JsonObject()
         .put("id", item1Id)
         .put("status", new JsonObject().put("name", "Available"))
@@ -570,9 +609,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("permanentLocationId", location2Id)
       .put("copyNumbers", new JsonArray()
           .add(copy1))
-    );
-
-    holdingsMap = new HashMap<>();
+    );    
 
     holdingsMap.put(holdings1Id, new JsonObject()
       .put("id", holdings1Id)
@@ -597,7 +634,6 @@ public class OkapiMock extends AbstractVerticle {
           )
     );
 
-    instanceMap = new HashMap<>();
     instanceMap.put(instance1Id, new JsonObject()
       .put("id", instance1Id)
       .put("hrid", instance1Hrid)
@@ -621,7 +657,6 @@ public class OkapiMock extends AbstractVerticle {
       )
     );
 
-    locationMap = new HashMap<>();
     locationMap.put(location1Id, new JsonObject()
         .put("id", location1Id)
         .put("name", "Location 1")
@@ -655,7 +690,6 @@ public class OkapiMock extends AbstractVerticle {
         )
     );
 
-    servicePointMap = new HashMap<>();
     servicePointMap
       .put(servicePoint1Id, new JsonObject()
         .put("id", servicePoint1Id)
@@ -730,13 +764,13 @@ public class OkapiMock extends AbstractVerticle {
       )
     );
 
-    loanTypeMap = new HashMap<>();
     loanTypeMap.put(loanType1Id, new JsonObject()
       .put("id", loanType1Id)
       .put("name", "Reserved Loan")
     );
 
   }
+
 
   private static void addSampleData() {
     logger.info("Adding sample data to mock okapi");

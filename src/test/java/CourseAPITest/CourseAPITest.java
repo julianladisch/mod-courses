@@ -340,6 +340,33 @@ public class CourseAPITest {
   }
 
   @Test
+  public void testOkapiWipe(TestContext context) {
+    Async async = context.async();
+    JsonObject payload = new JsonObject().put("wipe", true);
+    try {
+      TestUtil.doOkapiRequest(vertx, "/wipe", POST, okapiHeaders, null,
+          payload.encode(), 201, "Test Wipe Okapi").onComplete(res -> {
+        if(res.failed()) {
+          res.cause().printStackTrace();
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          res.cause().printStackTrace(pw);
+          String errmess = res.cause().getLocalizedMessage() + sw.toString();
+          logger.error(errmess);
+          context.fail(errmess);
+        } else {
+          async.complete();
+        }
+      });
+    } catch(Exception e) {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
+      context.fail("Error calling doOkapiRequest: " + e.getLocalizedMessage() + sw.toString());
+    }
+  }
+
+  @Test
   public void getRoles(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/roles", GET, null, null, 200,
