@@ -231,6 +231,7 @@ public class CourseAPIWithSampleDataTest {
   @Test
   public void dummyTest(TestContext context) {
     Async async = context.async();
+    context.assertTrue(true);
     async.complete();
   }
   

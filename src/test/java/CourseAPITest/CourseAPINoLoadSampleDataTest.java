@@ -182,13 +182,6 @@ public class CourseAPINoLoadSampleDataTest extends CourseAPIWithSampleDataTest {
 
   @Test
   @Override
-  public void dummyTest(TestContext context) {
-    Async async = context.async();
-    async.complete();
-  }
-
-  @Test
-  @Override
   public void testCourseListingLoad(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/cef52efb-b3fd-4450-9960-1745026a99d1",

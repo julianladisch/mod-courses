@@ -203,13 +203,6 @@ public class CourseAPIWithSampleDataNoInventoryTest extends CourseAPIWithSampleD
 
   //Tests
 
-  @Test
-  @Override
-  public void dummyTest(TestContext context) {
-    Async async = context.async();
-    async.complete();
-  }
-
   /*
   We are overriding this test in case a change of loading order causes the success/fail
   to be flaky
@@ -218,6 +211,7 @@ public class CourseAPIWithSampleDataNoInventoryTest extends CourseAPIWithSampleD
   @Override
   public void testCourseListingLoad(TestContext context) {
     Async async = context.async();
+    context.assertTrue(true);
     async.complete();
   }
 
