@@ -2,7 +2,6 @@ package org.folio.rest.impl;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -55,12 +54,11 @@ public class CoursesTenantAPI extends TenantAPI {
         tenantLoading.perform(tenantAttributes, headers, context.owner(), 
             performRes -> {
           if(performRes.failed()) {
-            String message = Util.logAndSaveError(performRes.cause(), logger);
-            handler.handle(Future.succeededFuture(PostTenantResponse
-                .respond500WithTextPlain("Error calling perform() " + message)));
-          } else {
-            handler.handle(res); //This should allow the proper response for upgrade or install
+            Util.logAndSaveError(performRes.cause(), logger);
           }
+          // We're gonna go ahead and return success even if the sample load fails
+          handler.handle(res); //This should allow the proper response for upgrade or install
+          
         });
             
       } else {
