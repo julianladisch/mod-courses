@@ -1,3 +1,6 @@
+## 1.0.7 2020-09-15
+* Allow tenant init even if load sample fails (MODCR-41)
+
 ## 1.0.6 2020-09-10
 * Fix bug with tenant init parameters not being parsed (MODCR-42)
 
