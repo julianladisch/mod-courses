@@ -1,3 +1,6 @@
+## 1.1.0 2020-10-05
+* Update to RMB v31, JDK 11 (MODCR-43)
+
 ## 1.0.7 2020-09-15
 * Allow tenant init even if load sample fails (MODCR-41)
 
