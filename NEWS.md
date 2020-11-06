@@ -1,3 +1,6 @@
+## 1.1.1 2020-11-06
+* Update to RMB v31.1.5, Vertx 3.9.4 (MODCR-46)
+
 ## 1.1.0 2020-10-05
 * Update to RMB v31, JDK 11 (MODCR-43)
 
