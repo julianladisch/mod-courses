@@ -207,6 +207,18 @@ public class CourseAPITest {
         return loadTerm2();
       })
       .compose(f -> {
+        return loadCourseType1();
+      })
+      .compose(f -> {
+        return loadCourseType2();
+      })
+      .compose(f -> {
+        return loadDepartment1();
+      })
+      .compose(f -> {
+        return loadDepartment2();
+      })
+      .compose(f -> {
         return loadCourseListing1();
       })
       .compose(f -> {
@@ -216,12 +228,6 @@ public class CourseAPITest {
         return loadCourseListing3();
       })
       .compose(f -> {
-        return loadDepartment1();
-      })
-      .compose(f -> {
-        return loadDepartment2();
-      })
-       .compose(f -> {
         return loadCourseListing1Instructor1();
       })
         .compose(f -> {
@@ -229,9 +235,6 @@ public class CourseAPITest {
       })
       .compose(f -> {
         return loadCourseListing2Instructor3();
-      })
-      .compose(f -> {
-        return loadCourseType1();
       })
       .compose(f -> {
         return loadCourse1();
@@ -3461,6 +3464,113 @@ public class CourseAPITest {
     });
   }
 
+  @Test
+  public void testDeleteInUseCourseType(TestContext context) {
+    Async async = context.async();
+    Future<WrappedResponse> deleteFuture = TestUtil.doRequest(vertx, baseUrl +
+        "/coursetypes/" + COURSE_TYPE_1_ID, DELETE, acceptTextHeaders, null, 400,
+        "delete coursetype in use").onComplete(deleteRes -> {
+       if(deleteRes.failed()) {
+         context.fail(deleteRes.cause());
+       } else {
+         async.complete();
+       }
+    });
+  }
+
+  @Test
+  public void testDeleteUnusedCourseType(TestContext context) {
+    Async async = context.async();
+    Future<WrappedResponse> deleteFuture = TestUtil.doRequest(vertx, baseUrl +
+        "/coursetypes/" + COURSE_TYPE_2_ID, DELETE, acceptTextHeaders, null, 204,
+        "delete coursetype not in use").onComplete(deleteRes -> {
+       if(deleteRes.failed()) {
+         context.fail(deleteRes.cause());
+       } else {
+         async.complete();
+       }
+    });
+  }
+
+  @Test
+  public void testDeleteInUseDepartment(TestContext context) {
+    Async async = context.async();
+    Future<WrappedResponse> deleteFuture = TestUtil.doRequest(vertx, baseUrl +
+        "/departments/" + DEPARTMENT_1_ID, DELETE, acceptTextHeaders, null, 400,
+        "delete department in use").onComplete(deleteRes -> {
+       if(deleteRes.failed()) {
+         context.fail(deleteRes.cause());
+       } else {
+         async.complete();
+       }
+    });
+  }
+
+  @Test
+  public void testDeleteInUseTerm(TestContext context) {
+    Async async = context.async();
+    Future<WrappedResponse> deleteFuture = TestUtil.doRequest(vertx, baseUrl +
+        "/terms/" + TERM_1_ID, DELETE, acceptTextHeaders, null, 400,
+        "delete term in use").onComplete(deleteRes -> {
+       if(deleteRes.failed()) {
+         context.fail(deleteRes.cause());
+       } else {
+         async.complete();
+       }
+    });
+  }
+
+  @Test
+  public void testDeleteInUseCopyRightStatus(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").compose( postRes -> {
+      return TestUtil.doRequest(vertx, baseUrl +
+      "/copyrightstatuses/" + COPYRIGHT_STATUS_1_ID, DELETE, acceptTextHeaders,
+      null, 400, "delete in-use copyrightstatus").onComplete(deleteRes -> {
+       if(deleteRes.failed()) {
+         context.fail(deleteRes.cause());
+       } else {
+         async.complete();
+       }
+     });
+   });
+  }
+
+  @Test
+  public void testDeleteInUseProcessingStatus(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").compose( postRes -> {
+      return TestUtil.doRequest(vertx, baseUrl +
+      "/processingstatus/" + PROCESSING_STATUS_1_ID, DELETE, acceptTextHeaders,
+      null, 400, "delete in-use processing status").onComplete(deleteRes -> {
+       if(deleteRes.failed()) {
+         context.fail(deleteRes.cause());
+       } else {
+         async.complete();
+       }
+     });
+   });
+
+  }
+
 
 
 
@@ -3663,6 +3773,22 @@ public class CourseAPITest {
         .put("name", "Regular");
     TestUtil.doRequest(vertx, baseUrl + "/coursetypes", POST, null,
         departmentJson.encode(), 201, "Post Course Type 1").setHandler(res -> {
+          if(res.failed()) {
+           future.fail(res.cause());
+          } else {
+            future.complete();
+          }
+        });
+    return future;
+  }
+
+  private Future<Void> loadCourseType2() {
+    Future<Void> future = Future.future();
+    JsonObject departmentJson = new JsonObject()
+        .put("id", COURSE_TYPE_2_ID)
+        .put("name", "Variant");
+    TestUtil.doRequest(vertx, baseUrl + "/coursetypes", POST, null,
+        departmentJson.encode(), 201, "Post Course Type 2").setHandler(res -> {
           if(res.failed()) {
            future.fail(res.cause());
           } else {
