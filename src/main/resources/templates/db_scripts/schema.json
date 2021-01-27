@@ -1,6 +1,28 @@
 {
     "tables": [
         {
+            "tableName": "coursereserves_roles",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+        {
+            "tableName": "coursereserves_coursetypes",
+            "withMetadata": true,
+            "withAuditing": false,
+            "index": [
+                {
+                    "fieldName": "id",
+                    "tOps": "ADD"
+                }
+            ]
+        },
+        {
             "tableName": "coursereserves_terms",
             "withMetadata": true,
             "withAuditing": false,
@@ -62,6 +84,13 @@
                     "tableAlias": "term",
                     "targetTable": "coursereserves_terms",
                     "targetTableAlias": "term",
+                    "tOps": "ADD"
+                },
+                {
+                    "fieldName": "courseTypeId",
+                    "tableAlias": "courseType",
+                    "targetTable": "coursereserves_coursetypes",
+                    "targetTableAlias": "courseType",
                     "tOps": "ADD"
                 }
             ]
@@ -159,29 +188,6 @@
                     "tOps": "ADD"
                 }
             ]
-        },
-        {
-            "tableName": "coursereserves_roles",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
-                    "tOps": "ADD"
-                }
-            ]
-        },
-        {
-            "tableName": "coursereserves_coursetypes",
-            "withMetadata": true,
-            "withAuditing": false,
-            "index": [
-                {
-                    "fieldName": "id",
-                    "tOps": "ADD"
-                }
-            ]
         }
-
     ]
 }
