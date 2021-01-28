@@ -1,3 +1,6 @@
+## 1.1.2 2020-01-28
+* Add ForeignKey entry for Coursetype into Courselistings table (MODCR-50)
+
 ## 1.1.1 2020-11-06
 * Update to RMB v31.1.5, Vertx 3.9.4 (MODCR-46)
 
