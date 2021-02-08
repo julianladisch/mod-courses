@@ -2,10 +2,12 @@ package CourseAPITest;
 
 import static CourseAPITest.CourseAPITest.MODULE_FROM;
 import static CourseAPITest.CourseAPITest.MODULE_TO;
+import static CourseAPITest.CourseAPITest.okapiUrl;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import static io.vertx.core.http.HttpMethod.GET;
@@ -14,6 +16,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
@@ -69,11 +74,11 @@ public class CourseAPINoLoadSampleDataTest extends CourseAPIWithSampleDataTest {
           } else {
             resetMockOkapi().compose(f -> {
               return addSampleData();
-            }).setHandler(res -> {
+            }).onComplete(res -> {
               try {
                 restVerticleId = deployCourseRes.result();
                 logger.info("Deployed verticle on port " + port);
-                initTenant("diku", port).setHandler(initRes -> {
+                initTenant("diku", port).onComplete(initRes -> {
                   if(initRes.failed()) {
                     context.fail(initRes.cause());
                   } else {
@@ -127,8 +132,8 @@ public class CourseAPINoLoadSampleDataTest extends CourseAPIWithSampleDataTest {
   @Override
   public void beforeEach(TestContext context) {
     Async async = context.async();
-    resetMockOkapi().setHandler(res -> {
-      addSampleData().setHandler(res2 -> {
+    resetMockOkapi().onComplete(res -> {
+      addSampleData().onComplete(res2 -> {
         if(res2.failed()) {
           context.fail(res2.cause());
         } else {
@@ -148,33 +153,32 @@ public class CourseAPINoLoadSampleDataTest extends CourseAPIWithSampleDataTest {
 
   
 
+
+
   protected static Future<Void> initTenant(String tenantId, int port) {
     Promise<Void> promise = Promise.promise();
-    HttpClient client = vertx.createHttpClient();
-    //String url = "http://localhost:" + port + "/_/tenant?tenantParameters=loadSample=false";
+    WebClient client = WebClient.create(vertx);
     String url = "http://localhost:" + port + "/_/tenant";
     JsonObject payload = new JsonObject()
         .put("module_to", MODULE_TO)
-        .put("module_from", MODULE_FROM)
-        .put("parameters", new JsonArray()
-          .add(new JsonObject()
-            .put("key", "loadSample")
-            .put("value", false))
-         );
-    HttpClientRequest request = client.postAbs(url);
-    request.handler(req -> {
-      if(req.statusCode() != 201) {
-        promise.fail("Expected 201, got " + req.statusCode());
-      } else {
-        promise.complete();
-      }
-    });
+        .put("module_from", MODULE_FROM);
+    HttpRequest<Buffer> request = client.postAbs(url);
     request.putHeader("X-Okapi-Tenant", tenantId);
     request.putHeader("X-Okapi-Url", okapiUrl);
-    request.putHeader("X-Okapi-Url-To", okapiTenantUrl);
     request.putHeader("Content-Type", "application/json");
     request.putHeader("Accept", "application/json, text/plain");
-    request.end(payload.encode());
+    request.sendJsonObject(payload).onComplete(res -> {
+      if(res.failed()) {
+        promise.fail(res.cause());
+      } else {
+        HttpResponse<Buffer> result = res.result();
+        if(result.statusCode() != 204) {
+          promise.fail("Expected 204, got " + result.statusCode());
+        } else {
+          promise.complete();
+        }
+      }
+    });
     return promise.future();
   }
 
@@ -185,7 +189,7 @@ public class CourseAPINoLoadSampleDataTest extends CourseAPIWithSampleDataTest {
   public void testCourseListingLoad(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/cef52efb-b3fd-4450-9960-1745026a99d1",
-        GET, standardHeaders, null, 404, "Get CourseListing").setHandler(res -> {
+        GET, standardHeaders, null, 404, "Get CourseListing").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {

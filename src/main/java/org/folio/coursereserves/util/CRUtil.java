@@ -6,13 +6,15 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -373,7 +375,7 @@ public class CRUtil {
       Map<String, String> okapiHeaders, String requestPath, HttpMethod method,
       Map<String, String> extraHeaders, String payload, Integer expectedCode) {
     Promise<JsonObject> promise = Promise.promise();
-    HttpClient client = vertx.createHttpClient();
+    WebClient client = WebClient.create(vertx);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     MultiMap originalHeaders = MultiMap.caseInsensitiveMultiMap();
 
@@ -400,7 +402,7 @@ public class CRUtil {
       }
     }
     logger.debug("Creating request for url " + requestUrl);
-    HttpClientRequest request = client.requestAbs(method, requestUrl);
+    HttpRequest<Buffer> request = client.requestAbs(method, requestUrl);
     for(Map.Entry<String, String> entry : headers.entries()) {
       String key = entry.getKey();
       String value = entry.getValue();
@@ -408,39 +410,39 @@ public class CRUtil {
         request.putHeader(key, value);
       }
     }
-    request.exceptionHandler(e -> { promise.fail("Failure making request "
-        + e.getLocalizedMessage()); });
-    request.handler( requestRes -> {
-      requestRes.bodyHandler(bodyHandlerRes -> {
+    Future<HttpResponse<Buffer>> sentRequestFuture;
+    if(method == HttpMethod.PUT || method == HttpMethod.POST ) {
+      sentRequestFuture = request.sendBuffer(Buffer.buffer(payload));
+    } else {
+      sentRequestFuture = request.send();
+    }
+    sentRequestFuture.onComplete(res -> {
+      if(res.succeeded()) {
         try {
-          String response = bodyHandlerRes.toString();
-          if(expectedCode != requestRes.statusCode()) {
+          HttpResponse<Buffer> result = res.result();
+          String response = result.bodyAsString();
+          if(expectedCode != result.statusCode()) {
             String message = String.format(
                 "Expected status code %s for %s request to url %s, got %s: %s",
-                expectedCode, method.toString(), requestUrl, requestRes.statusCode(),
+                expectedCode, method.toString(), requestUrl, result.statusCode(),
                 response);
             logger.error(message);
             promise.fail(message);
           } else {
-            if(response != null && response.length() > 0) {
+            if(response != null && !response.isEmpty()) {
               promise.complete(new JsonObject(response));
             } else {
               promise.complete(null);
             }
           }
         } catch(Exception e) {
-          promise.fail("Error getting result from bodyhandler "
-              + e.getLocalizedMessage());
+          promise.fail("Error getting result " + e.getLocalizedMessage());
         }
-      });
+      } else {
+        promise.fail(res.cause());
+      }
     });
-    if(method == HttpMethod.PUT || method == HttpMethod.POST) {
-      request.end(payload);
-      logger.debug("Sending request with payload");
-    } else {
-      logger.debug("Sending payload-free request");
-      request.end();
-    }
+
     return promise.future();
   }
 
@@ -662,35 +664,35 @@ public class CRUtil {
   /* Basic lookup for courselisting, wrapped in a future */
   public static Future<CourseListing> getCourseListingById(String courseListingId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<CourseListing> future = Future.future();
+    Promise<CourseListing> promise = Promise.promise();
     logger.info("Looking up course listing for id '" + courseListingId + "'");
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(COURSE_LISTINGS_TABLE, courseListingId, CourseListing.class,
         courseListingReply -> {
       if(courseListingReply.failed()) {
-        future.fail(courseListingReply.cause());
+        promise.fail(courseListingReply.cause());
       } else if(courseListingReply.result() == null) {
-        future.complete(null);
+        promise.complete(null);
       } else {
-        future.complete(courseListingReply.result());
+        promise.complete(courseListingReply.result());
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<Reserve> getReserveById(String reserveId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<Reserve> future = Future.future();
+    Promise<Reserve> promise = Promise.promise();
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(RESERVES_TABLE, reserveId, Reserve.class,
         reserveReply -> {
       if(reserveReply.failed()) {
-        future.fail(reserveReply.cause());
+        promise.fail(reserveReply.cause());
       } else {
-        future.complete(reserveReply.result());
+        promise.complete(reserveReply.result());
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static void populatePojoFromJson(Object pojo, JsonObject json,
@@ -808,7 +810,7 @@ public class CRUtil {
 
   public static Future<List<Instructor>> lookupInstructorsForCourseListing(
       String courseListingId, Map<String, String> okapiHeaders, Context context) {
-    Future<List<Instructor>> future = Future.future();
+    Promise<List<Instructor>> promise = Promise.promise();
     try {
       PostgresClient postgresClient = getPgClient(okapiHeaders, context);
       Criteria idCrit = new Criteria();
@@ -820,19 +822,19 @@ public class CRUtil {
       postgresClient.get(INSTRUCTORS_TABLE, Instructor.class, criterion,
           true, false, res -> {
         if(res.failed()) {
-          future.fail(res.cause());
+          promise.fail(res.cause());
         } else {
           List<Instructor> instructorList = new ArrayList<>();
           for(Instructor instructor : res.result().getResults()) {
             instructorList.add(instructor);
           }
-          future.complete(instructorList);
+          promise.complete(instructorList);
         }
       });
     } catch(Exception e) {
-      future.fail(e);
+      promise.fail(e);
     }
-    return future;
+    return promise.future();
   }
 
   public static Future<Void> updateCourseListingInstructorCache(String courseListingId,
@@ -874,92 +876,92 @@ public class CRUtil {
   }
 
   public static Future<Term> lookupTerm(String termId,
-      Map<String, String> okapiHeaders, Context context) {
-    Future<Term> future = Future.future();
+      Map<String, String> okapiHeaders, Context context) {;
+    Promise<Term> promise = Promise.promise();
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(TERMS_TABLE, termId, Term.class,
         reply -> {
       if(reply.failed()) {
-        future.fail(reply.cause());
+        promise.fail(reply.cause());
       } else if(reply.result() == null) {
-        future.complete();
+        promise.complete();
       } else {
         Term result = reply.result();
-        future.complete(result);
+        promise.complete(result);
       }
     });
-    return future;
+    return promise.future();
   }
 
     public static Future<Department> lookupDepartment(String departmentId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<Department> future = Future.future();
+    Promise<Department> promise = Promise.promise();
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(DEPARTMENTS_TABLE, departmentId, Department.class,
         reply -> {
       if(reply.failed()) {
-        future.fail(reply.cause());
+        promise.fail(reply.cause());
       } else if(reply.result() == null) {
-        future.complete(null);
+        promise.complete(null);
       } else {
         Department result = reply.result();
-        future.complete(result);
+        promise.complete(result);
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<CourseType> lookupCourseType(String courseTypeId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<CourseType> future = Future.future();
+    Promise<CourseType> promise = Promise.promise();
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(COURSE_TYPES_TABLE, courseTypeId, CourseType.class,
         reply -> {
       if(reply.failed()) {
-        future.fail(reply.cause());
+        promise.fail(reply.cause());
       } else if(reply.result() == null) {
-        future.complete(null);
+        promise.complete(null);
       } else {
-        future.complete(reply.result());
+        promise.complete(reply.result());
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<ProcessingStatus> lookupProcessingStatus(String processingStatusId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<ProcessingStatus> future = Future.future();
+    Promise<ProcessingStatus> promise = Promise.promise();
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(PROCESSING_STATUSES_TABLE, processingStatusId,
         ProcessingStatus.class,
         reply -> {
       if(reply.failed()) {
-        future.fail(reply.cause());
+        promise.fail(reply.cause());
       } else if(reply.result() == null) {
-        future.complete(null);
+        promise.complete(null);
       } else {
-        future.complete(reply.result());
+        promise.complete(reply.result());
       }
     });
-    return future;
+    return promise.future();
   }
 
   public static Future<CopyrightStatus> lookupCopyrightStatus(String copyrightStatusId,
       Map<String, String> okapiHeaders, Context context) {
-    Future<CopyrightStatus> future = Future.future();
+    Promise<CopyrightStatus> promise = Promise.promise();
     PostgresClient postgresClient = getPgClient(okapiHeaders, context);
     postgresClient.getById(COPYRIGHT_STATUSES_TABLE, copyrightStatusId,
         CopyrightStatus.class,
         reply -> {
       if(reply.failed()) {
-        future.fail(reply.cause());
+        promise.fail(reply.cause());
       } else if(reply.result() == null) {
-        future.complete(null);
+        promise.complete(null);
       } else {
-        future.complete(reply.result());
+        promise.complete(reply.result());
       }
     });
-    return future;
+    return promise.future();
   }
   public static Future<List<Course>> expandListOfCourses(List<Course> listOfCourses,
       Map<String, String> okapiHeaders, Context context) {

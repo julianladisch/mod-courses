@@ -41,7 +41,7 @@ public class UtilVertxTest {
           Future.succeededFuture(new JsonObject().put("id", UUID.randomUUID().toString()));
       CRUtil.populateReserveForRetrieval(reserve, tempLocationFuture, permLocationFuture,
           processingStatusFuture, copyrightStatusFuture, loanTypeFuture)
-          .setHandler(res -> {
+          .onComplete(res -> {
         if(res.failed()) {
           context.fail(res.cause());
         } else {
@@ -78,7 +78,7 @@ public class UtilVertxTest {
           Future.failedFuture("Failed loantype");
       CRUtil.populateReserveForRetrieval(reserve, tempLocationFuture, permLocationFuture,
           processingStatusFuture, copyrightStatusFuture, loanTypeFuture)
-          .setHandler(res -> {
+          .onComplete(res -> {
         if(res.failed()) {
           context.fail(res.cause());
         } else {

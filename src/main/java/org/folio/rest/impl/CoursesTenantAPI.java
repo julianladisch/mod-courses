@@ -34,7 +34,7 @@ public class CoursesTenantAPI extends TenantAPI {
       }      
     }
     loadSample = loadSampleCandidate != null ? loadSampleCandidate : false;
-    super.postTenant(tenantAttributes, headers, res -> {
+    super.postTenantSync(tenantAttributes, headers, res -> {
       if(res.failed()) {
         logger.error("Unable to load tenant: " + res.cause().getMessage());
         handler.handle(res);

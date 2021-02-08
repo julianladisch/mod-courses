@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -11,6 +12,9 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import java.util.Map;
 
 
@@ -24,10 +28,10 @@ public class TestUtil {
     private int code;
     private String body;
     private JsonObject json;
-    private HttpClientResponse response;
+    private HttpResponse<Buffer> response;
 
     public WrappedResponse(String explanation, int code, String body,
-        HttpClientResponse response) {
+        HttpResponse<Buffer> response) {
       this.explanation = explanation;
       this.code = code;
       this.body = body;
@@ -51,7 +55,7 @@ public class TestUtil {
       return body;
     }
 
-    public HttpClientResponse getResponse() {
+    public HttpResponse<Buffer> getResponse() {
       return response;
     }
 
@@ -72,7 +76,7 @@ public class TestUtil {
       String requestPath, HttpMethod method, Map<String, String> okapiHeaders,
       Map<String, String> extraHeaders, String payload,
       Integer expectedCode, String explanation) {
-    HttpClient client = getHttpClient(vertx);
+    WebClient client = WebClient.create(vertx);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     MultiMap originalHeaders = MultiMap.caseInsensitiveMultiMap();
     originalHeaders.setAll(okapiHeaders);
@@ -94,7 +98,7 @@ public class TestUtil {
         headers.add(entry.getKey(), entry.getValue());
       }
     }
-    HttpClientRequest request = client.requestAbs(method, requestUrl);
+    HttpRequest<Buffer> request = client.requestAbs(method, requestUrl);
     for(Map.Entry entry : headers.entries()) {
       String key = (String)entry.getKey();
       String value = (String)entry.getValue();
@@ -102,17 +106,17 @@ public class TestUtil {
         request.putHeader(key, value);
       }
     }
-    return wrapRequestResponse(request, payload, expectedCode, explanation);
+    return wrapRequestResponse(request, payload, requestUrl, method, expectedCode, explanation);
   }
 
   public static Future<WrappedResponse> doRequest(Vertx vertx, String url,
           HttpMethod method, MultiMap headers, String payload,
           Integer expectedCode, String explanation) {
-    //Future<WrappedResponse> future = Future.future();
+
     boolean addPayLoad = false;
     //HttpClient client = vertx.createHttpClient();
-    HttpClient client = getHttpClient(vertx);
-    HttpClientRequest request = client.requestAbs(method, url);
+    WebClient client = WebClient.create(vertx);
+    HttpRequest<Buffer> request = client.requestAbs(method, url);
     //Add standard headers
     request.putHeader("X-Okapi-Tenant", "diku")
             .putHeader("content-type", "application/json")
@@ -151,39 +155,51 @@ public class TestUtil {
     }
     return future;
     */
-    return wrapRequestResponse(request, payload, expectedCode, explanation);
+    return wrapRequestResponse(request, payload, url, method, expectedCode, explanation);
   }
 
   /* HttpClientRequest should have headers set before calling */
-  private static Future<WrappedResponse> wrapRequestResponse(HttpClientRequest request,
-      String payload, Integer expectedCode, String explanation) {
+  private static Future<WrappedResponse> wrapRequestResponse(HttpRequest<Buffer> request,
+      String payload, String uri, HttpMethod method, Integer expectedCode, String explanation) {
     Promise<WrappedResponse> promise = Promise.promise();
-    request.exceptionHandler(e -> { promise.fail(e); });
-    request.handler( req -> {
-      req.bodyHandler(buf -> {
-        String explainString = "(no explanation)";
-        if(explanation != null) { explainString = explanation; }
-        if(expectedCode != null && expectedCode != req.statusCode()) {
-          String message = request.method().toString() + " to " + request.absoluteURI()
-                  + " failed. Expected status code "
-                  + expectedCode + ", got status code " + req.statusCode() + ": "
-                  + buf.toString() + " | " + explainString;
-          promise.fail(message);
-          logger.error(message);
-        } else {
-          System.out.println("Got status code " + req.statusCode() + " with payload of: " + buf.toString() + " | " + explainString);
-          WrappedResponse wr = new WrappedResponse(explanation, req.statusCode(), buf.toString(), req);
-          promise.complete(wr);
-        }
-      });
-    });
-    System.out.println("Sending " + request.method().toString() + " request to url '"+
-              request.absoluteURI() + " with payload: " + payload + "'\n");
-    if(request.method() == HttpMethod.PUT || request.method() == HttpMethod.POST) {
-      request.end(payload);
+    Future<HttpResponse<Buffer>> sentRequestFuture;
+
+    if( method == HttpMethod.PUT || method == HttpMethod.POST ) {
+      sentRequestFuture = request.sendBuffer(Buffer.buffer(payload));
     } else {
-      request.end();
+      sentRequestFuture = request.send();
     }
+    sentRequestFuture.onComplete(res -> {
+      if(res.failed()) {
+        promise.fail(res.cause());
+      } else {
+        try {
+          HttpResponse<Buffer> result = res.result();
+          String responseString = result.bodyAsString();
+          String explainString = (explanation != null) ? explanation : "(no explanation)";
+          if(expectedCode != null && expectedCode != result.statusCode()) {
+            String message = method.toString() + " to " + uri
+                  + " failed. Expected status code "
+                  + expectedCode + ", got status code " + result.statusCode() + ": "
+                  + responseString + " | " + explainString;
+            promise.fail(message);
+            logger.error(message);
+          } else {
+            logger.info("Got status code " + result.statusCode() + " with payload of: "
+                + responseString + " | " + explainString);
+            WrappedResponse wr = new WrappedResponse(explanation, result.statusCode(),
+                responseString, result);
+            promise.complete(wr);
+          }
+        } catch(Exception e) {
+          promise.fail(e);
+        }
+      }
+    });
+    
+    logger.info("Sending " + method.toString() + " request to url '"+
+              uri + " with payload: " + payload + "'\n");
+
     return promise.future();
 
   }

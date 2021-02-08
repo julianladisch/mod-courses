@@ -5,9 +5,11 @@ import static CourseAPITest.CourseAPITest.MODULE_TO;
 import static CourseAPITest.CourseAPITest.okapiHeaders;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.buffer.Buffer;
+//import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import static io.vertx.core.http.HttpMethod.GET;
@@ -20,6 +22,9 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import java.util.HashMap;
 import java.util.Map;
 import org.folio.coursereserves.util.CRUtil;
@@ -44,8 +49,8 @@ public class CourseAPIWithSampleDataTest {
   public static String okapiUrl;
   public static String okapiTenantUrl;
   public static Map<String, String> okapiHeaders = new HashMap<>();
-  public static CaseInsensitiveHeaders standardHeaders = new CaseInsensitiveHeaders();
-  public static CaseInsensitiveHeaders acceptTextHeaders = new CaseInsensitiveHeaders();
+  public static MultiMap standardHeaders = MultiMap.caseInsensitiveMultiMap();
+  public static MultiMap acceptTextHeaders = MultiMap.caseInsensitiveMultiMap();
   protected static String restVerticleId;
   protected static String okapiVerticleId;
 
@@ -93,11 +98,11 @@ public class CourseAPIWithSampleDataTest {
           } else {
             resetMockOkapi().compose(f -> {
               return addSampleData();
-            }).setHandler(res -> {
+            }).onComplete(res -> {
               try {
                 restVerticleId = deployCourseRes.result();
                 logger.info("Deployed verticle on port " + port);
-                initTenant("diku", port).setHandler(initRes -> {
+                initTenant("diku", port).onComplete(initRes -> {
                   if(initRes.failed()) {
                     context.fail(initRes.cause());
                   } else {
@@ -149,8 +154,8 @@ public class CourseAPIWithSampleDataTest {
   @Before
   public void beforeEach(TestContext context) {
     Async async = context.async();
-    resetMockOkapi().setHandler(res -> {
-      addSampleData().setHandler(res2 -> {
+    resetMockOkapi().onComplete(res -> {
+      addSampleData().onComplete(res2 -> {
         if(res2.failed()) {
           context.fail(res2.cause());
         } else {
@@ -168,38 +173,38 @@ public class CourseAPIWithSampleDataTest {
   }
 
   protected static Future<Void> addSampleData() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject payload = new JsonObject().put("add", true);
     logger.info("Making request to add sample mock okapi data");
     CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/addsample", POST, null,
-        payload.encode(), 201).setHandler(res -> {
+        payload.encode(), 201).onComplete(res -> {
       if(res.failed()) {
-        future.fail(res.cause());
+        promise.fail(res.cause());
       } else {
-        future.complete();
+        promise.complete();
       }
     });
-    return future;
+    return promise.future();
   }
 
   protected static Future<Void> resetMockOkapi() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject payload = new JsonObject().put("reset", true);
     logger.info("Making request to reset mock okapi data");
     CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/reset", POST, null,
-        payload.encode(), 201).setHandler(res -> {
+        payload.encode(), 201).onComplete(res -> {
       if(res.failed()) {
-        future.fail(res.cause());
+        promise.fail(res.cause());
       } else {
-        future.complete();
+        promise.complete();
       }
     });
-    return future;
+    return promise.future();
   }
 
   protected static Future<Void> initTenant(String tenantId, int port) {
     Promise<Void> promise = Promise.promise();
-    HttpClient client = vertx.createHttpClient();
+    WebClient client = WebClient.create(vertx);
     String url = "http://localhost:" + port + "/_/tenant";
     JsonObject payload = new JsonObject()
         .put("module_to", MODULE_TO)
@@ -209,20 +214,24 @@ public class CourseAPIWithSampleDataTest {
             .put("key", "loadSample")
             .put("value", true))
          );
-    HttpClientRequest request = client.postAbs(url);
-    request.handler(req -> {
-      if(req.statusCode() != 201) {
-        promise.fail("Expected 201, got " + req.statusCode());
-      } else {
-        promise.complete();
-      }
-    });
+    HttpRequest<Buffer> request = client.postAbs(url);
     request.putHeader("X-Okapi-Tenant", tenantId);
     request.putHeader("X-Okapi-Url", okapiUrl);
-    request.putHeader("X-Okapi-Url-To", okapiTenantUrl);
     request.putHeader("Content-Type", "application/json");
     request.putHeader("Accept", "application/json, text/plain");
-    request.end(payload.encode());
+    request.putHeader("X-Okapi-Url-To", okapiTenantUrl);
+    request.sendJsonObject(payload).onComplete(res -> {
+      if(res.failed()) {
+        promise.fail(res.cause());
+      } else {
+        HttpResponse<Buffer> result = res.result();
+        if(result.statusCode() != 204) {
+          promise.fail("Expected 204, got " + result.statusCode());
+        } else {
+          promise.complete();
+        }
+      }
+    });
     return promise.future();
   }
 
