@@ -9,6 +9,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import static io.vertx.core.http.HttpMethod.DELETE;
@@ -26,6 +27,9 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -142,7 +146,7 @@ public class CourseAPITest {
       } else {
         restVerticleId = deployCourseRes.result();
         try {
-          initTenant("diku", port).setHandler(initRes -> {
+          initTenant("diku", port).onComplete(initRes -> {
             if(initRes.failed()) {
               context.fail(initRes.cause());
             } else {
@@ -263,7 +267,7 @@ public class CourseAPITest {
       .compose(f -> {
         return loadCopyrightStatus2();
       })
-      .setHandler(res -> {
+      .onComplete(res -> {
         if(res.failed()) {
           context.fail(res.cause());
         } else {
@@ -300,7 +304,7 @@ public class CourseAPITest {
           return deleteProcessingStatuses();
         }).compose(f -> {
           return resetMockOkapi();
-        }).setHandler(res -> {
+        }).onComplete(res -> {
         if(res.failed()) {
           context.fail(res.cause());
         } else {
@@ -373,7 +377,7 @@ public class CourseAPITest {
   public void getRoles(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/roles", GET, null, null, 200,
-        "Get role listing").setHandler(res -> {
+        "Get role listing").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -386,7 +390,7 @@ public class CourseAPITest {
   public void getCourseTypes(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/coursetypes", GET, null, null, 200,
-        "Get course types listing").setHandler(res -> {
+        "Get course types listing").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -399,7 +403,7 @@ public class CourseAPITest {
   public void getProcessingStatuses(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", GET, null, null, 200,
-        "Get processing status listing").setHandler(res -> {
+        "Get processing status listing").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -412,7 +416,7 @@ public class CourseAPITest {
   public void getCourses(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/courses", GET, null, null, 200,
-        "Get listing of courses").setHandler(res -> {
+        "Get listing of courses").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -443,7 +447,7 @@ public class CourseAPITest {
      Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl +
         "/courses?query=cql.allRecords=1%20sortby%20name&limit=500", GET, null,
-        null, 200, "Get courses by query").setHandler(res -> {
+        null, 200, "Get courses by query").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -469,7 +473,7 @@ public class CourseAPITest {
   public void getReserves(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/reserves", GET, null, null, 200,
-        "Get reserve listing").setHandler(res -> {
+        "Get reserve listing").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -483,7 +487,7 @@ public class CourseAPITest {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/"
         + COURSE_LISTING_1_ID + "/instructors", GET, null, null, 200,
-        "Get instructors for courselisting 1").setHandler(res -> {
+        "Get instructors for courselisting 1").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -504,7 +508,7 @@ public class CourseAPITest {
   public void getCoursesByDepartment(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/courses?query=departmentId==" + DEPARTMENT_1_ID,
-        GET, null, null, 200, "Get courses for department").setHandler(res -> {
+        GET, null, null, 200, "Get courses for department").onComplete(res -> {
       if(res.failed()) { context.fail(res.cause()); }
       else {
         try {
@@ -521,7 +525,7 @@ public class CourseAPITest {
   public void getCourseById(TestContext context) {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/courses/" + COURSE_1_ID, GET, null, null, 200,
-        "Get course by id").setHandler(res -> {
+        "Get course by id").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -584,12 +588,12 @@ public class CourseAPITest {
         .put("externalId", UUID.randomUUID().toString());
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID,
         PUT, acceptText, courseListingJson.encode(), 204, "Put CourseListing 1")
-        .setHandler( res -> {
+        .onComplete( res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
-            , GET, standardHeaders, null, 200, "Get courselisting by id").setHandler(
+            , GET, standardHeaders, null, 200, "Get courselisting by id").onComplete(
                 res2 -> {
           if(res2.failed()) {
             context.fail(res2.cause());
@@ -627,12 +631,12 @@ public class CourseAPITest {
         .put("externalId", UUID.randomUUID().toString());
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID,
         PUT, acceptText, courseListingJson.encode(), 204, "Put CourseListing 1")
-        .setHandler( res -> {
+        .onComplete( res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
-            , GET, standardHeaders, null, 200, "Get courselisting by id").setHandler(
+            , GET, standardHeaders, null, 200, "Get courselisting by id").onComplete(
                 res2 -> {
           if(res2.failed()) {
             context.fail(res2.cause());
@@ -670,13 +674,13 @@ public class CourseAPITest {
         .put("courseListingId", COURSE_LISTING_1_ID);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/instructors",
         POST, standardHeaders, instructorJson.encode(), 201, "Post Instructor to Course Listing")
-        .setHandler( postRes -> {
+        .onComplete( postRes -> {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/"
           + COURSE_LISTING_1_ID + "/instructors/" + instructorJson.getString("id"),
-          GET, standardHeaders, null, 200, "Get instructor from courselisting by id").setHandler(
+          GET, standardHeaders, null, 200, "Get instructor from courselisting by id").onComplete(
             getCLInstructorsRes -> {
           if(getCLInstructorsRes.failed()) {
             context.fail(getCLInstructorsRes.cause());
@@ -706,7 +710,7 @@ public class CourseAPITest {
             }
             TestUtil.doRequest(vertx, baseUrl + "/courses/" +
                 COURSE_1_ID, GET, standardHeaders, null, 200,
-                "Get course by courselisting id").setHandler(getCourseRes -> {
+                "Get course by courselisting id").onComplete(getCourseRes -> {
               if(getCourseRes.failed()) {
                 context.fail(getCourseRes.cause());
               } else {
@@ -756,7 +760,7 @@ public class CourseAPITest {
           .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -790,7 +794,7 @@ public class CourseAPITest {
 
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" +
             COURSE_LISTING_1_ID + "/reserves/" + reserveJson.getString("id"),
-            GET, standardHeaders, null, 200, "Get Posted Reserve").setHandler(getRes -> {
+            GET, standardHeaders, null, 200, "Get Posted Reserve").onComplete(getRes -> {
               if(getRes.failed()) {
                 context.fail(getRes.cause());
               } else {
@@ -857,7 +861,7 @@ public class CourseAPITest {
     Async async = context.async();
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves?query=NOT+blooh", GET, standardHeaders, null, 500,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -881,7 +885,7 @@ public class CourseAPITest {
         );
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -932,7 +936,7 @@ public class CourseAPITest {
 
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" +
             COURSE_LISTING_1_ID + "/reserves/" + reserveJson.getString("id"),
-            GET, standardHeaders, null, 200, "Get Posted Reserve").setHandler(getRes -> {
+            GET, standardHeaders, null, 200, "Get Posted Reserve").onComplete(getRes -> {
               if(getRes.failed()) {
                 context.fail(getRes.cause());
               } else {
@@ -1007,7 +1011,7 @@ public class CourseAPITest {
         );
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 400,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -1034,7 +1038,7 @@ public class CourseAPITest {
         );
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 400,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -1062,7 +1066,7 @@ public class CourseAPITest {
         );
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 400,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -1079,7 +1083,7 @@ public class CourseAPITest {
         .put("itemId", UUID.randomUUID().toString());
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 400,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -1104,7 +1108,7 @@ public class CourseAPITest {
           .put("copyrightStatusId", UUID.randomUUID().toString()));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 422,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -1136,7 +1140,7 @@ public class CourseAPITest {
 
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1145,7 +1149,7 @@ public class CourseAPITest {
         context.assertNotNull(copiedItemJson);
         context.assertEquals(OkapiMock.location1Id, copiedItemJson.getString("temporaryLocationId"));
         CRUtil.lookupItemHoldingsInstanceByItemId(OkapiMock.item1Id,
-            okapiHeaders, vertx.getOrCreateContext()).setHandler(lookupRes -> {
+            okapiHeaders, vertx.getOrCreateContext()).onComplete(lookupRes -> {
           if(lookupRes.failed()) {
             context.fail(lookupRes.cause());
           } else {
@@ -1178,12 +1182,12 @@ public class CourseAPITest {
       return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves/" + reserveId, DELETE, acceptTextHeaders, reservePostJson.encode(), 204,
         "Delete Course Reserve");
-    }).setHandler(res -> {
+    }).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
         CRUtil.lookupItemHoldingsInstanceByItemId(OkapiMock.item1Id,
-            okapiHeaders, vertx.getOrCreateContext()).setHandler(lookupRes -> {
+            okapiHeaders, vertx.getOrCreateContext()).onComplete(lookupRes -> {
           if(lookupRes.failed()) {
             context.fail(lookupRes.cause());
           } else {
@@ -1225,7 +1229,7 @@ public class CourseAPITest {
               "/reserves", POST, standardHeaders, reservePostJson2.encode(), 201,
               "Post Course Reserve");
         });
-    postFuture.setHandler(res -> {
+    postFuture.onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1244,7 +1248,7 @@ public class CourseAPITest {
             }
             Context vertxContext = vertx.getOrCreateContext();
             CRUtil.expandListOfReserves(reserveList, okapiHeaders, vertxContext)
-                .setHandler(expandRes -> {
+                .onComplete(expandRes -> {
               if(expandRes.failed()) {
                 context.fail(expandRes.cause());
               } else {
@@ -1297,14 +1301,14 @@ public class CourseAPITest {
               "/reserves", POST, standardHeaders, reservePostJson2.encode(), 201,
               "Post Course Reserve");
         });
-    postFuture.setHandler(res -> {
+    postFuture.onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
         try {
           TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
               "/reserves?expand=*", GET, standardHeaders, null, 200, "Get Course Reserves")
-              .setHandler(getRes -> {
+              .onComplete(getRes -> {
             if(getRes.failed()) {
               context.fail(getRes.cause());
             } else {
@@ -1375,14 +1379,14 @@ public class CourseAPITest {
               "/reserves", POST, standardHeaders, reservePostJson2.encode(), 201,
               "Post Course Reserve");
         });
-    postFuture.setHandler(res -> {
+    postFuture.onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
         try {
           TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
               "/reserves", GET, standardHeaders, null, 200, "Get Course Reserves")
-              .setHandler(getRes -> {
+              .onComplete(getRes -> {
             if(getRes.failed()) {
               context.fail(getRes.cause());
             } else {
@@ -1424,7 +1428,7 @@ public class CourseAPITest {
     Async async = context.async();
     String userId = OkapiMock.user1Id;
     TestUtil.doRequest(vertx, okapiUrl + "/users/" + userId, GET, null, null,
-        200, "Get user from mock okapi").setHandler(res -> {
+        200, "Get user from mock okapi").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1447,7 +1451,7 @@ public class CourseAPITest {
     Async async = context.async();
     String groupId = OkapiMock.group1Id;
     TestUtil.doRequest(vertx, okapiUrl + "/groups/" + groupId, GET, null, null,
-        200, "Get group from mock okapi").setHandler(res -> {
+        200, "Get group from mock okapi").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1469,7 +1473,7 @@ public class CourseAPITest {
   public void getUserAndPatronGroupFromUserId(TestContext context) {
     Async async = context.async();
     CRUtil.lookupUserAndGroupByUserId(OkapiMock.user1Id, okapiHeaders,
-        vertx.getOrCreateContext()).setHandler(res -> {
+        vertx.getOrCreateContext()).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1491,7 +1495,7 @@ public class CourseAPITest {
   public void getItemHoldingsInstanceFromItemId(TestContext context) {
     Async async = context.async();
     CRUtil.lookupItemHoldingsInstanceByItemId(OkapiMock.item1Id, okapiHeaders,
-        vertx.getOrCreateContext()).setHandler(res -> {
+        vertx.getOrCreateContext()).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1524,7 +1528,7 @@ public class CourseAPITest {
   public void getItemByBarcode(TestContext context) {
     Async async = context.async();
     CRUtil.lookupItemByBarcode(OkapiMock.barcode1, okapiHeaders,
-        vertx.getOrCreateContext()).setHandler(res -> {
+        vertx.getOrCreateContext()).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1566,7 +1570,7 @@ public class CourseAPITest {
           String courseId = res.getJson().getString("id");
           return TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId,
               GET, standardHeaders, null, 200, "Get newly created Course");
-        }).setHandler(res -> {
+        }).onComplete(res -> {
           if(res.failed()) {
           context.fail(res.cause());
           } else {
@@ -1614,7 +1618,7 @@ public class CourseAPITest {
           String courseId = w.getJson().getString("id");
           return TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId, GET,
               standardHeaders, null, 200, "Get newly created course record");
-        }).setHandler(w -> {
+        }).onComplete(w -> {
           if(w.failed()) {
             context.fail(w.cause());
           } else {
@@ -1656,7 +1660,7 @@ public class CourseAPITest {
           String courseId = res.getJson().getString("id");
           return TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId,
               GET, standardHeaders, null, 200, "Get newly created Course");
-        }).setHandler(res -> {
+        }).onComplete(res -> {
           if(res.failed()) {
           context.fail(res.cause());
           } else {
@@ -1709,7 +1713,7 @@ public class CourseAPITest {
           String courseId = w.getJson().getString("id");
           return TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId, GET,
               standardHeaders, null, 200, "Get newly created course record");
-        }).setHandler(w -> {
+        }).onComplete(w -> {
           if(w.failed()) {
             context.fail(w.cause());
           } else {
@@ -1734,7 +1738,7 @@ public class CourseAPITest {
         .put("itemId", OkapiMock.item2Id);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
-        "Post Course Reserve").setHandler(res -> {
+        "Post Course Reserve").onComplete(res -> {
       if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -1781,26 +1785,26 @@ public class CourseAPITest {
         .put("itemId", OkapiMock.item2Id);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
-        "Post Course Reserve").setHandler(postRes -> {
+        "Post Course Reserve").onComplete(postRes -> {
       if(postRes.failed()) {
          context.fail(postRes.cause());
        } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves/" + reserveId, GET, standardHeaders, null, 200, "Get reserve")
-            .setHandler(getRes -> {
+            .onComplete(getRes -> {
           if(getRes.failed()) {
             context.fail(getRes.cause());
           } else {
             TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
                 "/reserves", DELETE, standardHeaders, null, 204,
                 "Delete reserves with courselisting " + COURSE_LISTING_1_ID)
-                .setHandler(deleteRes -> {
+                .onComplete(deleteRes -> {
               if(deleteRes.failed()) {
                 context.fail(deleteRes.cause());
               } else {
                 TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
                  "/reserves/" + reserveId, GET, standardHeaders, null, 404, "Get reserve again")
-                   .setHandler(getAgainRes-> {
+                   .onComplete(getAgainRes-> {
                    if(getAgainRes.failed()) {
                      context.fail(getAgainRes.cause());
                    } else {
@@ -1832,7 +1836,7 @@ public class CourseAPITest {
     String deleteUrl = getUrl;
     String deleteAllUrl = postUrl;
     testPostGetPutDelete(roleJson, roleModJson, postUrl, getUrl, putUrl, deleteUrl,
-        deleteAllUrl).setHandler(res -> {
+        deleteAllUrl).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1861,7 +1865,7 @@ public class CourseAPITest {
     String deleteUrl = getUrl;
     String deleteAllUrl = postUrl;
     testPostGetPutDelete(courseJson, courseModJson, postUrl, getUrl, putUrl, deleteUrl,
-        deleteAllUrl).setHandler(res -> {
+        deleteAllUrl).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1890,7 +1894,7 @@ public class CourseAPITest {
     String deleteUrl = getUrl;
     String deleteAllUrl = postUrl;
     testPostGetPutDelete(instructorJson, instructorModJson, postUrl, getUrl,
-        putUrl, deleteUrl, deleteAllUrl).setHandler(res -> {
+        putUrl, deleteUrl, deleteAllUrl).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1915,7 +1919,7 @@ public class CourseAPITest {
     String deleteUrl = getUrl;
     String deleteAllUrl = postUrl;
     testPostGetPutDelete(statusJson, statusModJson, postUrl, getUrl, putUrl, deleteUrl,
-        deleteAllUrl).setHandler(res -> {
+        deleteAllUrl).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1940,7 +1944,7 @@ public class CourseAPITest {
     String deleteUrl = getUrl;
     String deleteAllUrl = postUrl;
     testPostGetPutDelete(statusJson, statusModJson, postUrl, getUrl, putUrl, deleteUrl,
-        deleteAllUrl).setHandler(res -> {
+        deleteAllUrl).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -1979,7 +1983,7 @@ public class CourseAPITest {
     String deleteUrl = baseUrl + "/reserves/" + reserveId;
     String deleteAllUrl = postUrl;
     testPostGetPutDelete(reserveJson, reserveModJson, postUrl, getUrl, putUrl, deleteUrl,
-        deleteAllUrl).setHandler(res -> {
+        deleteAllUrl).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -2017,7 +2021,7 @@ public class CourseAPITest {
     String deleteUrl = getUrl;
     String deleteAllUrl = postUrl;
     testPostGetPutDelete(reserveJson, reserveModJson, postUrl, getUrl, putUrl, deleteUrl,
-        deleteAllUrl).setHandler(res -> {
+        deleteAllUrl).onComplete(res -> {
       if(res.failed()) {
         async.complete();
       } else {
@@ -2118,7 +2122,7 @@ public class CourseAPITest {
    public void testDeleteBadReserveFail(TestContext context) {
      Async async = context.async();
      new CourseAPIFail().deleteReserve(UUID.randomUUID().toString(), okapiHeaders,
-         vertx.getOrCreateContext()).setHandler(res -> {
+         vertx.getOrCreateContext()).onComplete(res -> {
        if(res.failed()) {
          async.complete();
        } else {
@@ -2144,9 +2148,9 @@ public class CourseAPITest {
      String postUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
         + "/reserves";
      TestUtil.doRequest(vertx, postUrl, POST, standardHeaders, reserveJson.encode(),
-         201, "Post Reserve").setHandler(postRes -> {
+         201, "Post Reserve").onComplete(postRes -> {
       new CourseAPIFail().deleteReserve(UUID.randomUUID().toString(), okapiHeaders,
-          vertx.getOrCreateContext()).setHandler(res -> {
+          vertx.getOrCreateContext()).onComplete(res -> {
         if(res.failed()) {
           async.complete();
         } else {
@@ -2172,7 +2176,7 @@ public class CourseAPITest {
      String postUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
         + "/reserves";
      TestUtil.doRequest(vertx, postUrl, GET, standardHeaders, reserveJson.encode(),
-         201, "Post Reserve").setHandler(postRes -> {
+         201, "Post Reserve").onComplete(postRes -> {
       new CourseAPIFail().handleGetReserves("*", null, 0, 1, okapiHeaders,
           reply -> {
             if(reply.result().getStatus() == 500) {
@@ -2191,7 +2195,7 @@ public class CourseAPITest {
      Course course = new Course();
      course.setId(UUID.randomUUID().toString());
      CRUtil.getExpandedCourse(course, okapiHeaders, vertx.getOrCreateContext())
-         .setHandler(res -> {
+         .onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -2259,12 +2263,12 @@ public class CourseAPITest {
             .put("publicNote", OkapiMock.uri1))
           );
      CRUtil.putItemUpdate(newItem, okapiHeaders, vertx.getOrCreateContext())
-         .setHandler(putRes -> {
+         .onComplete(putRes -> {
        if(putRes.failed()) {
          context.fail(putRes.cause());
        } else {
          CRUtil.lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders,
-             vertx.getOrCreateContext()).setHandler(getRes -> {
+             vertx.getOrCreateContext()).onComplete(getRes -> {
            if(getRes.failed()) {
              context.fail(getRes.cause());
            } else {
@@ -2280,7 +2284,7 @@ public class CourseAPITest {
      Async async = context.async();
      String url = baseUrl + "/terms?query=endDate+>+2020-01-01T00:00:00Z";
      TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get terms by term date").setHandler(res -> {
+         "Get terms by term date").onComplete(res -> {
        if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -2300,7 +2304,7 @@ public class CourseAPITest {
      Async async = context.async();
      String url = baseUrl + "/courselistings?query=term.endDate+>+2020-01-01T00:00:00Z";
      TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courselistings by term date").setHandler(res -> {
+         "Get courselistings by term date").onComplete(res -> {
        if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -2320,7 +2324,7 @@ public class CourseAPITest {
      Async async = context.async();
      String url = baseUrl + "/courses?query=courseListing.externalId==" + EXTERNAL_ID_1;
      TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courses by courselisting external id").setHandler(res -> {
+         "Get courses by courselisting external id").onComplete(res -> {
       if(res.failed()) {
     context.fail(res.cause());
       } else {
@@ -2340,7 +2344,7 @@ public class CourseAPITest {
      Async async = context.async();
      String url = baseUrl + "/courselistings?query=instructor.name=Boffins";
      TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courselistings by instructor name").setHandler(res -> {
+         "Get courselistings by instructor name").onComplete(res -> {
        if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -2360,7 +2364,7 @@ public class CourseAPITest {
      Async async = context.async();
      String url = baseUrl + "/courselistings?query=instructorObjects=Boffins";
      TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courselistings by instructor name").setHandler(res -> {
+         "Get courselistings by instructor name").onComplete(res -> {
        if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -2382,7 +2386,7 @@ public class CourseAPITest {
      Async async = context.async();
      String url = baseUrl + "/courses?query=courseListing.instructorObjects=Boffins";
      TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courses by courselisting instructor name").setHandler(res -> {
+         "Get courses by courselisting instructor name").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -2402,7 +2406,7 @@ public class CourseAPITest {
     Async async = context.async();
     String url = baseUrl + "/courses?query=courseListing.termId=" + TERM_2_ID;
     TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courses by term id").setHandler(res -> {
+         "Get courses by term id").onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -2435,29 +2439,29 @@ public class CourseAPITest {
         201, "Post Reserve to Courselisting 3")
     .compose(f -> {
       String getCLUrl = baseUrl + "/courselistings/" + COURSE_LISTING_3_ID;
-      Future<WrappedResponse> future = Future.future();
+      Promise<WrappedResponse> promise = Promise.promise();
       TestUtil.doRequest(vertx, getCLUrl, GET, standardHeaders, null, 200,
-          "Get CourseListing 3").setHandler(res -> {
+          "Get CourseListing 3").onComplete(res -> {
         if(res.failed()) {
-          future.fail(res.cause());
+          promise.fail(res.cause());
         }
         else {
           try {
             JsonObject CLJson = res.result().getJson();
             assertEquals(CLJson.getString("termId"), TERM_2_ID);
-            future.complete(res.result());
+            promise.complete(res.result());
           } catch(Exception e) {
-            future.fail(e);
+            promise.fail(e);
           }
         }
       });
-      return future;
+      return promise.future();
     })
     .compose(f -> {
       String getUrl = baseUrl + "/reserves?query=courseListing.termId=" + TERM_2_ID;
       return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
          "Get reserves by term id");
-    }).setHandler(res -> {
+    }).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -2523,7 +2527,7 @@ public class CourseAPITest {
          "?query=processingStatus.name==frombulating";
       return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
           "Get Reserves by Processing Status");
-   }).setHandler(res -> {
+   }).onComplete(res -> {
      if(res.failed()) {
        context.fail(res.cause());
      } else {
@@ -2588,7 +2592,7 @@ public class CourseAPITest {
      String getUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves?expand=*";
       return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
           "Get Reserves");
-   }).setHandler(res -> {
+   }).onComplete(res -> {
      if(res.failed()) {
        context.fail(res.cause());
      } else {
@@ -2661,7 +2665,7 @@ public class CourseAPITest {
      String getUrl = baseUrl + "/reserves?expand=*&query=courseListingId="+COURSE_LISTING_1_ID;
       return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
           "Get Reserves");
-   }).setHandler(res -> {
+   }).onComplete(res -> {
      if(res.failed()) {
        context.fail(res.cause());
      } else {
@@ -2768,14 +2772,14 @@ public class CourseAPITest {
         .put("courseListingId", courseListingId)
         .put("name", "Woodworking 101");
      TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, standardHeaders,
-        courseListingJson.encode(), 201, "Post Course Listing").setHandler(postRes -> {
+        courseListingJson.encode(), 201, "Post Course Listing").onComplete(postRes -> {
        if(postRes.failed()) {
          context.fail(postRes.cause());
        } else {
          TestUtil.doRequest(vertx, baseUrl + "/courses", POST, standardHeaders,
-             courseJson.encode(), 201, "Post Course").setHandler(postCourseRes -> {
+             courseJson.encode(), 201, "Post Course").onComplete(postCourseRes -> {
           TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + courseListingId,
-              GET, standardHeaders, null, 200, "Get new course listing").setHandler(getRes -> {
+              GET, standardHeaders, null, 200, "Get new course listing").onComplete(getRes -> {
             if(getRes.failed()) {
               context.fail(getRes.cause());
             } else {
@@ -2787,13 +2791,13 @@ public class CourseAPITest {
                 courseListingJson.putNull("locationId");
                 TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + courseListingId,
                     PUT, acceptTextHeaders, courseListingJson.encode(), 204,
-                    "Get new course listing").setHandler(putRes -> {
+                    "Get new course listing").onComplete(putRes -> {
                  if(putRes.failed()) {
                    context.fail(putRes.cause());
                  } else {
                    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + courseListingId,
                        GET, standardHeaders, null, 200, "Get new course listing")
-                       .setHandler(getRes2 -> {
+                       .onComplete(getRes2 -> {
                      if(getRes2.failed()) {
                        context.fail(getRes2.cause());
                      } else {
@@ -2802,7 +2806,7 @@ public class CourseAPITest {
                              .getJsonObject("locationObject"));
                          TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId,
                              GET, standardHeaders, null, 200, "get course")
-                             .setHandler(getCourseRes -> {
+                             .onComplete(getCourseRes -> {
                            if(getCourseRes.failed()) {
                              context.fail(getCourseRes.cause());
                            } else {
@@ -2839,7 +2843,7 @@ public class CourseAPITest {
    public void testGetInstructorsForCourseListing(TestContext context) {
      Async async = context.async();
      CRUtil.lookupInstructorsForCourseListing(COURSE_LISTING_1_ID, okapiHeaders,
-         vertx.getOrCreateContext()).setHandler(res -> {
+         vertx.getOrCreateContext()).onComplete(res -> {
        if(res.failed()) {
          context.fail(res.cause());
        } else {
@@ -2911,7 +2915,7 @@ public class CourseAPITest {
         .put("courseTypeId", COURSE_TYPE_1_ID)
         .put("externalId", "1234");
     TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
-        courseListingJson.encode(), 201, "Post Course Listing").setHandler(postCLRes -> {
+        courseListingJson.encode(), 201, "Post Course Listing").onComplete(postCLRes -> {
       if(postCLRes.failed()) {
         context.fail(postCLRes.cause());
       } else {
@@ -2928,20 +2932,20 @@ public class CourseAPITest {
         );
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
             "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
-            "Post Course Reserve").setHandler(postReserveRes -> {
+            "Post Course Reserve").onComplete(postReserveRes -> {
           if(postReserveRes.failed()) {
             context.fail(postReserveRes.cause());
           } else {
             reservePostJson.put("processingStatusId", PROCESSING_STATUS_1_ID);
             TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
               "/reserves/" + reserveId, PUT, standardHeaders, reservePostJson.encode(), 204,
-              "PUT Course Reserve").setHandler(putReserveRes -> {
+              "PUT Course Reserve").onComplete(putReserveRes -> {
                 if(putReserveRes.failed()) {
                   context.fail(putReserveRes.cause());
                 } else {
                   TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
                     "/reserves/" + reserveId, GET, standardHeaders, reservePostJson.encode(), 200,
-                    "GET Course Reserve").setHandler(getReserveRes -> {
+                    "GET Course Reserve").onComplete(getReserveRes -> {
                     if(getReserveRes.failed()) {
                       context.fail(getReserveRes.cause());
                     } else {
@@ -2986,7 +2990,7 @@ public class CourseAPITest {
       context.assertTrue(f.getJson().containsKey("instructorObjects"));
       context.assertTrue(f.getJson().getJsonArray("instructorObjects").size() > 1);
       return Future.succeededFuture(f);
-    }).setHandler(res -> {
+    }).onComplete(res -> {
       if(res.succeeded()) {
         async.complete();
       } else {
@@ -3011,14 +3015,14 @@ public class CourseAPITest {
     );
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
       "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
-      "Post Course Reserve").setHandler(postReserveRes -> {
+      "Post Course Reserve").onComplete(postReserveRes -> {
       if(postReserveRes.failed()) {
         context.fail(postReserveRes.cause());
       } else {
         reservePostJson.put("id", UUID.randomUUID().toString());
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
           "/reserves", POST, standardHeaders, reservePostJson.encode(), 422,
-          "Post Course Reserve").setHandler(repostReserveRes -> {
+          "Post Course Reserve").onComplete(repostReserveRes -> {
           if(repostReserveRes.failed()) {
             context.fail(repostReserveRes.cause());
           } else {
@@ -3064,7 +3068,7 @@ public class CourseAPITest {
     }).compose( f -> {
       return TestUtil.doOkapiRequest(vertx, "/item-storage/items/" + OkapiMock.item1Id,
           GET, okapiHeaders, null, null, 200, "Get item record");
-    }).setHandler(res -> {
+    }).onComplete(res -> {
       if(res.failed()) {
         context.fail(res.cause());
       } else {
@@ -3103,14 +3107,14 @@ public class CourseAPITest {
     );
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
       "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
-      "Post Course Reserve").setHandler(postReserveRes -> {
+      "Post Course Reserve").onComplete(postReserveRes -> {
       if(postReserveRes.failed()) {
         context.fail(postReserveRes.cause());
       } else {
         reservePostJson.put("id", UUID.randomUUID().toString());
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_2_ID +
           "/reserves", POST, standardHeaders, reservePostJson2.encode(), 201,
-          "Post Course Reserve").setHandler(repostReserveRes -> {
+          "Post Course Reserve").onComplete(repostReserveRes -> {
           if(repostReserveRes.failed()) {
             context.fail(repostReserveRes.cause());
           } else {
@@ -3125,7 +3129,7 @@ public class CourseAPITest {
   public void testResetItemBadId(TestContext context) {
     Async async = context.async();
     new CourseAPI().resetItemTemporaryLocation(UUID.randomUUID().toString(),
-        okapiHeaders, vertx.getOrCreateContext()).setHandler(res -> {
+        okapiHeaders, vertx.getOrCreateContext()).onComplete(res -> {
       if(res.succeeded()) {
         context.fail("Expected failure");
       } else {
@@ -3148,7 +3152,7 @@ public class CourseAPITest {
           .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
-        "Post Course Reserve").setHandler(postRes -> {
+        "Post Course Reserve").onComplete(postRes -> {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
@@ -3156,13 +3160,13 @@ public class CourseAPITest {
             DELETE, okapiHeaders, null, null, 204, "Delete Item 1")
         //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/")
         //    + OkapiMock.item1Id, DELETE, null, null, 204)
-            .setHandler(deleteRes -> {
+            .onComplete(deleteRes -> {
           if(deleteRes.failed()) {
             context.fail(deleteRes.cause());
           } else {
             TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
                 "/reserves/" + reserveId, DELETE, acceptTextHeaders, null, 204,
-                "Delete Course Reserve").setHandler(deleteReserveRes -> {
+                "Delete Course Reserve").onComplete(deleteReserveRes -> {
               if(deleteReserveRes.failed()) {
                 context.fail(deleteReserveRes.cause());
               } else {
@@ -3189,13 +3193,13 @@ public class CourseAPITest {
           .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
-        "Post Course Reserve").setHandler(postRes -> {
+        "Post Course Reserve").onComplete(postRes -> {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves/" + reserveId, GET, standardHeaders, null, 200,
-        "Post Course Reserve").setHandler(getRes -> {
+        "Post Course Reserve").onComplete(getRes -> {
           if(getRes.failed()) {
             context.fail(getRes.cause());
           } else {
@@ -3228,13 +3232,13 @@ public class CourseAPITest {
           .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
         "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
-        "Post Course Reserve").setHandler(postRes -> {
+        "Post Course Reserve").onComplete(postRes -> {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves/" + reserveId, GET, standardHeaders, null, 200,
-        "Post Course Reserve").setHandler(getRes -> {
+        "Post Course Reserve").onComplete(getRes -> {
           if(getRes.failed()) {
             context.fail(getRes.cause());
           } else {
@@ -3243,7 +3247,7 @@ public class CourseAPITest {
               JsonObject copiedJson = reserveJson.getJsonObject("copiedItem");
               context.assertEquals(OkapiMock.location2Id, copiedJson.getString("temporaryLocationId"));
               CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/" + reserveJson.getString("itemId"),
-                  GET, null, null, 200).setHandler(itemRes -> {
+                  GET, null, null, 200).onComplete(itemRes -> {
                 if(itemRes.failed()) {
                   context.fail(itemRes.cause());
                 } else {
@@ -3279,13 +3283,13 @@ public class CourseAPITest {
           .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
         "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
-        "Post Course Reserve").setHandler(postRes -> {
+        "Post Course Reserve").onComplete(postRes -> {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves/" + reserveId, GET, standardHeaders, null, 200,
-        "Post Course Reserve").setHandler(getRes -> {
+        "Post Course Reserve").onComplete(getRes -> {
           if(getRes.failed()) {
             context.fail(getRes.cause());
           } else {
@@ -3294,7 +3298,7 @@ public class CourseAPITest {
               JsonObject copiedJson = reserveJson.getJsonObject("copiedItem");
               context.assertEquals(OkapiMock.location2Id, copiedJson.getString("temporaryLocationId"));
               CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/" + reserveJson.getString("itemId"),
-                  GET, null, null, 200).setHandler(itemRes -> {
+                  GET, null, null, 200).onComplete(itemRes -> {
                 if(itemRes.failed()) {
                   context.fail(itemRes.cause());
                 } else {
@@ -3330,13 +3334,13 @@ public class CourseAPITest {
           .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
-        "Post Course Reserve").setHandler(postRes -> {
+        "Post Course Reserve").onComplete(postRes -> {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves/" + reserveId, GET, standardHeaders, null, 200,
-        "Post Course Reserve").setHandler(getRes -> {
+        "Post Course Reserve").onComplete(getRes -> {
           if(getRes.failed()) {
             context.fail(getRes.cause());
           } else {
@@ -3370,13 +3374,13 @@ public class CourseAPITest {
           .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
-        "Post Course Reserve").setHandler(postRes -> {
+        "Post Course Reserve").onComplete(postRes -> {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
         TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/reserves/" + reserveId, GET, standardHeaders, null, 200,
-        "Post Course Reserve").setHandler(getRes -> {
+        "Post Course Reserve").onComplete(getRes -> {
           if(getRes.failed()) {
             context.fail(getRes.cause());
           } else {
@@ -3428,7 +3432,7 @@ public class CourseAPITest {
           String courseId = res.getJson().getString("id");
           return TestUtil.doRequest(vertx, baseUrl + "/courses/" + courseId,
               GET, standardHeaders, null, 200, "Get newly created Course");
-        }).setHandler(res -> {
+        }).onComplete(res -> {
           if(res.failed()) {
           context.fail(res.cause());
           } else {
@@ -3455,7 +3459,7 @@ public class CourseAPITest {
     Async async = context.async();
     new CourseAPIFail().checkUniqueReserveForListing(UUID.randomUUID().toString(),
         UUID.randomUUID().toString(), okapiHeaders, vertx.getOrCreateContext())
-        .setHandler(res -> {
+        .onComplete(res -> {
       if(res.failed()) {
         async.complete();
       } else {
@@ -3580,7 +3584,7 @@ public class CourseAPITest {
 
   private Future<Void> testPostGetPutDelete(JsonObject originalJson, JsonObject modifiedJson,
       String postUrl, String getUrl, String putUrl, String deleteUrl, String deleteAllUrl) {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, postUrl, POST, standardHeaders, originalJson.encode(), 201,
         "Post to " + postUrl)
         .compose( f -> {
@@ -3625,18 +3629,18 @@ public class CourseAPITest {
               "Get from " + getUrl + " after delete all");
         })
 
-        .setHandler(res -> {
+        .onComplete(res -> {
           if(res.failed()) {
-            future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourseListing1Instructor1() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", INSTRUCTOR_1_ID)
         .put("name", "Blaufarb")
@@ -3644,18 +3648,18 @@ public class CourseAPITest {
         .put("courseListingId", COURSE_LISTING_1_ID);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/instructors", POST, standardHeaders,
-        departmentJson.encode(), 201, "Post Instructor 1").setHandler(res -> {
+        departmentJson.encode(), 201, "Post Instructor 1").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+           promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourseListing1Instructor2() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", INSTRUCTOR_2_ID)
         .put("name", "Kregley")
@@ -3663,18 +3667,18 @@ public class CourseAPITest {
         .put("courseListingId", COURSE_LISTING_1_ID);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
         +"/instructors", POST, standardHeaders,
-        departmentJson.encode(), 201, "Post Instructor 2").setHandler(res -> {
+        departmentJson.encode(), 201, "Post Instructor 2").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+           promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
     private Future<Void> loadCourseListing2Instructor3() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", INSTRUCTOR_3_ID)
         .put("name", "Boffins")
@@ -3682,52 +3686,52 @@ public class CourseAPITest {
         .put("courseListingId", COURSE_LISTING_2_ID);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_2_ID
         +"/instructors", POST, standardHeaders,
-        departmentJson.encode(), 201, "Post Instructor 3").setHandler(res -> {
+        departmentJson.encode(), 201, "Post Instructor 3").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+           promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
 
   private Future<Void> loadDepartment1() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", DEPARTMENT_1_ID)
         .put("name", "History");
     TestUtil.doRequest(vertx, baseUrl + "/departments", POST, null,
-        departmentJson.encode(), 201, "Post Department 1").setHandler(res -> {
+        departmentJson.encode(), 201, "Post Department 1").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadDepartment2() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", DEPARTMENT_2_ID)
         .put("name", "Engineering");
     TestUtil.doRequest(vertx, baseUrl + "/departments", POST, null,
-        departmentJson.encode(), 201, "Post Department 2").setHandler(res -> {
+        departmentJson.encode(), 201, "Post Department 2").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
 
   private Future<Void> loadTerm1() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     DateTime startDate = new DateTime(2019, 6, 15, 0, 0);
     DateTime endDate = new DateTime(2019, 12, 15, 0, 0);
     JsonObject termJson = new JsonObject()
@@ -3736,18 +3740,18 @@ public class CourseAPITest {
         .put("startDate", startDate.toString(ISODateTimeFormat.dateTime()))
         .put("endDate", endDate.toString(ISODateTimeFormat.dateTime()));
     TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
-        termJson.encode(), 201, "Post Term 1").setHandler(res -> {
+        termJson.encode(), 201, "Post Term 1").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadTerm2() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     DateTime startDate = new DateTime(2019, 11, 5, 0, 0);
     DateTime endDate = new DateTime(2020, 01, 15, 0, 0);
     JsonObject termJson = new JsonObject()
@@ -3756,86 +3760,86 @@ public class CourseAPITest {
         .put("startDate", startDate.toString(ISODateTimeFormat.dateTime()))
         .put("endDate", endDate.toString(ISODateTimeFormat.dateTime()));
     TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
-        termJson.encode(), 201, "Post Term 1").setHandler(res -> {
+        termJson.encode(), 201, "Post Term 1").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourseType1() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", COURSE_TYPE_1_ID)
         .put("name", "Regular");
     TestUtil.doRequest(vertx, baseUrl + "/coursetypes", POST, null,
-        departmentJson.encode(), 201, "Post Course Type 1").setHandler(res -> {
+        departmentJson.encode(), 201, "Post Course Type 1").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourseType2() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", COURSE_TYPE_2_ID)
         .put("name", "Variant");
     TestUtil.doRequest(vertx, baseUrl + "/coursetypes", POST, null,
-        departmentJson.encode(), 201, "Post Course Type 2").setHandler(res -> {
+        departmentJson.encode(), 201, "Post Course Type 2").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourseListing1() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_1_ID)
         .put("termId", TERM_1_ID)
         .put("courseTypeId", COURSE_TYPE_1_ID)
         .put("externalId", EXTERNAL_ID_1);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
-        courseListingJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+        courseListingJson.encode(), 201, "Post Course Listing").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourseListing2() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_2_ID)
         .put("termId", TERM_1_ID)
         .put("courseTypeId", COURSE_TYPE_1_ID)
         .put("externalId", EXTERNAL_ID_2);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
-        courseListingJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+        courseListingJson.encode(), 201, "Post Course Listing").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourseListing3() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_3_ID)
         .put("termId", TERM_2_ID)
@@ -3843,343 +3847,347 @@ public class CourseAPITest {
         .put("locationId", OkapiMock.location2Id)
         .put("externalId", EXTERNAL_ID_3);
     TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
-        courseListingJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+        courseListingJson.encode(), 201, "Post Course Listing").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourse1() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_1_ID)
         .put("departmentId", DEPARTMENT_1_ID)
         .put("courseListingId", COURSE_LISTING_1_ID)
         .put("name", "Comp Sci 101");
     TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourse2() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_2_ID)
         .put("departmentId", DEPARTMENT_1_ID)
         .put("courseListingId", COURSE_LISTING_1_ID)
         .put("name", "Computers for Engineers 101");
     TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourse3() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_3_ID)
         .put("departmentId", DEPARTMENT_1_ID)
         .put("courseListingId", COURSE_LISTING_2_ID)
         .put("name", "Data Structures 101");
     TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourse4() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_4_ID)
         .put("departmentId", DEPARTMENT_2_ID)
         .put("courseListingId", COURSE_LISTING_2_ID)
         .put("name", "Data Structures for Engineers 101");
     TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCourse5() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_5_ID)
         .put("departmentId", DEPARTMENT_2_ID)
         .put("courseListingId", COURSE_LISTING_3_ID)
         .put("name", "Data Structures for Engineers 101");
     TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").setHandler(res -> {
+        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadCopyrightStatus1() {
-     Future<Void> future = Future.future();
+     Promise<Void> promise = Promise.promise();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", COPYRIGHT_STATUS_1_ID)
         .put("description", "Creative Commons")
         .put("name", "cc");
     TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", POST, null,
-        copyrightStatusJson.encode(), 201, "Post Copyright Status").setHandler(res -> {
+        copyrightStatusJson.encode(), 201, "Post Copyright Status").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
     private Future<Void> loadCopyrightStatus2() {
-     Future<Void> future = Future.future();
+     Promise<Void> promise = Promise.promise();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", COPYRIGHT_STATUS_2_ID)
         .put("description", "Reserved")
         .put("name", "reserved");
     TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", POST, null,
-        copyrightStatusJson.encode(), 201, "Post Copyright Status").setHandler(res -> {
+        copyrightStatusJson.encode(), 201, "Post Copyright Status").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadProcessingStatus1() {
-     Future<Void> future = Future.future();
+     Promise<Void> promise = Promise.promise();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", PROCESSING_STATUS_1_ID)
         .put("description", "Processing")
         .put("name", "processing");
     TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", POST, null,
-        copyrightStatusJson.encode(), 201, "Post Processing Status").setHandler(res -> {
+        copyrightStatusJson.encode(), 201, "Post Processing Status").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> loadProcessingStatus2() {
-     Future<Void> future = Future.future();
+     Promise<Void> promise = Promise.promise();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", PROCESSING_STATUS_2_ID)
         .put("description", "Frombulating")
         .put("name", "frombulating");
     TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", POST, null,
-        copyrightStatusJson.encode(), 201, "Post Processing Status").setHandler(res -> {
+        copyrightStatusJson.encode(), 201, "Post Processing Status").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> deleteCourses() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/courses", DELETE, null, null, 204,
-        "Delete All Courses").setHandler(res -> {
+        "Delete All Courses").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> deleteCourseListings() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/courselistings", DELETE, null, null, 204,
-        "Delete All Course Listings").setHandler(res -> {
+        "Delete All Course Listings").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> deleteTerms() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/terms", DELETE, null, null, 204,
-        "Delete All Terms").setHandler(res -> {
+        "Delete All Terms").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> deleteDepartments() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/departments", DELETE, null, null, 204,
-        "Delete All Departments").setHandler(res -> {
+        "Delete All Departments").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> deleteCourseTypes() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/coursetypes", DELETE, null, null, 204,
-        "Delete All Course Types").setHandler(res -> {
+        "Delete All Course Types").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> deleteCourseListing1Instructors() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/"+COURSE_LISTING_1_ID+
         "/instructors", DELETE, null, null, 204,
-        "Delete All Instructors for Course Listing 1").setHandler(res -> {
+        "Delete All Instructors for Course Listing 1").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> deleteCourseListing2Instructors() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/courselistings/"+COURSE_LISTING_2_ID+
         "/instructors", DELETE, null, null, 204,
-        "Delete All Instructors For Course Listing 2").setHandler(res -> {
+        "Delete All Instructors For Course Listing 2").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
 
   private Future<Void> deleteCopyrightStatuses() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", DELETE, null, null, 204,
-        "Delete All CopyrightStatuses").setHandler(res -> {
+        "Delete All CopyrightStatuses").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> deleteProcessingStatuses() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", DELETE, null, null, 204,
-        "Delete All ProcessingStatuses").setHandler(res -> {
+        "Delete All ProcessingStatuses").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> deleteReserves() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     TestUtil.doRequest(vertx, baseUrl + "/reserves", DELETE, null, null, 204,
-        "Delete All Reserves").setHandler(res -> {
+        "Delete All Reserves").onComplete(res -> {
           if(res.failed()) {
-           future.fail(res.cause());
+            promise.fail(res.cause());
           } else {
-            future.complete();
+            promise.complete();
           }
         });
-    return future;
+    return promise.future();
   }
 
   private Future<Void> resetMockOkapi() {
-    Future<Void> future = Future.future();
+    Promise<Void> promise = Promise.promise();
     JsonObject payload = new JsonObject().put("reset", true);
     TestUtil.doOkapiRequest(vertx, "/reset", POST, okapiHeaders, null,
-        payload.encode(), 201, "Reset Okapi").setHandler(res -> {
+        payload.encode(), 201, "Reset Okapi").onComplete(res -> {
     //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/reset", POST, null,
     //    payload.encode(), 201).setHandler(res -> {
       if(res.failed()) {
-        future.fail(res.cause());
-      } else {
-        future.complete();
-      }
-    });
-    return future;
-  }
-
-  private static Future<Void> initTenant(String tenantId, int port) {
-    Promise<Void> promise = Promise.promise();
-    HttpClient client = vertx.createHttpClient();
-    String url = "http://localhost:" + port + "/_/tenant";
-    JsonObject payload = new JsonObject()
-        .put("module_to", MODULE_TO)
-        .put("module_from", MODULE_FROM);
-    HttpClientRequest request = client.postAbs(url);
-    request.handler(req -> {
-      if(req.statusCode() != 201) {
-        promise.fail("Expected 201, got " + req.statusCode());
+        promise.fail(res.cause());
       } else {
         promise.complete();
       }
     });
+    return promise.future();
+  }
+
+  private static Future<Void> initTenant(String tenantId, int port) {
+    Promise<Void> promise = Promise.promise();
+    WebClient client = WebClient.create(vertx);
+    String url = "http://localhost:" + port + "/_/tenant";
+    JsonObject payload = new JsonObject()
+        .put("module_to", MODULE_TO)
+        .put("module_from", MODULE_FROM);
+    HttpRequest<Buffer> request = client.postAbs(url);
     request.putHeader("X-Okapi-Tenant", tenantId);
     request.putHeader("X-Okapi-Url", okapiUrl);
     request.putHeader("Content-Type", "application/json");
     request.putHeader("Accept", "application/json, text/plain");
-    request.end(payload.encode());
+    request.sendJsonObject(payload).onComplete(res -> {
+      if(res.failed()) {
+        promise.fail(res.cause());
+      } else {
+        HttpResponse<Buffer> result = res.result();
+        if(result.statusCode() != 204) {
+          promise.fail("Expected 204, got " + result.statusCode());
+        } else {
+          promise.complete();
+        }
+      }
+    });
     return promise.future();
   }
 
@@ -4191,9 +4199,8 @@ class CourseAPIFail extends CourseAPI {
   public <T> Future<Results<T>> getItems(String tableName, Class<T> clazz,
       CQLWrapper cql, PostgresClient pgClient) {
     logger.info("Calling Always-Fails getItems");
-    Future<Results<T>> future = Future.future();
-    future = Future.failedFuture("IT ALWAYS FAILS");
-    return future;
+    //Future<Results<T>> future = Future.future();
+    return Future.failedFuture("IT ALWAYS FAILS");
   }
 
   public Future<Void> deleteAllItems(String tableName, String whereClause,

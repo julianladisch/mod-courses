@@ -2,6 +2,7 @@ package CourseAPITest;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonArray;
@@ -88,7 +89,7 @@ public class OkapiMock extends AbstractVerticle {
   private static Map<String, JsonObject> loanTypeMap;
 
 
-  public void start(Future<Void> future) {
+  public void start(Promise<Void> promise) {
     final String defaultPort = context.config().getInteger("port", 9130).toString();
     final String portStr = System.getProperty("port", defaultPort);
     final int port = Integer.parseInt(portStr);
@@ -113,11 +114,11 @@ public class OkapiMock extends AbstractVerticle {
     router.route("/addsample").handler(this::handleAddSample);
 
     logger.info("Running OkapiMock on port " + port);
-    server.requestHandler(router::accept).listen(port, result -> {
+    server.requestHandler(router).listen(port, result -> {
       if(result.failed()) {
-        future.fail(result.cause());
+        promise.fail(result.cause());
       } else {
-        future.complete();
+        promise.complete();
       }
     });
   }

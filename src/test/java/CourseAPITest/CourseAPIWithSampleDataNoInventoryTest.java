@@ -19,6 +19,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import static io.vertx.core.http.HttpMethod.GET;
@@ -27,6 +28,9 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.persist.PostgresClient;
@@ -82,7 +86,7 @@ public class CourseAPIWithSampleDataNoInventoryTest extends CourseAPIWithSampleD
               try {
                 restVerticleId = deployCourseRes.result();
                 logger.info("Deployed verticle on port " + port);
-                initTenant("diku", port).setHandler(initRes -> {
+                initTenant("diku", port).onComplete(initRes -> {
                   if(initRes.failed()) {
                     context.fail(initRes.cause());
                   } else {
@@ -157,8 +161,7 @@ public class CourseAPIWithSampleDataNoInventoryTest extends CourseAPIWithSampleD
 
   protected static Future<Void> initTenant(String tenantId, int port) {
     Promise<Void> promise = Promise.promise();
-    HttpClient client = vertx.createHttpClient();
-    //String url = "http://localhost:" + port + "/_/tenant?tenantParameters=loadSample=false";
+    WebClient client = WebClient.create(vertx);
     String url = "http://localhost:" + port + "/_/tenant";
     JsonObject payload = new JsonObject()
         .put("module_to", MODULE_TO)
@@ -168,37 +171,41 @@ public class CourseAPIWithSampleDataNoInventoryTest extends CourseAPIWithSampleD
             .put("key", "loadSample")
             .put("value", true))
          );
-    HttpClientRequest request = client.postAbs(url);
-    request.handler(req -> {
-      if(req.statusCode() != 201) {
-        promise.fail("Expected 201, got " + req.statusCode());
-        logger.error("Unable to initialize tenant: " + req.statusMessage());
+    HttpRequest<Buffer> request = client.postAbs(url);
+    request.putHeader("X-Okapi-Tenant", tenantId);
+    request.putHeader("X-Okapi-Url", okapiUrl);
+    request.putHeader("Content-Type", "application/json");
+    request.putHeader("Accept", "application/json, text/plain");
+    request.putHeader("X-Okapi-Url-To", okapiTenantUrl);
+    request.sendJsonObject(payload).onComplete(res -> {
+      if(res.failed()) {
+        promise.fail(res.cause());
+      } else {
+        HttpResponse<Buffer> result = res.result();
+        if(result.statusCode() != 204) {
+          promise.fail("Expected 204, got " + result.statusCode());
+        } else {
+          promise.complete();
+        }
+      }
+    });
+    return promise.future();
+  }
+
+
+  protected static Future<Void> wipeMockOkapi() {
+    Promise<Void> promise = Promise.promise();
+    JsonObject payload = new JsonObject().put("wipe", true);
+    logger.info("Making request to reset mock okapi data");
+    CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/wipe", POST, null,
+        payload.encode(), 201).onComplete(res -> {
+      if(res.failed()) {
+        promise.fail(res.cause());
       } else {
         promise.complete();
       }
     });
-    request.putHeader("X-Okapi-Tenant", tenantId);
-    request.putHeader("X-Okapi-Url", okapiUrl);
-    request.putHeader("X-Okapi-Url-To", okapiTenantUrl);
-    request.putHeader("Content-Type", "application/json");
-    request.putHeader("Accept", "application/json, text/plain");
-    request.end(payload.encode());
     return promise.future();
-  }
-
-  protected static Future<Void> wipeMockOkapi() {
-    Future<Void> future = Future.future();
-    JsonObject payload = new JsonObject().put("wipe", true);
-    logger.info("Making request to reset mock okapi data");
-    CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/wipe", POST, null,
-        payload.encode(), 201).setHandler(res -> {
-      if(res.failed()) {
-        future.fail(res.cause());
-      } else {
-        future.complete();
-      }
-    });
-    return future;
   }
 
   //Tests

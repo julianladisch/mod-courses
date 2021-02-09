@@ -1,4 +1,4 @@
-## 1.1.2 2020-01-28
+## 1.1.2 2021-01-28
 * Add ForeignKey entry for Coursetype into Courselistings table (MODCR-50)
 
 ## 1.1.1 2020-11-06
