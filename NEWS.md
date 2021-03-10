@@ -1,3 +1,6 @@
+## 1.2.0 2021-03-10
+* Upgrade to RMB 32.2.0
+
 ## 1.1.2 2021-01-28
 * Add ForeignKey entry for Coursetype into Courselistings table (MODCR-50)
 
