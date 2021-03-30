@@ -1,3 +1,6 @@
+## 1.3.0 IN PROGRESS
+* Added `numberOfStudents` field to course records (MODCR-53)
+
 ## 1.2.0 2021-03-10
 * Upgrade to RMB 32.2.0
 

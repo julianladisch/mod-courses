@@ -100,6 +100,7 @@ public class CourseAPITest {
   public final static String EXTERNAL_ID_1 = "0001";
   public final static String EXTERNAL_ID_2 = "0002";
   public final static String EXTERNAL_ID_3 = "0003";
+  public final static Integer COURSE_1_NUM_STUDENTS = 42;
   public static Map<String, String> okapiHeaders = new HashMap<>();
   public static MultiMap standardHeaders = MultiMap.caseInsensitiveMultiMap();
   public static MultiMap acceptTextHeaders = MultiMap.caseInsensitiveMultiMap();
@@ -548,6 +549,11 @@ public class CourseAPITest {
             context.fail("Bad id for department object, got " +
                 course.getJsonObject("departmentObject").getString("id") +
                 " expected " + DEPARTMENT_1_ID);
+          }
+          if(!course.getInteger("numberOfStudents").equals(COURSE_1_NUM_STUDENTS)) {
+            context.fail("Bad number of students for course, got " +
+                course.getInteger("numberOfStudents") +
+                " expected " + COURSE_1_NUM_STUDENTS);
           }
           if(courseListing.getJsonObject("courseTypeObject") == null) {
             context.fail("No course type object found in json " + course.encode());
@@ -3863,7 +3869,8 @@ public class CourseAPITest {
         .put("id", COURSE_1_ID)
         .put("departmentId", DEPARTMENT_1_ID)
         .put("courseListingId", COURSE_LISTING_1_ID)
-        .put("name", "Comp Sci 101");
+        .put("name", "Comp Sci 101")
+        .put("numberOfStudents", COURSE_1_NUM_STUDENTS);
     TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
         courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
           if(res.failed()) {

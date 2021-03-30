@@ -1,5 +1,9 @@
 # generated files
 target
+.settings
+.factorypath
+.classpath
+.project
 
 # Compiled class file
 *.class
