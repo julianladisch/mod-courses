@@ -2694,7 +2694,7 @@ public class CourseAPITest {
    });
   }
   //This test won't pass due to RMB-585
-/*
+
   @Test
   public void testSearchReservesByCopyrightStatus(TestContext context) {
     Async async = context.async();
@@ -2723,7 +2723,7 @@ public class CourseAPITest {
 
     JsonObject reserve3Json = new JsonObject()
         .put("id", reserve3Id)
-        .put("itemId", OkapiMock.item2Id)
+        .put("itemId", OkapiMock.item3Id)
         .put("processingStatusId", PROCESSING_STATUS_2_ID)
         .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
         .put("copyrightTracking", new JsonObject()
@@ -2746,12 +2746,13 @@ public class CourseAPITest {
          "?query=copyrightStatus.name==cc";
       return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
           "Get Reserves by Processing Status");
-   }).setHandler(res -> {
+   }).onComplete(res -> {
      if(res.failed()) {
        context.fail(res.cause());
      } else {
        try {
-         context.assertEquals(res.result().getJson().getJsonArray("reserve").size(), 2);
+         logger.info("JSON returned is " + res.result().getJson().encode());
+         context.assertEquals(res.result().getJson().getJsonArray("reserves").size(), 2);
          async.complete();
        } catch(Exception e) {
          context.fail(e);
@@ -2759,7 +2760,7 @@ public class CourseAPITest {
      }
    });
   }
-  */
+  
 
    @Test
    public void testPutEmptyLocationIdToCourseListing(TestContext context) {
