@@ -2751,7 +2751,8 @@ public class CourseAPITest {
        context.fail(res.cause());
      } else {
        try {
-         context.assertEquals(res.result().getJson().getJsonArray("reserve").size(), 2);
+         logger.info("JSON returned is " + res.result().getJson().encode());
+         context.assertEquals(res.result().getJson().getJsonArray("reserves").size(), 2);
          async.complete();
        } catch(Exception e) {
          context.fail(e);
