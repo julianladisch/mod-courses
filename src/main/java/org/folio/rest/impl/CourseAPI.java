@@ -1576,7 +1576,14 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
         if(entity.getCopiedItem() != null) {
           originalTemporaryLocationId = entity.getCopiedItem().getTemporaryLocationId();
         }
-        if(originalTemporaryLocationId == null && courseListingLocation != null) {
+        /*
+         * If this is a POST operation, we want to override a null temporaryLocationId
+         * in the reserve if one exists in the courseListing. We do not want the override
+         * for a PUT operation
+         */
+        if(writeType == WriteType.POST && 
+          originalTemporaryLocationId == null && courseListingLocation != null) {
+          logger.info("Using courseListing location for reserve temporary location");
           originalTemporaryLocationId = courseListingLocation;
         }
         Future<JsonObject> getCopiedItemsFuture;
