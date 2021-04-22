@@ -23,6 +23,8 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import jdk.jfr.Timestamp;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -846,6 +848,66 @@ public class CourseAPITest {
               async.complete();
             });
        }
+    });
+  }
+
+  @Test
+  public void testModifyReserve(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_3_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+        .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").onComplete(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        JsonObject reserveJson = res.result().getJson();
+        JsonObject itemJson = reserveJson.getJsonObject("copiedItem");
+        if(! itemJson.getString("temporaryLocationId").equals(OkapiMock.location2Id)) {
+          context.fail("Expected temporaryLocationId" + OkapiMock.location2Id 
+              + " got " + itemJson.getString("temporaryLocationId"));
+          return;
+        }
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+          "/reserves/" + reserveJson.getString("id"), GET, standardHeaders, null,
+          200, "Get Course Reserve").onComplete(getReserveRes -> {
+          if(getReserveRes.failed()) {
+            context.fail(getReserveRes.cause());
+          } else {
+            JsonObject reserveGetJson = getReserveRes.result().getJson();
+            JsonObject reservePutJson = new JsonObject(reserveGetJson.encode());
+            JsonObject reservePutItemJson = reservePutJson.getJsonObject("copiedItem");
+            reservePutItemJson.remove("temporaryLocationId");
+            TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+              "/reserves/" + reservePutJson.getString("id"), PUT, standardHeaders,
+              reservePutJson.encode(), 204, "Put Course Reserve").onComplete(res2 -> {
+              TestUtil.doOkapiRequest(vertx, "/item-storage/items/" + OkapiMock.item1Id,
+                GET, okapiHeaders, null, null, 200, "Get Item 1").onComplete(getItemRes -> {
+                  if(getItemRes.failed()) {
+                    context.fail(getItemRes.cause());
+                  } else {
+                    JsonObject getItemJson = getItemRes.result().getJson();
+                    logger.info("Returned item Json is " + getItemJson.encode());
+                    try {
+                      context.assertNull(getItemJson.getString("temporaryLocationId"));
+                      async.complete();
+                    } catch(Exception e) {
+                      context.fail(e);
+                    }
+                  }
+                });
+              //The item should have the temporary location un-set.
+
+            });
+          }
+        });        
+      }
     });
   }
 
@@ -2668,7 +2730,6 @@ public class CourseAPITest {
    });
   }
 
-  @Ignore("This test won't pass due to RMB-585, RMB-586: copyrightstates, missing FROM-clause")
   @Test
   public void testSearchReservesByCopyrightStatus(TestContext context) {
     String reserve1Id = UUID.randomUUID().toString();
@@ -2718,7 +2779,7 @@ public class CourseAPITest {
     }).onComplete(context.asyncAssertSuccess(
         res -> context.assertEquals(res.getJson().getJsonArray("reserve").size(), 2)));
   }
-
+  
    @Test
    public void testPutEmptyLocationIdToCourseListing(TestContext context) {
      Async async = context.async();
@@ -3105,8 +3166,6 @@ public class CourseAPITest {
       } else {
         TestUtil.doOkapiRequest(vertx, "/item-storage/items/" +OkapiMock.item1Id,
             DELETE, okapiHeaders, null, null, 204, "Delete Item 1")
-        //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/")
-        //    + OkapiMock.item1Id, DELETE, null, null, 204)
             .onComplete(deleteRes -> {
           if(deleteRes.failed()) {
             context.fail(deleteRes.cause());
