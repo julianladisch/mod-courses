@@ -25,6 +25,8 @@ import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
+import jdk.jfr.Timestamp;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
@@ -777,6 +779,66 @@ public class CourseAPITest {
               async.complete();
             });
        }
+    });
+  }
+
+  @Test
+  public void testModifyReserve(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_3_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+        .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").onComplete(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        JsonObject reserveJson = res.result().getJson();
+        JsonObject itemJson = reserveJson.getJsonObject("copiedItem");
+        if(! itemJson.getString("temporaryLocationId").equals(OkapiMock.location2Id)) {
+          context.fail("Expected temporaryLocationId" + OkapiMock.location2Id 
+              + " got " + itemJson.getString("temporaryLocationId"));
+          return;
+        }
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+          "/reserves/" + reserveJson.getString("id"), GET, standardHeaders, null,
+          200, "Get Course Reserve").onComplete(getReserveRes -> {
+          if(getReserveRes.failed()) {
+            context.fail(getReserveRes.cause());
+          } else {
+            JsonObject reserveGetJson = getReserveRes.result().getJson();
+            JsonObject reservePutJson = new JsonObject(reserveGetJson.encode());
+            JsonObject reservePutItemJson = reservePutJson.getJsonObject("copiedItem");
+            reservePutItemJson.remove("temporaryLocationId");
+            TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+              "/reserves/" + reservePutJson.getString("id"), PUT, standardHeaders,
+              reservePutJson.encode(), 204, "Put Course Reserve").onComplete(res2 -> {
+              TestUtil.doOkapiRequest(vertx, "/item-storage/items/" + OkapiMock.item1Id,
+                GET, okapiHeaders, null, null, 200, "Get Item 1").onComplete(getItemRes -> {
+                  if(getItemRes.failed()) {
+                    context.fail(getItemRes.cause());
+                  } else {
+                    JsonObject getItemJson = getItemRes.result().getJson();
+                    logger.info("Returned item Json is " + getItemJson.encode());
+                    try {
+                      context.assertNull(getItemJson.getString("temporaryLocationId"));
+                      async.complete();
+                    } catch(Exception e) {
+                      context.fail(e);
+                    }
+                  }
+                });
+              //The item should have the temporary location un-set.
+
+            });
+          }
+        });        
+      }
     });
   }
 
@@ -2611,8 +2673,8 @@ public class CourseAPITest {
      }
    });
   }
-  //This test won't pass due to RMB-585
-/*
+
+
   @Test
   public void testSearchReservesByCopyrightStatus(TestContext context) {
     Async async = context.async();
@@ -2641,7 +2703,7 @@ public class CourseAPITest {
 
     JsonObject reserve3Json = new JsonObject()
         .put("id", reserve3Id)
-        .put("itemId", OkapiMock.item2Id)
+        .put("itemId", OkapiMock.item3Id)
         .put("processingStatusId", PROCESSING_STATUS_2_ID)
         .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
         .put("copyrightTracking", new JsonObject()
@@ -2664,12 +2726,13 @@ public class CourseAPITest {
          "?query=copyrightStatus.name==cc";
       return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
           "Get Reserves by Processing Status");
-   }).setHandler(res -> {
+   }).onComplete(res -> {
      if(res.failed()) {
        context.fail(res.cause());
      } else {
        try {
-         context.assertEquals(res.result().getJson().getJsonArray("reserve").size(), 2);
+         logger.info("JSON returned is " + res.result().getJson().encode());
+         context.assertEquals(res.result().getJson().getJsonArray("reserves").size(), 2);
          async.complete();
        } catch(Exception e) {
          context.fail(e);
@@ -2677,7 +2740,7 @@ public class CourseAPITest {
      }
    });
   }
-  */
+  
 
    @Test
    public void testPutEmptyLocationIdToCourseListing(TestContext context) {
@@ -3082,8 +3145,6 @@ public class CourseAPITest {
       } else {
         TestUtil.doOkapiRequest(vertx, "/item-storage/items/" +OkapiMock.item1Id,
             DELETE, okapiHeaders, null, null, 204, "Delete Item 1")
-        //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/")
-        //    + OkapiMock.item1Id, DELETE, null, null, 204)
             .onComplete(deleteRes -> {
           if(deleteRes.failed()) {
             context.fail(deleteRes.cause());
