@@ -1,6 +1,6 @@
 ## 1.2.1 2021-04-23
 * Upgrade to RMB 32.2.1 (MODCR-57)
-* Fix issue with updating temporaryLocationId to null (MODCR-56)
+* Fix issue with updating temporaryLocationId to null value (MODCR-56)
 
 ## 1.2.0 2021-03-10
 * Upgrade to RMB 32.2.0
