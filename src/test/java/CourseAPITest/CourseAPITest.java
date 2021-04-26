@@ -1,17 +1,16 @@
 package CourseAPITest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+
 import CourseAPITest.TestUtil.WrappedResponse;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import static io.vertx.core.http.HttpMethod.DELETE;
 import static io.vertx.core.http.HttpMethod.GET;
 import static io.vertx.core.http.HttpMethod.POST;
@@ -20,42 +19,32 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-//import io.vertx.ext.asyncsql.AsyncSQLClient;
-//import io.vertx.ext.sql.SQLClient;
-//import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.folio.coursereserves.util.CRUtil;
 import org.folio.rest.RestVerticle;
-import org.folio.rest.client.TenantClient;
 import org.folio.rest.impl.CourseAPI;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.getCQL;
-import org.folio.rest.jaxrs.model.CopyrightStatusObject;
-import org.folio.rest.jaxrs.model.CopyrightTracking;
 import org.folio.rest.jaxrs.model.Reserve;
 import org.folio.rest.jaxrs.model.Course;
-import org.folio.rest.jaxrs.model.CourseListing;
 import org.folio.rest.jaxrs.model.Instructor;
-import org.folio.rest.jaxrs.model.LocationObject;
-import org.folio.rest.persist.PgUtil;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
 import org.folio.rest.persist.interfaces.Results;
 import org.folio.rest.tools.utils.NetworkUtils;
+import org.folio.util.StringUtil;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.junit.After;
@@ -63,10 +52,10 @@ import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import static org.junit.Assert.assertEquals;
 
 @RunWith(VertxUnitRunner.class)
 public class CourseAPITest {
@@ -206,112 +195,44 @@ public class CourseAPITest {
 
   @Before
   public void beforeEach(TestContext context) {
-    Async async = context.async();
     loadTerm1()
-        .compose(f -> {
-        return loadTerm2();
-      })
-      .compose(f -> {
-        return loadCourseType1();
-      })
-      .compose(f -> {
-        return loadCourseType2();
-      })
-      .compose(f -> {
-        return loadDepartment1();
-      })
-      .compose(f -> {
-        return loadDepartment2();
-      })
-      .compose(f -> {
-        return loadCourseListing1();
-      })
-      .compose(f -> {
-        return loadCourseListing2();
-      })
-      .compose(f -> {
-        return loadCourseListing3();
-      })
-      .compose(f -> {
-        return loadCourseListing1Instructor1();
-      })
-        .compose(f -> {
-        return loadCourseListing1Instructor2();
-      })
-      .compose(f -> {
-        return loadCourseListing2Instructor3();
-      })
-      .compose(f -> {
-        return loadCourse1();
-      })
-      .compose(f -> {
-        return loadCourse4();
-      })
-      .compose(f -> {
-        return loadCourse2();
-      })
-      .compose(f -> {
-        return loadCourse3();
-      })
-      .compose(f -> {
-        return loadCourse5();
-      })
-      .compose(f -> {
-        return loadProcessingStatus1();
-      })
-      .compose(f -> {
-        return loadProcessingStatus2();
-      })
-      .compose(f -> {
-        return loadCopyrightStatus1();
-      })
-      .compose(f -> {
-        return loadCopyrightStatus2();
-      })
-      .onComplete(res -> {
-        if(res.failed()) {
-          context.fail(res.cause());
-        } else {
-          async.complete();
-        }
-      });
+    .compose(f -> loadTerm2())
+    .compose(f -> loadCourseType1())
+    .compose(f -> loadCourseType2())
+    .compose(f -> loadDepartment1())
+    .compose(f -> loadDepartment2())
+    .compose(f -> loadCourseListing1())
+    .compose(f -> loadCourseListing2())
+    .compose(f -> loadCourseListing3())
+    .compose(f -> loadCourseListing1Instructor1())
+    .compose(f -> loadCourseListing1Instructor2())
+    .compose(f -> loadCourseListing2Instructor3())
+    .compose(f -> loadCourse1())
+    .compose(f -> loadCourse4())
+    .compose(f -> loadCourse2())
+    .compose(f -> loadCourse3())
+    .compose(f -> loadCourse5())
+    .compose(f -> loadProcessingStatus1())
+    .compose(f -> loadProcessingStatus2())
+    .compose(f -> loadCopyrightStatus1())
+    .compose(f -> loadCopyrightStatus2())
+    .onComplete(context.asyncAssertSuccess());
   }
 
   @After
   public void afterEach(TestContext context) {
-    Async async = context.async();
     deleteCourses()
-        .compose(f -> {
-          return deleteCourseListing1Instructors();
-        })
-        .compose(f -> {
-          return deleteCourseListing2Instructors();
-        })
-        .compose(f -> {
-          return deleteReserves();
-        })
-        .compose(f -> {
-          return deleteCourseListings();
-        })
-        .compose(f -> {
-          return deleteTerms();
-        }).compose(f -> {
-          return deleteDepartments();
-        }).compose(f -> {
-          return deleteCourseTypes();
-        }).compose(f -> {
-          return deleteCopyrightStatuses();
-        }).compose(f -> {
-          return deleteProcessingStatuses();
-        }).compose(f -> {
-          return resetMockOkapi();
-        }).onComplete(res -> {
-        if(res.failed()) {
-          context.fail(res.cause());
-        } else {
-          async.complete();
-        }
-      });
+    .compose(f -> deleteCourseListing1Instructors())
+    .compose(f -> deleteCourseListing2Instructors())
+    .compose(f -> deleteReserves())
+    .compose(f -> deleteCourseListings())
+    .compose(f -> deleteTerms())
+    .compose(f -> deleteDepartments())
+    .compose(f -> deleteCourseTypes())
+    .compose(f -> deleteCopyrightStatuses())
+    .compose(f -> deleteProcessingStatuses())
+    .compose(f -> resetMockOkapi())
+    .onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -859,6 +780,66 @@ public class CourseAPITest {
               async.complete();
             });
        }
+    });
+  }
+
+  @Test
+  public void testModifyReserve(TestContext context) {
+    Async async = context.async();
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_3_ID)
+        .put("itemId", OkapiMock.item1Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+        .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 201,
+        "Post Course Reserve").onComplete(res -> {
+      if(res.failed()) {
+        context.fail(res.cause());
+      } else {
+        JsonObject reserveJson = res.result().getJson();
+        JsonObject itemJson = reserveJson.getJsonObject("copiedItem");
+        if(! itemJson.getString("temporaryLocationId").equals(OkapiMock.location2Id)) {
+          context.fail("Expected temporaryLocationId" + OkapiMock.location2Id
+              + " got " + itemJson.getString("temporaryLocationId"));
+          return;
+        }
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+          "/reserves/" + reserveJson.getString("id"), GET, standardHeaders, null,
+          200, "Get Course Reserve").onComplete(getReserveRes -> {
+          if(getReserveRes.failed()) {
+            context.fail(getReserveRes.cause());
+          } else {
+            JsonObject reserveGetJson = getReserveRes.result().getJson();
+            JsonObject reservePutJson = new JsonObject(reserveGetJson.encode());
+            JsonObject reservePutItemJson = reservePutJson.getJsonObject("copiedItem");
+            reservePutItemJson.remove("temporaryLocationId");
+            TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+              "/reserves/" + reservePutJson.getString("id"), PUT, standardHeaders,
+              reservePutJson.encode(), 204, "Put Course Reserve").onComplete(res2 -> {
+              TestUtil.doOkapiRequest(vertx, "/item-storage/items/" + OkapiMock.item1Id,
+                GET, okapiHeaders, null, null, 200, "Get Item 1").onComplete(getItemRes -> {
+                  if(getItemRes.failed()) {
+                    context.fail(getItemRes.cause());
+                  } else {
+                    JsonObject getItemJson = getItemRes.result().getJson();
+                    logger.info("Returned item Json is " + getItemJson.encode());
+                    try {
+                      context.assertNull(getItemJson.getString("temporaryLocationId"));
+                      async.complete();
+                    } catch(Exception e) {
+                      context.fail(e);
+                    }
+                  }
+                });
+              //The item should have the temporary location un-set.
+
+            });
+          }
+        });
+      }
     });
   }
 
@@ -2210,27 +2191,14 @@ public class CourseAPITest {
      });
    }
 
-   /*
    @Test
    public void TestGetReservesByCourseListingBadQuery(TestContext context) {
-     Async async = context.async();
      new CourseAPI()
-         .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
-         "*", null, 0, 10, null, okapiHeaders, res -> {
-       if(res.failed()) {
-         context.fail(res.cause());
-       } else {
-         if(res.result().getStatus() != 500) {
-           context.fail("Expected 500, got status " + res.result().getStatus());
-           return;
-         }
-         async.complete();
-       }
-     }, vertx.getOrCreateContext());
+     .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
+         "*", "=", 0, 10, null, okapiHeaders, context.asyncAssertSuccess(
+             res -> context.assertEquals(500, res.getStatus())),
+         vertx.getOrCreateContext());
    }
-   */
-
-
 
    @Test
    public void testGetPGClient(TestContext context) {
@@ -2693,11 +2661,9 @@ public class CourseAPITest {
      }
    });
   }
-  //This test won't pass due to RMB-585
 
   @Test
   public void testSearchReservesByCopyrightStatus(TestContext context) {
-    Async async = context.async();
     String reserve1Id = UUID.randomUUID().toString();
     String reserve2Id = UUID.randomUUID().toString();
     String reserve3Id = UUID.randomUUID().toString();
@@ -2733,34 +2699,30 @@ public class CourseAPITest {
     String url = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves";
     TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve1Json.encode(),
         201, "Post Reserve 1 to Courselisting 1")
+    .compose(f -> TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve2Json.encode(),
+        201, "Post Reserve 2 to Courselisting 1"))
+    .compose(f -> TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve3Json.encode(),
+        201, "Post Reserve 3 to Courselisting 1"))
     .compose(f -> {
-      return TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve2Json.encode(),
-        201, "Post Reserve 2 to Courselisting 1");
-    })
-    .compose(f -> {
-      return TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve3Json.encode(),
-        201, "Post Reserve 3 to Courselisting 1");
-    })
-   .compose( f -> {
-     String getUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves" +
-         "?query=copyrightStatus.name==cc";
+      String getUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves" +
+          "?query=copyrightStatus.name==cc";
       return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
           "Get Reserves by Processing Status");
-   }).onComplete(res -> {
-     if(res.failed()) {
-       context.fail(res.cause());
-     } else {
-       try {
-         logger.info("JSON returned is " + res.result().getJson().encode());
-         context.assertEquals(res.result().getJson().getJsonArray("reserves").size(), 2);
-         async.complete();
-       } catch(Exception e) {
-         context.fail(e);
-       }
-     }
-   });
+
+   })
+   .onComplete(context.asyncAssertSuccess(res -> {
+     assertThat(res.getJson().getJsonArray("reserves").size(), is(2));
+   }))
+   .compose(f -> {
+     String getUrl = baseUrl + "/reserves?expand=*&limit=100&" +
+         "query=copyrightTracking.copyrightStatusId==\"" + COPYRIGHT_STATUS_1_ID + "\"";
+      return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
+          "Get Reserves by Copyright Status Id");
+   })
+   .onComplete(context.asyncAssertSuccess(res -> {
+     assertThat(res.getJson().getJsonArray("reserves").size(), is(2));
+   }));
   }
-  
 
    @Test
    public void testPutEmptyLocationIdToCourseListing(TestContext context) {
@@ -2861,56 +2823,39 @@ public class CourseAPITest {
      });
    }
 
- //sortby tests suspended
- /*
- @Test
+  @Ignore("RMB cannot sort by foreign table field RMB-454")
+  @Test
   public void testSortCoursesByCourseListingExternalIdAscending(TestContext context)
       throws UnsupportedEncodingException {
-     Async async = context.async();
-     String query = "(cql.allRecords=1) sortby courseListing.externalId/sort.ascending";
-     String url = baseUrl + "/courses?query=" + URLEncoder.encode(query, "utf8");
-     TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courses by courselisting instructor name").setHandler(res -> {
-      if(res.failed()) {
-        context.fail(res.cause());
-      } else {
-        try {
-          JsonArray courseArray = res.result().getJson().getJsonArray("courses");
-          context.assertEquals(courseArray.size(), 4);
-          context.assertEquals(courseArray.getJsonObject(0).getString("courseListingId"),
-              COURSE_LISTING_1_ID);
-          async.complete();
-        } catch(Exception e) {
-          context.fail(e);
-        }
-      }
-    });
+
+    String query = "(cql.allRecords=1) sortby courseListing.externalId/sort.ascending";
+    String url = baseUrl + "/courses?query=" + StringUtil.urlEncode(query);
+    TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
+        "Get courses by courselisting instructor name")
+    .onComplete(context.asyncAssertSuccess(res -> {
+      JsonArray courseArray = res.getJson().getJsonArray("courses");
+      context.assertEquals(courseArray.size(), 5);
+      context.assertEquals(courseArray.getJsonObject(0).getString("courseListingId"),
+          COURSE_LISTING_1_ID);
+    }));
   }
 
+  @Ignore("RMB cannot sort by foreign table field RMB-454")
   @Test
   public void testSortCoursesByCourseListingExternalIdDescending(TestContext context)
       throws UnsupportedEncodingException {
-     Async async = context.async();
-     String query = "(cql.allRecords=1) sortby courseListing.externalId/sort.descending";
-     String url = baseUrl + "/courses?query=" + URLEncoder.encode(query, "utf8");
-     TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courses by courselisting instructor name").setHandler(res -> {
-      if(res.failed()) {
-        context.fail(res.cause());
-      } else {
-        try {
-          JsonArray courseArray = res.result().getJson().getJsonArray("courses");
-          context.assertEquals(courseArray.size(), 4);
-          context.assertEquals(courseArray.getJsonObject(0).getString("courseListingId"),
-              COURSE_LISTING_2_ID);
-          async.complete();
-        } catch(Exception e) {
-          context.fail(e);
-        }
-      }
-    });
+
+    String query = "(cql.allRecords=1) sortby courseListing.externalId/sort.descending";
+    String url = baseUrl + "/courses?query=" + StringUtil.urlEncode(query);
+    TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
+        "Get courses by courselisting instructor name")
+    .onComplete(context.asyncAssertSuccess(res -> {
+      JsonArray courseArray = res.getJson().getJsonArray("courses");
+      context.assertEquals(courseArray.size(), 5);
+      context.assertEquals(courseArray.getJsonObject(0).getString("courseListingId"),
+          COURSE_LISTING_2_ID);
+    }));
   }
-  */
 
   @Test
   public void testCreateCourseListingAndReserveByBarcode(TestContext context) {
@@ -3165,8 +3110,6 @@ public class CourseAPITest {
       } else {
         TestUtil.doOkapiRequest(vertx, "/item-storage/items/" +OkapiMock.item1Id,
             DELETE, okapiHeaders, null, null, 204, "Delete Item 1")
-        //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/")
-        //    + OkapiMock.item1Id, DELETE, null, null, 204)
             .onComplete(deleteRes -> {
           if(deleteRes.failed()) {
             context.fail(deleteRes.cause());
@@ -3591,8 +3534,8 @@ public class CourseAPITest {
 
   private Future<Void> testPostGetPutDelete(JsonObject originalJson, JsonObject modifiedJson,
       String postUrl, String getUrl, String putUrl, String deleteUrl, String deleteAllUrl) {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, postUrl, POST, standardHeaders, originalJson.encode(), 201,
+
+    return TestUtil.doRequest(vertx, postUrl, POST, standardHeaders, originalJson.encode(), 201,
         "Post to " + postUrl)
         .compose( f -> {
           return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
@@ -3636,109 +3579,61 @@ public class CourseAPITest {
               "Get from " + getUrl + " after delete all");
         })
 
-        .onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+        .mapEmpty();
   }
 
   private Future<Void> loadCourseListing1Instructor1() {
-    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", INSTRUCTOR_1_ID)
         .put("name", "Blaufarb")
         .put("userId", OkapiMock.user2Id)
         .put("courseListingId", COURSE_LISTING_1_ID);
-    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+    return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
         "/instructors", POST, standardHeaders,
-        departmentJson.encode(), 201, "Post Instructor 1").onComplete(res -> {
-          if(res.failed()) {
-           promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+        departmentJson.encode(), 201, "Post Instructor 1").mapEmpty();
   }
 
   private Future<Void> loadCourseListing1Instructor2() {
-    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", INSTRUCTOR_2_ID)
         .put("name", "Kregley")
         .put("userId", OkapiMock.user3Id)
         .put("courseListingId", COURSE_LISTING_1_ID);
-    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
+    return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID
         +"/instructors", POST, standardHeaders,
-        departmentJson.encode(), 201, "Post Instructor 2").onComplete(res -> {
-          if(res.failed()) {
-           promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+        departmentJson.encode(), 201, "Post Instructor 2").mapEmpty();
   }
 
     private Future<Void> loadCourseListing2Instructor3() {
-    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", INSTRUCTOR_3_ID)
         .put("name", "Boffins")
         .put("userId", OkapiMock.user4Id)
         .put("courseListingId", COURSE_LISTING_2_ID);
-    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_2_ID
+    return TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_2_ID
         +"/instructors", POST, standardHeaders,
-        departmentJson.encode(), 201, "Post Instructor 3").onComplete(res -> {
-          if(res.failed()) {
-           promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+        departmentJson.encode(), 201, "Post Instructor 3").mapEmpty();
   }
 
 
   private Future<Void> loadDepartment1() {
-    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", DEPARTMENT_1_ID)
         .put("name", "History");
-    TestUtil.doRequest(vertx, baseUrl + "/departments", POST, null,
-        departmentJson.encode(), 201, "Post Department 1").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/departments", POST, null,
+        departmentJson.encode(), 201, "Post Department 1").mapEmpty();
   }
 
   private Future<Void> loadDepartment2() {
-    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", DEPARTMENT_2_ID)
         .put("name", "Engineering");
-    TestUtil.doRequest(vertx, baseUrl + "/departments", POST, null,
-        departmentJson.encode(), 201, "Post Department 2").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/departments", POST, null,
+        departmentJson.encode(), 201, "Post Department 2").mapEmpty();
   }
 
 
   private Future<Void> loadTerm1() {
-    Promise<Void> promise = Promise.promise();
     DateTime startDate = new DateTime(2019, 6, 15, 0, 0);
     DateTime endDate = new DateTime(2019, 12, 15, 0, 0);
     JsonObject termJson = new JsonObject()
@@ -3746,19 +3641,11 @@ public class CourseAPITest {
         .put("name", "Term 1")
         .put("startDate", startDate.toString(ISODateTimeFormat.dateTime()))
         .put("endDate", endDate.toString(ISODateTimeFormat.dateTime()));
-    TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
-        termJson.encode(), 201, "Post Term 1").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
+        termJson.encode(), 201, "Post Term 1").mapEmpty();
   }
 
   private Future<Void> loadTerm2() {
-    Promise<Void> promise = Promise.promise();
     DateTime startDate = new DateTime(2019, 11, 5, 0, 0);
     DateTime endDate = new DateTime(2020, 01, 15, 0, 0);
     JsonObject termJson = new JsonObject()
@@ -3766,414 +3653,204 @@ public class CourseAPITest {
         .put("name", "Term 2")
         .put("startDate", startDate.toString(ISODateTimeFormat.dateTime()))
         .put("endDate", endDate.toString(ISODateTimeFormat.dateTime()));
-    TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
-        termJson.encode(), 201, "Post Term 1").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/terms", POST, null,
+        termJson.encode(), 201, "Post Term 1").mapEmpty();
   }
 
   private Future<Void> loadCourseType1() {
-    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", COURSE_TYPE_1_ID)
         .put("name", "Regular");
-    TestUtil.doRequest(vertx, baseUrl + "/coursetypes", POST, null,
-        departmentJson.encode(), 201, "Post Course Type 1").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/coursetypes", POST, null,
+        departmentJson.encode(), 201, "Post Course Type 1").mapEmpty();
   }
 
   private Future<Void> loadCourseType2() {
-    Promise<Void> promise = Promise.promise();
     JsonObject departmentJson = new JsonObject()
         .put("id", COURSE_TYPE_2_ID)
         .put("name", "Variant");
-    TestUtil.doRequest(vertx, baseUrl + "/coursetypes", POST, null,
-        departmentJson.encode(), 201, "Post Course Type 2").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/coursetypes", POST, null,
+        departmentJson.encode(), 201, "Post Course Type 2").mapEmpty();
   }
 
   private Future<Void> loadCourseListing1() {
-    Promise<Void> promise = Promise.promise();
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_1_ID)
         .put("termId", TERM_1_ID)
         .put("courseTypeId", COURSE_TYPE_1_ID)
         .put("externalId", EXTERNAL_ID_1);
-    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
-        courseListingJson.encode(), 201, "Post Course Listing").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
+        courseListingJson.encode(), 201, "Post Course Listing").mapEmpty();
   }
 
   private Future<Void> loadCourseListing2() {
-    Promise<Void> promise = Promise.promise();
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_2_ID)
         .put("termId", TERM_1_ID)
         .put("courseTypeId", COURSE_TYPE_1_ID)
         .put("externalId", EXTERNAL_ID_2);
-    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
-        courseListingJson.encode(), 201, "Post Course Listing").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
+        courseListingJson.encode(), 201, "Post Course Listing").mapEmpty();
   }
 
   private Future<Void> loadCourseListing3() {
-    Promise<Void> promise = Promise.promise();
     JsonObject courseListingJson = new JsonObject()
         .put("id", COURSE_LISTING_3_ID)
         .put("termId", TERM_2_ID)
         .put("courseTypeId", COURSE_TYPE_1_ID)
         .put("locationId", OkapiMock.location2Id)
         .put("externalId", EXTERNAL_ID_3);
-    TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
-        courseListingJson.encode(), 201, "Post Course Listing").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courselistings", POST, null,
+        courseListingJson.encode(), 201, "Post Course Listing").mapEmpty();
   }
 
   private Future<Void> loadCourse1() {
-    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_1_ID)
         .put("departmentId", DEPARTMENT_1_ID)
         .put("courseListingId", COURSE_LISTING_1_ID)
         .put("name", "Comp Sci 101")
         .put("numberOfStudents", COURSE_1_NUM_STUDENTS);
-    TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
+        courseJson.encode(), 201, "Post Course Listing").mapEmpty();
   }
 
   private Future<Void> loadCourse2() {
-    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_2_ID)
         .put("departmentId", DEPARTMENT_1_ID)
         .put("courseListingId", COURSE_LISTING_1_ID)
         .put("name", "Computers for Engineers 101");
-    TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
+        courseJson.encode(), 201, "Post Course Listing").mapEmpty();
   }
 
   private Future<Void> loadCourse3() {
-    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_3_ID)
         .put("departmentId", DEPARTMENT_1_ID)
         .put("courseListingId", COURSE_LISTING_2_ID)
         .put("name", "Data Structures 101");
-    TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
+        courseJson.encode(), 201, "Post Course Listing").mapEmpty();
   }
 
   private Future<Void> loadCourse4() {
-    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_4_ID)
         .put("departmentId", DEPARTMENT_2_ID)
         .put("courseListingId", COURSE_LISTING_2_ID)
         .put("name", "Data Structures for Engineers 101");
-    TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
+        courseJson.encode(), 201, "Post Course Listing").mapEmpty();
   }
 
   private Future<Void> loadCourse5() {
-    Promise<Void> promise = Promise.promise();
     JsonObject courseJson = new JsonObject()
         .put("id", COURSE_5_ID)
         .put("departmentId", DEPARTMENT_2_ID)
         .put("courseListingId", COURSE_LISTING_3_ID)
         .put("name", "Data Structures for Engineers 101");
-    TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
-        courseJson.encode(), 201, "Post Course Listing").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courses", POST, null,
+        courseJson.encode(), 201, "Post Course Listing").mapEmpty();
   }
 
   private Future<Void> loadCopyrightStatus1() {
-     Promise<Void> promise = Promise.promise();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", COPYRIGHT_STATUS_1_ID)
         .put("description", "Creative Commons")
         .put("name", "cc");
-    TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", POST, null,
-        copyrightStatusJson.encode(), 201, "Post Copyright Status").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+     return TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", POST, null,
+        copyrightStatusJson.encode(), 201, "Post Copyright Status").mapEmpty();
   }
 
     private Future<Void> loadCopyrightStatus2() {
-     Promise<Void> promise = Promise.promise();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", COPYRIGHT_STATUS_2_ID)
         .put("description", "Reserved")
         .put("name", "reserved");
-    TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", POST, null,
-        copyrightStatusJson.encode(), 201, "Post Copyright Status").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+     return TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", POST, null,
+        copyrightStatusJson.encode(), 201, "Post Copyright Status").mapEmpty();
   }
 
   private Future<Void> loadProcessingStatus1() {
-     Promise<Void> promise = Promise.promise();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", PROCESSING_STATUS_1_ID)
         .put("description", "Processing")
         .put("name", "processing");
-    TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", POST, null,
-        copyrightStatusJson.encode(), 201, "Post Processing Status").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", POST, null,
+        copyrightStatusJson.encode(), 201, "Post Processing Status").mapEmpty();
   }
 
   private Future<Void> loadProcessingStatus2() {
-     Promise<Void> promise = Promise.promise();
      JsonObject copyrightStatusJson = new JsonObject()
         .put("id", PROCESSING_STATUS_2_ID)
         .put("description", "Frombulating")
         .put("name", "frombulating");
-    TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", POST, null,
-        copyrightStatusJson.encode(), 201, "Post Processing Status").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", POST, null,
+        copyrightStatusJson.encode(), 201, "Post Processing Status").mapEmpty();
   }
 
   private Future<Void> deleteCourses() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/courses", DELETE, null, null, 204,
-        "Delete All Courses").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courses", DELETE, null, null, 204,
+        "Delete All Courses").mapEmpty();
   }
 
   private Future<Void> deleteCourseListings() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/courselistings", DELETE, null, null, 204,
-        "Delete All Course Listings").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/courselistings", DELETE, null, null, 204,
+        "Delete All Course Listings").mapEmpty();
   }
 
   private Future<Void> deleteTerms() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/terms", DELETE, null, null, 204,
-        "Delete All Terms").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/terms", DELETE, null, null, 204,
+        "Delete All Terms").mapEmpty();
   }
 
   private Future<Void> deleteDepartments() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/departments", DELETE, null, null, 204,
-        "Delete All Departments").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/departments", DELETE, null, null, 204,
+        "Delete All Departments").mapEmpty();
   }
 
   private Future<Void> deleteCourseTypes() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/coursetypes", DELETE, null, null, 204,
-        "Delete All Course Types").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/coursetypes", DELETE, null, null, 204,
+        "Delete All Course Types").mapEmpty();
   }
 
   private Future<Void> deleteCourseListing1Instructors() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/courselistings/"+COURSE_LISTING_1_ID+
+    return TestUtil.doRequest(vertx, baseUrl + "/courselistings/"+COURSE_LISTING_1_ID+
         "/instructors", DELETE, null, null, 204,
-        "Delete All Instructors for Course Listing 1").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+        "Delete All Instructors for Course Listing 1").mapEmpty();
   }
 
   private Future<Void> deleteCourseListing2Instructors() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/courselistings/"+COURSE_LISTING_2_ID+
+    return TestUtil.doRequest(vertx, baseUrl + "/courselistings/"+COURSE_LISTING_2_ID+
         "/instructors", DELETE, null, null, 204,
-        "Delete All Instructors For Course Listing 2").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+        "Delete All Instructors For Course Listing 2").mapEmpty();
   }
 
 
   private Future<Void> deleteCopyrightStatuses() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", DELETE, null, null, 204,
-        "Delete All CopyrightStatuses").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/copyrightstatuses", DELETE, null, null, 204,
+        "Delete All CopyrightStatuses").mapEmpty();
   }
 
   private Future<Void> deleteProcessingStatuses() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", DELETE, null, null, 204,
-        "Delete All ProcessingStatuses").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/processingstatuses", DELETE, null, null, 204,
+        "Delete All ProcessingStatuses").mapEmpty();
   }
 
   private Future<Void> deleteReserves() {
-    Promise<Void> promise = Promise.promise();
-    TestUtil.doRequest(vertx, baseUrl + "/reserves", DELETE, null, null, 204,
-        "Delete All Reserves").onComplete(res -> {
-          if(res.failed()) {
-            promise.fail(res.cause());
-          } else {
-            promise.complete();
-          }
-        });
-    return promise.future();
+    return TestUtil.doRequest(vertx, baseUrl + "/reserves", DELETE, null, null, 204,
+        "Delete All Reserves").mapEmpty();
   }
 
   private Future<Void> resetMockOkapi() {
-    Promise<Void> promise = Promise.promise();
     JsonObject payload = new JsonObject().put("reset", true);
-    TestUtil.doOkapiRequest(vertx, "/reset", POST, okapiHeaders, null,
-        payload.encode(), 201, "Reset Okapi").onComplete(res -> {
-    //CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/reset", POST, null,
-    //    payload.encode(), 201).setHandler(res -> {
-      if(res.failed()) {
-        promise.fail(res.cause());
-      } else {
-        promise.complete();
-      }
-    });
-    return promise.future();
+    return TestUtil.doOkapiRequest(vertx, "/reset", POST, okapiHeaders, null,
+        payload.encode(), 201, "Reset Okapi").mapEmpty();
   }
 
   private static Future<Void> initTenant(String tenantId, int port) {
-    Promise<Void> promise = Promise.promise();
     WebClient client = WebClient.create(vertx);
     String url = "http://localhost:" + port + "/_/tenant";
     JsonObject payload = new JsonObject()
@@ -4184,19 +3861,13 @@ public class CourseAPITest {
     request.putHeader("X-Okapi-Url", okapiUrl);
     request.putHeader("Content-Type", "application/json");
     request.putHeader("Accept", "application/json, text/plain");
-    request.sendJsonObject(payload).onComplete(res -> {
-      if(res.failed()) {
-        promise.fail(res.cause());
-      } else {
-        HttpResponse<Buffer> result = res.result();
-        if(result.statusCode() != 204) {
-          promise.fail("Expected 204, got " + result.statusCode());
-        } else {
-          promise.complete();
-        }
+    return request.sendJsonObject(payload)
+    .compose(result -> {
+      if (result.statusCode() != 204) {
+        return Future.failedFuture("Expected 204, got " + result.statusCode());
       }
+      return Future.succeededFuture();
     });
-    return promise.future();
   }
 
 }
