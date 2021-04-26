@@ -1,5 +1,6 @@
-## 1.3.0 IN PROGRESS
-* Added `numberOfStudents` field to course records (MODCR-53)
+## 1.2.1 2021-04-23
+* Upgrade to RMB 32.2.1 (MODCR-57)
+* Fix issue with updating temporaryLocationId to null value (MODCR-56)
 
 ## 1.2.0 2021-03-10
 * Upgrade to RMB 32.2.0
