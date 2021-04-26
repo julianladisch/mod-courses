@@ -1,3 +1,8 @@
+## 1.2.2 2021-04-26
+* Upgrade to RMB 32.2.2 (MODCR-58)
+* Add module permissions to PUT for requests
+* Clean up technical debt (MODCR-54, MODCR-55)
+
 ## 1.2.1 2021-04-23
 * Upgrade to RMB 32.2.1 (MODCR-57)
 * Fix issue with updating temporaryLocationId to null value (MODCR-56)
