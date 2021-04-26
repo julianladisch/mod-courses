@@ -121,7 +121,14 @@
                 {
                     "methods": [ "PUT" ],
                     "pathPattern": "/coursereserves/courselistings/{id}/reserves/{r_id}",
-                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.put"]
+                    "permissionsRequired": ["course-reserves-storage.courselistings.reserves.item.put"],
+                    "modulePermissions": [
+                        "inventory-storage.items.item.put",
+                        "inventory-storage.items.item.get",
+                        "inventory-storage.items.collection.get",
+                        "inventory-storage.holdings.item.get",
+                        "inventory-storage.instances.item.get"
+                    ]
                 },
                 {
                     "methods": [ "DELETE" ],
