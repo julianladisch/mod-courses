@@ -19,9 +19,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-//import io.vertx.ext.asyncsql.AsyncSQLClient;
-//import io.vertx.ext.sql.SQLClient;
-//import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
@@ -30,6 +27,7 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +44,7 @@ import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.persist.cql.CQLWrapper;
 import org.folio.rest.persist.interfaces.Results;
 import org.folio.rest.tools.utils.NetworkUtils;
+import org.folio.util.StringUtil;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.junit.After;
@@ -53,6 +52,7 @@ import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -2191,27 +2191,14 @@ public class CourseAPITest {
      });
    }
 
-   /*
    @Test
    public void TestGetReservesByCourseListingBadQuery(TestContext context) {
-     Async async = context.async();
      new CourseAPI()
-         .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
-         "*", null, 0, 10, null, okapiHeaders, res -> {
-       if(res.failed()) {
-         context.fail(res.cause());
-       } else {
-         if(res.result().getStatus() != 500) {
-           context.fail("Expected 500, got status " + res.result().getStatus());
-           return;
-         }
-         async.complete();
-       }
-     }, vertx.getOrCreateContext());
+     .getCoursereservesCourselistingsReservesByListingId(COURSE_LISTING_1_ID,
+         "*", "=", 0, 10, null, okapiHeaders, context.asyncAssertSuccess(
+             res -> context.assertEquals(500, res.getStatus())),
+         vertx.getOrCreateContext());
    }
-   */
-
-
 
    @Test
    public void testGetPGClient(TestContext context) {
@@ -2675,7 +2662,6 @@ public class CourseAPITest {
    });
   }
 
-
   @Test
   public void testSearchReservesByCopyrightStatus(TestContext context) {
     String reserve1Id = UUID.randomUUID().toString();
@@ -2713,19 +2699,16 @@ public class CourseAPITest {
     String url = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves";
     TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve1Json.encode(),
         201, "Post Reserve 1 to Courselisting 1")
+    .compose(f -> TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve2Json.encode(),
+        201, "Post Reserve 2 to Courselisting 1"))
+    .compose(f -> TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve3Json.encode(),
+        201, "Post Reserve 3 to Courselisting 1"))
     .compose(f -> {
-      return TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve2Json.encode(),
-        201, "Post Reserve 2 to Courselisting 1");
-    })
-    .compose(f -> {
-      return TestUtil.doRequest(vertx, url, POST, standardHeaders, reserve3Json.encode(),
-        201, "Post Reserve 3 to Courselisting 1");
-    })
-   .compose( f -> {
-     String getUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves" +
-         "?query=copyrightStatus.name==cc";
+      String getUrl = baseUrl + "/courselistings/" + COURSE_LISTING_1_ID + "/reserves" +
+          "?query=copyrightStatus.name==cc";
       return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
           "Get Reserves by Processing Status");
+
    })
    .onComplete(context.asyncAssertSuccess(res -> {
      assertThat(res.getJson().getJsonArray("reserves").size(), is(2));
@@ -2740,7 +2723,6 @@ public class CourseAPITest {
      assertThat(res.getJson().getJsonArray("reserves").size(), is(2));
    }));
   }
-
 
    @Test
    public void testPutEmptyLocationIdToCourseListing(TestContext context) {
@@ -2841,56 +2823,39 @@ public class CourseAPITest {
      });
    }
 
- //sortby tests suspended
- /*
- @Test
+  @Ignore("RMB cannot sort by foreign table field RMB-454")
+  @Test
   public void testSortCoursesByCourseListingExternalIdAscending(TestContext context)
       throws UnsupportedEncodingException {
-     Async async = context.async();
-     String query = "(cql.allRecords=1) sortby courseListing.externalId/sort.ascending";
-     String url = baseUrl + "/courses?query=" + URLEncoder.encode(query, "utf8");
-     TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courses by courselisting instructor name").setHandler(res -> {
-      if(res.failed()) {
-        context.fail(res.cause());
-      } else {
-        try {
-          JsonArray courseArray = res.result().getJson().getJsonArray("courses");
-          context.assertEquals(courseArray.size(), 4);
-          context.assertEquals(courseArray.getJsonObject(0).getString("courseListingId"),
-              COURSE_LISTING_1_ID);
-          async.complete();
-        } catch(Exception e) {
-          context.fail(e);
-        }
-      }
-    });
+
+    String query = "(cql.allRecords=1) sortby courseListing.externalId/sort.ascending";
+    String url = baseUrl + "/courses?query=" + StringUtil.urlEncode(query);
+    TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
+        "Get courses by courselisting instructor name")
+    .onComplete(context.asyncAssertSuccess(res -> {
+      JsonArray courseArray = res.getJson().getJsonArray("courses");
+      context.assertEquals(courseArray.size(), 5);
+      context.assertEquals(courseArray.getJsonObject(0).getString("courseListingId"),
+          COURSE_LISTING_1_ID);
+    }));
   }
 
+  @Ignore("RMB cannot sort by foreign table field RMB-454")
   @Test
   public void testSortCoursesByCourseListingExternalIdDescending(TestContext context)
       throws UnsupportedEncodingException {
-     Async async = context.async();
-     String query = "(cql.allRecords=1) sortby courseListing.externalId/sort.descending";
-     String url = baseUrl + "/courses?query=" + URLEncoder.encode(query, "utf8");
-     TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
-         "Get courses by courselisting instructor name").setHandler(res -> {
-      if(res.failed()) {
-        context.fail(res.cause());
-      } else {
-        try {
-          JsonArray courseArray = res.result().getJson().getJsonArray("courses");
-          context.assertEquals(courseArray.size(), 4);
-          context.assertEquals(courseArray.getJsonObject(0).getString("courseListingId"),
-              COURSE_LISTING_2_ID);
-          async.complete();
-        } catch(Exception e) {
-          context.fail(e);
-        }
-      }
-    });
+
+    String query = "(cql.allRecords=1) sortby courseListing.externalId/sort.descending";
+    String url = baseUrl + "/courses?query=" + StringUtil.urlEncode(query);
+    TestUtil.doRequest(vertx, url, GET, standardHeaders, null, 200,
+        "Get courses by courselisting instructor name")
+    .onComplete(context.asyncAssertSuccess(res -> {
+      JsonArray courseArray = res.getJson().getJsonArray("courses");
+      context.assertEquals(courseArray.size(), 5);
+      context.assertEquals(courseArray.getJsonObject(0).getString("courseListingId"),
+          COURSE_LISTING_2_ID);
+    }));
   }
-  */
 
   @Test
   public void testCreateCourseListingAndReserveByBarcode(TestContext context) {
