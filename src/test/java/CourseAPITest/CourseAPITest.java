@@ -1,5 +1,8 @@
 package CourseAPITest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+
 import CourseAPITest.TestUtil.WrappedResponse;
 import io.vertx.core.Context;
 import io.vertx.core.DeploymentOptions;
@@ -25,8 +28,6 @@ import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
-import jdk.jfr.Timestamp;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
@@ -801,7 +802,7 @@ public class CourseAPITest {
         JsonObject reserveJson = res.result().getJson();
         JsonObject itemJson = reserveJson.getJsonObject("copiedItem");
         if(! itemJson.getString("temporaryLocationId").equals(OkapiMock.location2Id)) {
-          context.fail("Expected temporaryLocationId" + OkapiMock.location2Id 
+          context.fail("Expected temporaryLocationId" + OkapiMock.location2Id
               + " got " + itemJson.getString("temporaryLocationId"));
           return;
         }
@@ -837,7 +838,7 @@ public class CourseAPITest {
 
             });
           }
-        });        
+        });
       }
     });
   }
@@ -2677,7 +2678,6 @@ public class CourseAPITest {
 
   @Test
   public void testSearchReservesByCopyrightStatus(TestContext context) {
-    Async async = context.async();
     String reserve1Id = UUID.randomUUID().toString();
     String reserve2Id = UUID.randomUUID().toString();
     String reserve3Id = UUID.randomUUID().toString();
@@ -2726,21 +2726,21 @@ public class CourseAPITest {
          "?query=copyrightStatus.name==cc";
       return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
           "Get Reserves by Processing Status");
-   }).onComplete(res -> {
-     if(res.failed()) {
-       context.fail(res.cause());
-     } else {
-       try {
-         logger.info("JSON returned is " + res.result().getJson().encode());
-         context.assertEquals(res.result().getJson().getJsonArray("reserves").size(), 2);
-         async.complete();
-       } catch(Exception e) {
-         context.fail(e);
-       }
-     }
-   });
+   })
+   .onComplete(context.asyncAssertSuccess(res -> {
+     assertThat(res.getJson().getJsonArray("reserves").size(), is(2));
+   }))
+   .compose(f -> {
+     String getUrl = baseUrl + "/reserves?expand=*&limit=100&" +
+         "query=copyrightTracking.copyrightStatusId==\"" + COPYRIGHT_STATUS_1_ID + "\"";
+      return TestUtil.doRequest(vertx, getUrl, GET, standardHeaders, null, 200,
+          "Get Reserves by Copyright Status Id");
+   })
+   .onComplete(context.asyncAssertSuccess(res -> {
+     assertThat(res.getJson().getJsonArray("reserves").size(), is(2));
+   }));
   }
-  
+
 
    @Test
    public void testPutEmptyLocationIdToCourseListing(TestContext context) {
