@@ -508,7 +508,7 @@ public class CRUtil {
       Map<String, String> okapiHeaders, Context context) {
 
     String query = "barcode==" + StringUtil.cqlEncode(barcode);
-    // TODO: replace StringUtil.urlEncode by StringUtil.urlEncode after upgrading to RMB 33
+    // TODO: replace StringUtil.urlEncode by PercentCodec.encode after upgrading to RMB 33
     String itemRequestUrl = ITEMS_ENDPOINT + "?query=" + StringUtil.urlEncode(query);
     logger.debug("Looking up item by barcode with url " + itemRequestUrl);
     return makeOkapiRequest(context.owner(), okapiHeaders, itemRequestUrl, HttpMethod.GET,
