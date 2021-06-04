@@ -1,7 +1,6 @@
 package CourseAPITest;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
@@ -17,6 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.folio.util.StringUtil;
 
 
 public class OkapiMock extends AbstractVerticle {
@@ -271,8 +271,8 @@ public class OkapiMock extends AbstractVerticle {
   }
 
    private static String parseBarcode(String query) {
-     Pattern pattern = Pattern.compile("barcode=(\\d+)");
-     Matcher matcher = pattern.matcher(query);
+     Pattern pattern = Pattern.compile("barcode==\"(\\d+)\"");
+     Matcher matcher = pattern.matcher(StringUtil.urlDecode(query));
      if(matcher.find()) {
        return matcher.group(1);
      } else {
@@ -530,7 +530,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("barcode", barcode4)
       .put("active", Boolean.TRUE));
 
-    
+
     groupMap.put(group1Id, new JsonObject()
       .put("id", group1Id)
       .put("name", "wrasslers")
@@ -548,7 +548,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("name", "managers")
       .put("desc", "People Who manage")
     );
-    
+
     itemMap.put(item1Id, new JsonObject()
         .put("id", item1Id)
         .put("status", new JsonObject().put("name", "Available"))
@@ -610,7 +610,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("permanentLocationId", location2Id)
       .put("copyNumbers", new JsonArray()
           .add(copy1))
-    );    
+    );
 
     holdingsMap.put(holdings1Id, new JsonObject()
       .put("id", holdings1Id)

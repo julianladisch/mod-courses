@@ -32,6 +32,7 @@ import static org.folio.rest.impl.CourseAPI.INSTRUCTORS_TABLE;
 import static org.folio.rest.impl.CourseAPI.PROCESSING_STATUSES_TABLE;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
 import static org.folio.rest.impl.CourseAPI.TERMS_TABLE;
+
 import org.folio.rest.jaxrs.model.Contributor;
 import org.folio.rest.jaxrs.model.CopiedItem;
 import org.folio.rest.jaxrs.model.CopyrightStatusObject;
@@ -60,6 +61,7 @@ import org.folio.rest.jaxrs.model.Term;
 import org.folio.rest.jaxrs.model.TermObject;
 import org.folio.rest.persist.Criteria.Criteria;
 import org.folio.rest.persist.Criteria.Criterion;
+import org.folio.util.StringUtil;
 import org.folio.rest.persist.PgUtil;
 import org.folio.rest.persist.PostgresClient;
 
@@ -504,32 +506,24 @@ public class CRUtil {
 
   public static Future<JsonObject> lookupItemByBarcode(String barcode,
       Map<String, String> okapiHeaders, Context context) {
-    Promise<JsonObject> promise = Promise.promise();
-    String itemRequestUrl = String.format("%s?query=barcode=%s", ITEMS_ENDPOINT,
-        barcode);
+
+    String query = "barcode==" + StringUtil.cqlEncode(barcode);
+    // TODO: replace StringUtil.urlEncode by StringUtil.urlEncode after upgrading to RMB 33
+    String itemRequestUrl = ITEMS_ENDPOINT + "?query=" + StringUtil.urlEncode(query);
     logger.debug("Looking up item by barcode with url " + itemRequestUrl);
-    makeOkapiRequest(context.owner(), okapiHeaders, itemRequestUrl, HttpMethod.GET,
-        null, null, 200).onComplete(itemQueryRes -> {
-      if(itemQueryRes.failed()) {
-        promise.fail(itemQueryRes.cause());
-      } else {
-        try {
-          JsonObject itemsResultJson = itemQueryRes.result();
-          if(itemsResultJson.getInteger("totalRecords") > 1) {
-            promise.fail(String.format("Expected 1 result for barcode %s, got multiple",
-                barcode));
-          } else if(itemsResultJson.getInteger("totalRecords") < 1) {
-            promise.complete(null);
-          } else {
-            JsonObject itemJson = itemsResultJson.getJsonArray("items").getJsonObject(0);
-            promise.complete(itemJson);
-          }
-        } catch(Exception e) {
-          promise.fail(e);
-        }
+    return makeOkapiRequest(context.owner(), okapiHeaders, itemRequestUrl, HttpMethod.GET,
+        null, null, 200)
+    .map(jsonObject -> {
+      int totalRecords = jsonObject.getInteger("totalRecords");
+      if (totalRecords > 1) {
+        throw new IllegalStateException(
+            "Expected 1 result for barcode " + barcode + ", got " + totalRecords);
       }
+      if (totalRecords < 1) {
+        return null;
+      }
+      return jsonObject.getJsonArray("items").getJsonObject(0);
     });
-    return promise.future();
   }
 
   public static Future<Void> populateReserveForRetrieval(Reserve reserve,
