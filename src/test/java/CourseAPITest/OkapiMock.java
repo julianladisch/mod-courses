@@ -1,7 +1,6 @@
 package CourseAPITest;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
@@ -209,36 +208,40 @@ public class OkapiMock extends AbstractVerticle {
         context.response().setStatusCode(400)
             .end(message);
         return;
-      } else {
-        try {
-          String putContent = context.getBodyAsString();
-          if(putContent == null || putContent.length() == 0) {
-            throw new UnsupportedOperationException("No content in PUT body read");
-          }
-          logger.info("Got body of PUT request " + putContent);
-          JsonObject putJson = null;
-          if(!itemMap.containsKey(id)) {
-            context.response().setStatusCode(404)
-                .end("Item with id '" + id + "' does not exist");
-            return;
-          }
-          putJson = new JsonObject(putContent);
-          if(!putJson.getString("id").equals(id)) {
-            throw new UnsupportedOperationException("id field in json must match id '" + id + "'");
-          }
-          logger.info("Writing JSON back to mapping");
-          itemMap.put(id, putJson);
-          logger.info("Return response");
-          context.response().setStatusCode(204).end();
-        } catch(UnsupportedOperationException uoe) {
-          context.response().setStatusCode(400)
-              .end(uoe.getLocalizedMessage());
-          return;
-        } catch(Exception e) {
-          context.response().setStatusCode(500)
-              .end(e.getLocalizedMessage());
+      }
+      try {
+        String putContent = context.getBodyAsString();
+        if(putContent == null || putContent.length() == 0) {
+          throw new UnsupportedOperationException("No content in PUT body read");
+        }
+        logger.info("Got body of PUT request " + putContent);
+        JsonObject putJson = null;
+        if(!itemMap.containsKey(id)) {
+          context.response().setStatusCode(404)
+              .end("Item with id '" + id + "' does not exist");
           return;
         }
+        putJson = new JsonObject(putContent);
+        if(!putJson.getString("id").equals(id)) {
+          throw new UnsupportedOperationException("id field in json must match id '" + id + "'");
+        }
+        if (6 != putJson.getInteger("_version")) {  // optimistic locking
+          throw new IllegalArgumentException("_version must be 6 in putJson: " + putJson.encodePrettily());
+        }
+        logger.info("Writing JSON back to mapping");
+        itemMap.put(id, putJson);
+        logger.info("Return response");
+        context.response().setStatusCode(204).end();
+      } catch(UnsupportedOperationException e) {
+        logger.error(e.getMessage(), e);
+        context.response().setStatusCode(400)
+            .end(e.getLocalizedMessage());
+        return;
+      } catch(Exception e) {
+        logger.error(e.getMessage(), e);
+        context.response().setStatusCode(500)
+            .end(e.getLocalizedMessage());
+        return;
       }
     } else if(context.request().method() == HttpMethod.DELETE) {
       if(id == null) {
@@ -530,7 +533,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("barcode", barcode4)
       .put("active", Boolean.TRUE));
 
-    
+
     groupMap.put(group1Id, new JsonObject()
       .put("id", group1Id)
       .put("name", "wrasslers")
@@ -548,9 +551,10 @@ public class OkapiMock extends AbstractVerticle {
       .put("name", "managers")
       .put("desc", "People Who manage")
     );
-    
+
     itemMap.put(item1Id, new JsonObject()
         .put("id", item1Id)
+        .put("_version", 6)
         .put("status", new JsonObject().put("name", "Available"))
         .put("holdingsRecordId", holdings1Id)
         .put("barcode", barcode1)
@@ -571,6 +575,7 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item2Id, new JsonObject()
       .put("id", item2Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings1Id)
       .put("barcode", barcode2)
@@ -589,6 +594,7 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item3Id, new JsonObject()
       .put("id", item3Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings2Id)
       .put("barcode", barcode3)
@@ -602,6 +608,7 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item4Id, new JsonObject()
       .put("id", item4Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings2Id)
       .put("barcode", barcode4)
@@ -610,7 +617,7 @@ public class OkapiMock extends AbstractVerticle {
       .put("permanentLocationId", location2Id)
       .put("copyNumbers", new JsonArray()
           .add(copy1))
-    );    
+    );
 
     holdingsMap.put(holdings1Id, new JsonObject()
       .put("id", holdings1Id)
@@ -777,6 +784,7 @@ public class OkapiMock extends AbstractVerticle {
     logger.info("Adding sample data to mock okapi");
     itemMap.put(item5Id, new JsonObject()
       .put("id", item5Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings2Id)
       .put("barcode", "4539876054383" )
@@ -789,6 +797,7 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item6Id, new JsonObject()
       .put("id", item6Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings2Id)
       .put("barcode", "90000")

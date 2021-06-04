@@ -1407,7 +1407,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
               if(resetRes.failed()) {
                 logger.error("Unable to delete item '" + reserve.getItemId() +
                     "', " + resetRes.cause().getLocalizedMessage());
-              } 
+              }
               deleteItem(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext)
                   .onComplete(deleteRes -> {
                 if(deleteRes.failed()) {
@@ -1415,7 +1415,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                 } else {
                   promise.complete();
                 }
-              });              
+              });
             });
           }
         } catch(Exception e) {
@@ -1472,7 +1472,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             String capField = singleField.substring(0, 1).toUpperCase() +
                 singleField.substring(1);
             if(i == subFieldArray.length - 1) {
-              String setterMethodName = "set" + capField;              
+              String setterMethodName = "set" + capField;
               Method setterMethod = getMethodByName(currentObject, setterMethodName);
               if(setterMethod != null) {
                 logger.debug("Calling set method " + setterMethod.getName() + " ("+
@@ -1481,17 +1481,17 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
               }
               break;
             } else {
-              String getterMethodName = "get" + capField;              
+              String getterMethodName = "get" + capField;
               Method getterMethod = getMethodByName(currentObject, getterMethodName);
               if(getterMethod != null) {
                 logger.debug("Calling get method " + getterMethod.getName());
                 currentObject = getterMethod.invoke(currentObject);
               } else {
                 break;
-              }              
+              }
             }
           }
-        }        
+        }
       } catch(Exception e) {
         String currentObjectClassName
             = currentObject != null ? currentObject.getClass().getName() : "<null>";
@@ -1581,7 +1581,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
          * in the reserve if one exists in the courseListing. We do not want the override
          * for a PUT operation
          */
-        if(writeType == WriteType.POST && 
+        if(writeType == WriteType.POST &&
           originalTemporaryLocationId == null && courseListingLocation != null) {
           logger.info("Using courseListing location for reserve temporary location");
           originalTemporaryLocationId = courseListingLocation;
@@ -1639,7 +1639,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                   } else {
                     putFuture = Future.succeededFuture();
                   }
-                  putFuture.onComplete(putRes -> {
+                  putFuture.<Void>map(x -> {
                     //We need to set the temporary location if it exists
                     if(finalOriginalTemporaryLocationId != null && entity.getCopiedItem() != null) {
                       entity.getCopiedItem().setTemporaryLocationId(finalOriginalTemporaryLocationId);
@@ -1655,6 +1655,13 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                           PutCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
                           asyncResultHandler);
                     }
+                    return null;
+                  })
+                  .onFailure(e -> {
+                    String message = logAndSaveError(e);
+                    asyncResultHandler.handle(Future.succeededFuture(
+                        PostCoursereservesCourselistingsReservesByListingIdResponse
+                        .respond500WithTextPlain(getErrorResponse(message))));
                   });
                 } catch(Exception e) {
                   String message = logAndSaveError(e);

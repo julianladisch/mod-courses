@@ -2220,37 +2220,25 @@ public class CourseAPITest {
 
    @Test
    public void testPutToItem(TestContext context) {
-     Async async = context.async();
      String itemId = OkapiMock.item1Id;
      String newBarcode = "1112223334";
      JsonObject newItem = new JsonObject()
          .put("id", itemId)
+         .put("_version", 6)
          .put("status", new JsonObject().put("name", "Available"))
-        .put("holdingsRecordId", OkapiMock.holdings1Id)
-        .put("barcode",newBarcode)
-        .put("volume", OkapiMock.volume1)
-        .put("enumeration", OkapiMock.enumeration1)
-        .put("copyNumber", OkapiMock.copy1)
-        .put("electronicAccess", new JsonArray()
-          .add(new JsonObject()
-            .put("uri", OkapiMock.uri1)
-            .put("publicNote", OkapiMock.uri1))
-          );
+         .put("holdingsRecordId", OkapiMock.holdings1Id)
+         .put("barcode",newBarcode)
+         .put("volume", OkapiMock.volume1)
+         .put("enumeration", OkapiMock.enumeration1)
+         .put("copyNumber", OkapiMock.copy1)
+         .put("electronicAccess", new JsonArray()
+             .add(new JsonObject()
+                 .put("uri", OkapiMock.uri1)
+                 .put("publicNote", OkapiMock.uri1))
+             );
      CRUtil.putItemUpdate(newItem, okapiHeaders, vertx.getOrCreateContext())
-         .onComplete(putRes -> {
-       if(putRes.failed()) {
-         context.fail(putRes.cause());
-       } else {
-         CRUtil.lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders,
-             vertx.getOrCreateContext()).onComplete(getRes -> {
-           if(getRes.failed()) {
-             context.fail(getRes.cause());
-           } else {
-             async.complete();
-           }
-         });
-       }
-     });
+     .compose(x -> CRUtil.lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders, vertx.getOrCreateContext()))
+     .onComplete(context.asyncAssertSuccess());
    }
 
    @Test
