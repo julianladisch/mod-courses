@@ -1,6 +1,7 @@
 package CourseAPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 
 import CourseAPITest.TestUtil.WrappedResponse;
@@ -980,6 +981,24 @@ public class CourseAPITest {
             });
       }
     });
+  }
+
+  @Test
+  public void postReserveToCourseListingPutItemFails(TestContext context) {
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+            .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("copiedItem", new JsonObject()
+            .put("barcode", OkapiMock.barcode7));  // this triggers item PUT failure
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 500,
+        "Post Course Reserve")
+    .onComplete(context.asyncAssertSuccess(wrappedResponse -> {
+      assertThat(wrappedResponse.getBody(), containsString("We've mocked barcode 0 to fail on PUT"));
+    }));
   }
 
   @Test

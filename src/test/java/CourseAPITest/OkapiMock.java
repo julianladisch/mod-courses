@@ -34,6 +34,8 @@ public class OkapiMock extends AbstractVerticle {
   public static String item4Id = UUID.randomUUID().toString();
   public static String item5Id = UUID.randomUUID().toString();
   public static String item6Id = UUID.randomUUID().toString();
+  /** item where PUT fails */
+  public static String item7Id = UUID.randomUUID().toString();
   public static String holdings1Id = UUID.randomUUID().toString();
   public static String holdings2Id = UUID.randomUUID().toString();
   public static String instance1Id = UUID.randomUUID().toString();
@@ -42,6 +44,8 @@ public class OkapiMock extends AbstractVerticle {
   public static String barcode2 = "539311253355";
   public static String barcode3 = "794630622287";
   public static String barcode4 = "229842532165";
+  /** barcode of item where PUT fails */
+  public static String barcode7 = "0";
   public static String location1Id = UUID.randomUUID().toString();
   public static String location2Id = UUID.randomUUID().toString();
   public static String fullCallNumber1 = "D15.H63 A3 2002";
@@ -227,6 +231,11 @@ public class OkapiMock extends AbstractVerticle {
         }
         if (6 != putJson.getInteger("_version")) {  // optimistic locking
           throw new IllegalArgumentException("_version must be 6 in putJson: " + putJson.encodePrettily());
+        }
+        if ("0".equals(putJson.getString("barcode"))) {
+          context.response().setStatusCode(500)
+              .end("We've mocked barcode 0 to fail on PUT");
+          return;
         }
         logger.info("Writing JSON back to mapping");
         itemMap.put(id, putJson);
@@ -617,6 +626,12 @@ public class OkapiMock extends AbstractVerticle {
       .put("permanentLocationId", location2Id)
       .put("copyNumbers", new JsonArray()
           .add(copy1))
+    );
+
+    itemMap.put(item7Id, itemMap
+        .get(item1Id).copy()
+        .put("id", item7Id)
+        .put("barcode", barcode7)
     );
 
     holdingsMap.put(holdings1Id, new JsonObject()
