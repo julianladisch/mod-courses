@@ -1610,15 +1610,15 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             } else {
               itemId = null;
             }
-            Future<Boolean> checkUniqueFuture;
+            Future<Boolean> checkItemInUseFuture;
             if(writeType == WriteType.POST) {
-              checkUniqueFuture = checkUniqueReserveForListing(listingId, itemId, okapiHeaders,
+              checkItemInUseFuture = checkUniqueReserveForListing(listingId, itemId, okapiHeaders,
                 vertxContext);
             } else {
-              checkUniqueFuture = Future.succeededFuture(Boolean.FALSE);
+              checkItemInUseFuture = Future.succeededFuture(Boolean.FALSE);
             }
-            checkUniqueFuture.onComplete(checkUniqueRes -> {
-              if(checkUniqueRes.succeeded() && Boolean.TRUE.equals(checkUniqueRes.result())) {
+            checkItemInUseFuture.onComplete(checkItemInUseRes -> {
+              if(checkItemInUseRes.succeeded() && Boolean.TRUE.equals(checkItemInUseRes.result())) {
                 String message = "itemId " + itemId + " is already in use for courseListing "
                     + listingId;
                 asyncResultHandler.handle(Future.succeededFuture(

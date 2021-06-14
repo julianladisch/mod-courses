@@ -826,16 +826,37 @@ public class CourseAPITest {
                   } else {
                     JsonObject getItemJson = getItemRes.result().getJson();
                     logger.info("Returned item Json is " + getItemJson.encode());
+                    Exception fail = null;
                     try {
                       context.assertNull(getItemJson.getString("temporaryLocationId"));
-                      async.complete();
+                      //async.complete();
                     } catch(Exception e) {
-                      context.fail(e);
+                      fail = e;
+                      //context.fail(e);
+                    }
+                    if(fail != null) {
+                      context.fail(fail);
+                    } else {
+                      TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+                        "/reserves/" + reserveJson.getString("id"), GET, standardHeaders, null,
+                        200, "Get Course Reserve Again").onComplete(getReserveRes2 -> {
+                        if(getReserveRes2.failed()) {
+                          context.fail(getReserveRes2.cause());
+                        } else {
+                          JsonObject reserveGetJson2 = getReserveRes2.result().getJson();
+                          try {
+                            context.assertNull(reserveGetJson2.getJsonObject("copiedItem").getString("temporaryItemId"));
+                            async.complete();
+                          } catch(Exception e) {
+                            context.fail(e);
+                          }
+                        }
+
+                      });
                     }
                   }
                 });
               //The item should have the temporary location un-set.
-
             });
           }
         });
