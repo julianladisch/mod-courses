@@ -1190,20 +1190,21 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
           if (reserve.getItemId() == null) {
             resetItemFuture = Future.succeededFuture();
           } else {
-            resetItemFuture = resetItemTemporaryLocation(reserve.getItemId(), okapiHeaders, vertxContext)
-                .onComplete(resetRes -> {
-                  if (resetRes.failed()) {
-                    logger.error("Unable to delete item '" + reserve.getItemId() + "', "
-                        + resetRes.cause().getLocalizedMessage());
-                  }
-                  deleteItem(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext).onComplete(deleteRes -> {
-                    if (deleteRes.failed()) {
-                      promise.fail(deleteRes.cause());
-                    } else {
-                      promise.complete();
-                    }
-                  });
-                });
+            resetItemFuture = resetItemTemporaryLocation(reserve.getItemId(),
+                okapiHeaders, vertxContext).onComplete(resetRes -> {
+              if(resetRes.failed()) {
+                logger.error("Unable to delete item '" + reserve.getItemId() +
+                    "', " + resetRes.cause().getLocalizedMessage());
+              }
+              deleteItem(RESERVES_TABLE, reserveId, okapiHeaders, vertxContext)
+                  .onComplete(deleteRes -> {
+                if(deleteRes.failed()) {
+                  promise.fail(deleteRes.cause());
+                } else {
+                  promise.complete();
+                }
+              });
+            });
           }
         } catch (Exception e) {
           promise.fail(e);
@@ -1254,8 +1255,9 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             break;
           } else {
             singleField = subFieldArray[i];
-            String capField = singleField.substring(0, 1).toUpperCase() + singleField.substring(1);
-            if (i == subFieldArray.length - 1) {
+            String capField = singleField.substring(0, 1).toUpperCase() +
+                singleField.substring(1);
+            if(i == subFieldArray.length - 1) {
               String setterMethodName = "set" + capField;
               Method setterMethod = getMethodByName(currentObject, setterMethodName);
               if (setterMethod != null) {
@@ -1276,10 +1278,12 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
             }
           }
         }
-      } catch (Exception e) {
-        String currentObjectClassName = currentObject != null ? currentObject.getClass().getName() : "<null>";
-        logger.debug("Error scrubbing derived fields with field '" + singleField + "' " + "and object "
-            + currentObjectClassName + " : " + e.getLocalizedMessage() + ", " + e.getClass().getName());
+      } catch(Exception e) {
+        String currentObjectClassName
+            = currentObject != null ? currentObject.getClass().getName() : "<null>";
+        logger.debug("Error scrubbing derived fields with field '" + singleField + "' " +
+            "and object " + currentObjectClassName + " : "
+            + e.getLocalizedMessage() + ", " + e.getClass().getName());
       }
     }
   }
@@ -1363,18 +1367,6 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
 
         logger.info("originalTemporaryLocationId has a value of " + originalTemporaryLocationId.get());
 
-        /*
-         * If this is a POST operation, we want to override a null temporaryLocationId
-         * in the reserve if one exists in the courseListing. We do not want the override
-         * for a PUT operation
-         */
-        /*
-        if(writeType == WriteType.POST && 
-          originalTemporaryLocationId == null && courseListingLocation != null) {
-          logger.info("Using courseListing location for reserve temporary location");
-          originalTemporaryLocationId = courseListingLocation;
-        }
-        */
         Future<JsonObject> getCopiedItemsFuture;
         if(entity.getItemId() != null || (
             entity.getCopiedItem() != null && entity.getCopiedItem().getBarcode() != null)) {
@@ -1440,7 +1432,7 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                   } else {
                     putFuture = Future.succeededFuture();
                   }
-                  putFuture.onComplete(putRes -> {
+                  putFuture.<Void>map(x -> {
                     //We need to set the temporary location if it exists
                     //if(finalOriginalTemporaryLocationId != null && entity.getCopiedItem() != null) {
                     if(entity.getCopiedItem() != null) {
@@ -1459,6 +1451,13 @@ public class CourseAPI implements org.folio.rest.jaxrs.resource.Coursereserves {
                           PutCoursereservesCourselistingsReservesByListingIdAndReserveIdResponse.class,
                           asyncResultHandler);
                     }
+                    return null;
+                  })
+                  .onFailure(e -> {
+                    String message = logAndSaveError(e);
+                    asyncResultHandler.handle(Future.succeededFuture(
+                        PostCoursereservesCourselistingsReservesByListingIdResponse
+                        .respond500WithTextPlain(getErrorResponse(message))));
                   });
                 } catch(Exception e) {
                   String message = logAndSaveError(e);

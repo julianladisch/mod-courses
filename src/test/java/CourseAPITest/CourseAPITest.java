@@ -1,6 +1,7 @@
 package CourseAPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 
 import CourseAPITest.TestUtil.WrappedResponse;
@@ -1001,6 +1002,24 @@ public class CourseAPITest {
             });
       }
     });
+  }
+
+  @Test
+  public void postReserveToCourseListingPutItemFails(TestContext context) {
+    JsonObject reservePostJson = new JsonObject()
+        .put("courseListingId", COURSE_LISTING_1_ID)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+            .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID))
+        .put("copiedItem", new JsonObject()
+            .put("barcode", OkapiMock.barcode7));  // this triggers item PUT failure
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        "/reserves", POST, standardHeaders, reservePostJson.encode(), 500,
+        "Post Course Reserve")
+    .onComplete(context.asyncAssertSuccess(wrappedResponse -> {
+      assertThat(wrappedResponse.getBody(), containsString("We've mocked barcode 0 to fail on PUT"));
+    }));
   }
 
   @Test
@@ -2241,37 +2260,25 @@ public class CourseAPITest {
 
    @Test
    public void testPutToItem(TestContext context) {
-     Async async = context.async();
      String itemId = OkapiMock.item1Id;
      String newBarcode = "1112223334";
      JsonObject newItem = new JsonObject()
          .put("id", itemId)
+         .put("_version", 6)
          .put("status", new JsonObject().put("name", "Available"))
-        .put("holdingsRecordId", OkapiMock.holdings1Id)
-        .put("barcode",newBarcode)
-        .put("volume", OkapiMock.volume1)
-        .put("enumeration", OkapiMock.enumeration1)
-        .put("copyNumber", OkapiMock.copy1)
-        .put("electronicAccess", new JsonArray()
-          .add(new JsonObject()
-            .put("uri", OkapiMock.uri1)
-            .put("publicNote", OkapiMock.uri1))
-          );
+         .put("holdingsRecordId", OkapiMock.holdings1Id)
+         .put("barcode",newBarcode)
+         .put("volume", OkapiMock.volume1)
+         .put("enumeration", OkapiMock.enumeration1)
+         .put("copyNumber", OkapiMock.copy1)
+         .put("electronicAccess", new JsonArray()
+             .add(new JsonObject()
+                 .put("uri", OkapiMock.uri1)
+                 .put("publicNote", OkapiMock.uri1))
+             );
      CRUtil.putItemUpdate(newItem, okapiHeaders, vertx.getOrCreateContext())
-         .onComplete(putRes -> {
-       if(putRes.failed()) {
-         context.fail(putRes.cause());
-       } else {
-         CRUtil.lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders,
-             vertx.getOrCreateContext()).onComplete(getRes -> {
-           if(getRes.failed()) {
-             context.fail(getRes.cause());
-           } else {
-             async.complete();
-           }
-         });
-       }
-     });
+     .compose(x -> CRUtil.lookupItemHoldingsInstanceByItemId(itemId, okapiHeaders, vertx.getOrCreateContext()))
+     .onComplete(context.asyncAssertSuccess());
    }
 
    @Test
