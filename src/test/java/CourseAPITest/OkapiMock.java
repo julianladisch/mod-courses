@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.folio.util.StringUtil;
 
 
 public class OkapiMock extends AbstractVerticle {
@@ -283,8 +284,8 @@ public class OkapiMock extends AbstractVerticle {
   }
 
    private static String parseBarcode(String query) {
-     Pattern pattern = Pattern.compile("barcode=(\\d+)");
-     Matcher matcher = pattern.matcher(query);
+     Pattern pattern = Pattern.compile("barcode==\"(\\d+)\"");
+     Matcher matcher = pattern.matcher(StringUtil.urlDecode(query));
      if(matcher.find()) {
        return matcher.group(1);
      } else {
@@ -628,11 +629,13 @@ public class OkapiMock extends AbstractVerticle {
           .add(copy1))
     );
 
+
     itemMap.put(item7Id, itemMap
         .get(item1Id).copy()
         .put("id", item7Id)
         .put("barcode", barcode7)
     );
+
 
     holdingsMap.put(holdings1Id, new JsonObject()
       .put("id", holdings1Id)
