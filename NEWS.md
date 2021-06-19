@@ -1,3 +1,8 @@
+## 1.2.3 2021-06-19
+* Correct issue with temporaryLocationId removal (MODCR-58)
+* Update interface versions for inventory (MODCR-59)
+* Correct issue with potential CQL injection (MODCR-62)
+
 ## 1.2.2 2021-04-26
 * Upgrade to RMB 32.2.2 (MODCR-58)
 * Add module permissions to PUT for requests
