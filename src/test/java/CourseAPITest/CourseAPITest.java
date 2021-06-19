@@ -827,16 +827,37 @@ public class CourseAPITest {
                   } else {
                     JsonObject getItemJson = getItemRes.result().getJson();
                     logger.info("Returned item Json is " + getItemJson.encode());
+                    Exception fail = null;
                     try {
                       context.assertNull(getItemJson.getString("temporaryLocationId"));
-                      async.complete();
+                      //async.complete();
                     } catch(Exception e) {
-                      context.fail(e);
+                      fail = e;
+                      //context.fail(e);
+                    }
+                    if(fail != null) {
+                      context.fail(fail);
+                    } else {
+                      TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+                        "/reserves/" + reserveJson.getString("id"), GET, standardHeaders, null,
+                        200, "Get Course Reserve Again").onComplete(getReserveRes2 -> {
+                        if(getReserveRes2.failed()) {
+                          context.fail(getReserveRes2.cause());
+                        } else {
+                          JsonObject reserveGetJson2 = getReserveRes2.result().getJson();
+                          try {
+                            context.assertNull(reserveGetJson2.getJsonObject("copiedItem").getString("temporaryItemId"));
+                            async.complete();
+                          } catch(Exception e) {
+                            context.fail(e);
+                          }
+                        }
+
+                      });
                     }
                   }
                 });
               //The item should have the temporary location un-set.
-
             });
           }
         });
@@ -3176,7 +3197,7 @@ public class CourseAPITest {
   }
 
   @Test
-  public void testCourseListingFallBackForLocation(TestContext context) {
+  public void testCourseListingNoFallBackForLocation(TestContext context) {
     Async async = context.async();
     String reserveId = UUID.randomUUID().toString();
     JsonObject reservePostJson1 = new JsonObject()
@@ -3193,9 +3214,60 @@ public class CourseAPITest {
       if(postRes.failed()) {
         context.fail(postRes.cause());
       } else {
-        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_1_ID +
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
         "/reserves/" + reserveId, GET, standardHeaders, null, 200,
-        "Post Course Reserve").onComplete(getRes -> {
+        "Get Course Reserve").onComplete(getRes -> {
+          if(getRes.failed()) {
+            context.fail(getRes.cause());
+          } else {
+            try {
+              JsonObject reserveJson = getRes.result().getJson();
+              JsonObject copiedJson = reserveJson.getJsonObject("copiedItem");
+              context.assertEquals(OkapiMock.location1Id, copiedJson.getString("temporaryLocationId"));
+              CRUtil.makeOkapiRequest(vertx, okapiHeaders, "/item-storage/items/" + reserveJson.getString("itemId"),
+                  GET, null, null, 200).onComplete(itemRes -> {
+                if(itemRes.failed()) {
+                  context.fail(itemRes.cause());
+                } else {
+                  try {
+                    JsonObject itemJson = itemRes.result();
+                    context.assertEquals(OkapiMock.location1Id, itemJson.getString("temporaryLocationId"));
+                    async.complete();
+                  } catch(Exception e) {
+                    context.fail(e);
+                  }
+                }
+              });
+            } catch(Exception e) {
+              context.fail(e);
+            }
+          }
+        });
+      }
+    });
+  }
+
+  @Test
+  public void testCourseListingFallBackForLocation(TestContext context) {
+    Async async = context.async();
+    String reserveId = UUID.randomUUID().toString();
+    JsonObject reservePostJson1 = new JsonObject()
+        .put("id", reserveId)
+        .put("courseListingId", COURSE_LISTING_3_ID)
+        .put("itemId", OkapiMock.item4Id)
+        .put("temporaryLoanTypeId", OkapiMock.loanType1Id)
+        .put("processingStatusId", PROCESSING_STATUS_1_ID)
+        .put("copyrightTracking", new JsonObject()
+          .put("copyrightStatusId", COPYRIGHT_STATUS_1_ID));
+    TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+        "/reserves", POST, standardHeaders, reservePostJson1.encode(), 201,
+        "Post Course Reserve").onComplete(postRes -> {
+      if(postRes.failed()) {
+        context.fail(postRes.cause());
+      } else {
+        TestUtil.doRequest(vertx, baseUrl + "/courselistings/" + COURSE_LISTING_3_ID +
+        "/reserves/" + reserveId, GET, standardHeaders, null, 200,
+        "Get Course Reserve").onComplete(getRes -> {
           if(getRes.failed()) {
             context.fail(getRes.cause());
           } else {
