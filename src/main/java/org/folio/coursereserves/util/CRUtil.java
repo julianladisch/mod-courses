@@ -1048,6 +1048,7 @@ public class CRUtil {
     try {
        String id = itemJson.getString("id");
        String putPath = ITEMS_ENDPOINT + "/" + id;
+       logger.info("Making PUT request to Okapi inventory storage with itemJson " + itemJson.encode());
        makeOkapiRequest(context.owner(), okapiHeaders, putPath, HttpMethod.PUT,
            textAcceptHeaders, itemJson.encode(), 204).onComplete(res -> {
          if(res.failed()) {

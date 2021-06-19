@@ -35,6 +35,8 @@ public class OkapiMock extends AbstractVerticle {
   public static String item4Id = UUID.randomUUID().toString();
   public static String item5Id = UUID.randomUUID().toString();
   public static String item6Id = UUID.randomUUID().toString();
+  /** item where PUT fails */
+  public static String item7Id = UUID.randomUUID().toString();
   public static String holdings1Id = UUID.randomUUID().toString();
   public static String holdings2Id = UUID.randomUUID().toString();
   public static String instance1Id = UUID.randomUUID().toString();
@@ -43,6 +45,8 @@ public class OkapiMock extends AbstractVerticle {
   public static String barcode2 = "539311253355";
   public static String barcode3 = "794630622287";
   public static String barcode4 = "229842532165";
+  /** barcode of item where PUT fails */
+  public static String barcode7 = "0";
   public static String location1Id = UUID.randomUUID().toString();
   public static String location2Id = UUID.randomUUID().toString();
   public static String fullCallNumber1 = "D15.H63 A3 2002";
@@ -209,36 +213,45 @@ public class OkapiMock extends AbstractVerticle {
         context.response().setStatusCode(400)
             .end(message);
         return;
-      } else {
-        try {
-          String putContent = context.getBodyAsString();
-          if(putContent == null || putContent.length() == 0) {
-            throw new UnsupportedOperationException("No content in PUT body read");
-          }
-          logger.info("Got body of PUT request " + putContent);
-          JsonObject putJson = null;
-          if(!itemMap.containsKey(id)) {
-            context.response().setStatusCode(404)
-                .end("Item with id '" + id + "' does not exist");
-            return;
-          }
-          putJson = new JsonObject(putContent);
-          if(!putJson.getString("id").equals(id)) {
-            throw new UnsupportedOperationException("id field in json must match id '" + id + "'");
-          }
-          logger.info("Writing JSON back to mapping");
-          itemMap.put(id, putJson);
-          logger.info("Return response");
-          context.response().setStatusCode(204).end();
-        } catch(UnsupportedOperationException uoe) {
-          context.response().setStatusCode(400)
-              .end(uoe.getLocalizedMessage());
-          return;
-        } catch(Exception e) {
-          context.response().setStatusCode(500)
-              .end(e.getLocalizedMessage());
+      }
+      try {
+        String putContent = context.getBodyAsString();
+        if(putContent == null || putContent.length() == 0) {
+          throw new UnsupportedOperationException("No content in PUT body read");
+        }
+        logger.info("Got body of PUT request " + putContent);
+        JsonObject putJson = null;
+        if(!itemMap.containsKey(id)) {
+          context.response().setStatusCode(404)
+              .end("Item with id '" + id + "' does not exist");
           return;
         }
+        putJson = new JsonObject(putContent);
+        if(!putJson.getString("id").equals(id)) {
+          throw new UnsupportedOperationException("id field in json must match id '" + id + "'");
+        }
+        if (6 != putJson.getInteger("_version")) {  // optimistic locking
+          throw new IllegalArgumentException("_version must be 6 in putJson: " + putJson.encodePrettily());
+        }
+        if ("0".equals(putJson.getString("barcode"))) {
+          context.response().setStatusCode(500)
+              .end("We've mocked barcode 0 to fail on PUT");
+          return;
+        }
+        logger.info("Writing JSON back to mapping");
+        itemMap.put(id, putJson);
+        logger.info("Return response");
+        context.response().setStatusCode(204).end();
+      } catch(UnsupportedOperationException e) {
+        logger.error(e.getMessage(), e);
+        context.response().setStatusCode(400)
+            .end(e.getLocalizedMessage());
+        return;
+      } catch(Exception e) {
+        logger.error(e.getMessage(), e);
+        context.response().setStatusCode(500)
+            .end(e.getLocalizedMessage());
+        return;
       }
     } else if(context.request().method() == HttpMethod.DELETE) {
       if(id == null) {
@@ -551,6 +564,7 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item1Id, new JsonObject()
         .put("id", item1Id)
+        .put("_version", 6)
         .put("status", new JsonObject().put("name", "Available"))
         .put("holdingsRecordId", holdings1Id)
         .put("barcode", barcode1)
@@ -571,6 +585,7 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item2Id, new JsonObject()
       .put("id", item2Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings1Id)
       .put("barcode", barcode2)
@@ -589,6 +604,7 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item3Id, new JsonObject()
       .put("id", item3Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings2Id)
       .put("barcode", barcode3)
@@ -602,6 +618,7 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item4Id, new JsonObject()
       .put("id", item4Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings2Id)
       .put("barcode", barcode4)
@@ -611,6 +628,14 @@ public class OkapiMock extends AbstractVerticle {
       .put("copyNumbers", new JsonArray()
           .add(copy1))
     );
+
+
+    itemMap.put(item7Id, itemMap
+        .get(item1Id).copy()
+        .put("id", item7Id)
+        .put("barcode", barcode7)
+    );
+
 
     holdingsMap.put(holdings1Id, new JsonObject()
       .put("id", holdings1Id)
@@ -777,6 +802,7 @@ public class OkapiMock extends AbstractVerticle {
     logger.info("Adding sample data to mock okapi");
     itemMap.put(item5Id, new JsonObject()
       .put("id", item5Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings2Id)
       .put("barcode", "4539876054383" )
@@ -789,6 +815,7 @@ public class OkapiMock extends AbstractVerticle {
 
     itemMap.put(item6Id, new JsonObject()
       .put("id", item6Id)
+      .put("_version", 6)
       .put("status", new JsonObject().put("name", "Available"))
       .put("holdingsRecordId", holdings2Id)
       .put("barcode", "90000")
