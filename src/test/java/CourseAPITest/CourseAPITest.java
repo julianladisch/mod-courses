@@ -116,7 +116,6 @@ public class CourseAPITest {
     standardHeaders.add("x-okapi-url", okapiUrl);
     acceptTextHeaders.add("accept", "text/plain");
     acceptTextHeaders.add("x-okapi-url", okapiUrl);
-    CourseAPI.setSuppressErrors(false);
     vertx = Vertx.vertx();
     DeploymentOptions options = new DeploymentOptions()
         .setConfig(new JsonObject().put("http.port", port));
