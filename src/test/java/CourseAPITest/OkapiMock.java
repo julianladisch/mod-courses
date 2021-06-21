@@ -118,13 +118,9 @@ public class OkapiMock extends AbstractVerticle {
     router.route("/addsample").handler(this::handleAddSample);
 
     logger.info("Running OkapiMock on port " + port);
-    server.requestHandler(router).listen(port, result -> {
-      if(result.failed()) {
-        promise.fail(result.cause());
-      } else {
-        promise.complete();
-      }
-    });
+    server.requestHandler(router).listen(port)
+    .<Void>mapEmpty()
+    .onComplete(promise);
   }
 
    private void handleUsers(RoutingContext context) {

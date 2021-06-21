@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.folio.coursereserves.util.CRUtil;
+import org.folio.postgres.testing.PostgresTesterContainer;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.impl.CourseAPI;
 import static org.folio.rest.impl.CourseAPI.RESERVES_TABLE;
@@ -105,7 +106,6 @@ public class CourseAPITest {
 
   @BeforeClass
   public static void beforeClass(TestContext context) {
-    Async async = context.async();
     port = NetworkUtils.nextFreePort();
     okapiPort = NetworkUtils.nextFreePort();
     baseUrl = "http://localhost:"+port+"/coursereserves";
@@ -121,77 +121,21 @@ public class CourseAPITest {
         .setConfig(new JsonObject().put("http.port", port));
     DeploymentOptions okapiOptions = new DeploymentOptions()
         .setConfig(new JsonObject().put("port", okapiPort));
-    try {
-      PostgresClient.setEmbeddedPort(NetworkUtils.nextFreePort());
-      PostgresClient.setIsEmbedded(true);
-      PostgresClient.getInstance(vertx).startEmbeddedPostgres();
-      Thread.sleep(3000);
-    } catch(Exception e) {
-      e.printStackTrace();
-      context.fail(e);
-      return;
-    }
-    vertx.deployVerticle(RestVerticle.class.getName(), options, deployCourseRes -> {
-      if(deployCourseRes.failed()) {
-        context.fail(deployCourseRes.cause());
-      } else {
-        restVerticleId = deployCourseRes.result();
-        try {
-          initTenant("diku", port).onComplete(initRes -> {
-            if(initRes.failed()) {
-              context.fail(initRes.cause());
-            } else {
-              vertx.deployVerticle(OkapiMock.class.getName(), okapiOptions,
-                deployOkapiRes -> {
-                if(deployOkapiRes.failed()) {
-                  context.fail(deployOkapiRes.cause());
-                } else {
-                  okapiVerticleId = deployOkapiRes.result();
-                  async.complete();
-                }
-              });
-            }
-          });
-        } catch(Exception e) {
-          e.printStackTrace();
-          context.fail(e);
-        }
-      }
-    });
+    PostgresClient.setPostgresTester(new PostgresTesterContainer());
+    vertx.deployVerticle(RestVerticle.class.getName(), options)
+    .compose(deployCourseRes -> {
+      restVerticleId = deployCourseRes;
+      return initTenant("diku", port);
+    }).compose(initRes -> vertx.deployVerticle(OkapiMock.class.getName(), okapiOptions))
+    .onSuccess(deployOkapiRes -> okapiVerticleId = deployOkapiRes)
+    .onComplete(context.asyncAssertSuccess());
   }
 
   @AfterClass
   public static void afterClass(TestContext context) {
-    Async async = context.async();
-    vertx.undeploy(okapiVerticleId, undeployOkapiRes -> {
-      if(undeployOkapiRes.failed()) {
-        context.fail(undeployOkapiRes.cause());
-      } else {
-        vertx.undeploy(restVerticleId, undeployCourseRes -> {
-          if(undeployCourseRes.failed()) {
-            context.fail(undeployCourseRes.cause());
-          } else {
-            try {
-                PostgresClient.stopEmbeddedPostgres();
-              } catch(Exception e) {
-                logger.error(e.getLocalizedMessage());
-              }
-              async.complete();
-            /*
-            vertx.close(context.asyncAssertSuccess( res -> {
-              PostgresClient.stopEmbeddedPostgres();
-              try {
-                Thread.sleep(3000);
-              } catch(Exception e) {
-                logger.error(e.getLocalizedMessage());
-              }
-              async.complete();
-            }));
-            */
-          }
-        });
-      }
-    });
+    vertx.undeploy(okapiVerticleId)
+    .compose(x -> vertx.undeploy(restVerticleId))
+    .onComplete(context.asyncAssertSuccess());
   }
 
   @Before
