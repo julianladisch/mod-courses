@@ -4,12 +4,17 @@ import static org.junit.Assert.assertFalse;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertTrue;
-import org.z3950.zing.cql.CQLParseException;
+
+import org.junit.After;
+import org.junit.Before;
 
 public class CourseAPITest {
-  
-  
+
+  @Before
+  @After
+  public void cleanUp() {
+    CourseAPI.setSuppressErrors(false);
+  }
 
   @Test
   public void testIsDuplicate() {
@@ -30,5 +35,5 @@ public class CourseAPITest {
     assertFalse(CourseAPI.isCQLError(e));
   }
 
-  
+
 }
